@@ -1,72 +1,80 @@
 syntax = "proto3";
 
 message ResourceLimits {
-	double timeLimit = 1; // seconds
-	double wallTimeLimit = 2; // seconds
-	double memoryLimit = 3; // kilobytes
+    double cpuTime = 1; // seconds
+    double wallTime = 2; // seconds
+    double memory = 3; // kilobytes
+    double diskio = 4; // kilobytes
 }
 
 message StreamRedirections {
-	string infile = 1;
-	string outfile = 2;
-	string errfile = 3;
+    string infile = 1;
+    string outfile = 2;
+    string errfile = 3;
 }
 
 message DirectoryRule {
-	string source = 1;
-	string destination = 2;
-	bool writable = 3;
-	bool executable = 4;
-	bool device = 5;
+    string source = 1;
+    string destination = 2;
+    bool writable = 3;
+    bool executable = 4;
 }
 
 message Command {
-	string command = 1;
-	repeated string flags = 2;
-	string workingDirectory = 3;
+    string command = 1;
+    repeated string flags = 2;
+    string workingDirectory = 3;
 }
 
 
 message ResourceUsage {
-	double time = 1; // seconds
-	double walltime = 2; // seconds
-	double memory = 3; // kilobytes
+    double cpuTime = 1; // seconds
+    double wallTime = 2; // seconds
+    double memory = 3; // kilobytes
+    double diskio = 4; // kilobytes
 }
 
 message Termination {
-	message Signal {
-		int32 signal = 1;
-	}
-	message Exit {
-		int32 code = 1;
-	}
-	Signal signal = 1;
-	Exit exit = 2;
+    message Signal {
+        int32 signal = 1;
+    }
+    message Exit {
+        int32 code = 1;
+    }
+    message ResourceExceeded {
+        bool cpuTime = 1;
+        bool wallTime = 2;
+        bool memory = 3;
+        bool diskio = 4;
+    }
+    Signal signal = 1;
+    Exit exit = 2;
+    ResourceExceeded resourceExceeded = 3;
 }
 
 message ExecutionResult {
-	Termination termination = 1;
-	ResourceUsage resourceUsage = 2;
+    Termination termination = 1;
+    ResourceUsage resourceUsage = 2;
 }
 
 message ExecutionFailure {
-	string error = 1;
+    string error = 1;
 }
 
 message ExecuteRequest {
-	Command command = 1;
-	StreamRedirections streams = 2;
-	repeated DirectoryRule directories = 3;
-	ResourceLimits limits = 4;
+    Command command = 1;
+    StreamRedirections streams = 2;
+    repeated DirectoryRule directories = 3;
+    ResourceLimits limits = 4;
 }
 
 message ExecuteResponse {
-	ExecutionResult result = 1;
-	ExecutionFailure failure = 2;
+    ExecutionResult result = 1;
+    ExecutionFailure failure = 2;
 }
 
 service Executor {
 
-	rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
+    rpc Execute(stream ExecuteRequest) returns (stream ExecuteResponse) {}
 
 }
