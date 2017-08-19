@@ -21,4 +21,5 @@ ostream& logAt(const LogLevel level);
 
 }
 
-#define LOG(level) log::logAt(level)
+#define LOG(level) LOG_LOCATION(level, __FILE__, __LINE__)
+#define LOG_LOCATION(level, file, line) log::logAt(level) << "[" << file << ":" << line << "] "

@@ -4,8 +4,8 @@
 #include <unistd.h>
 
 #include "cgroups.h"
-#include "errors/errors.h"
-#include "logger/logger.h"
+#include "util/error.h"
+#include "util/log.h"
 
 using std::stringstream;
 
@@ -29,37 +29,37 @@ string Cgroup::getSubsystemPath(const string& subsystem) {
 void writeTo(const string& path, const string& contents) {
     int fd = open(path.c_str(), O_WRONLY | O_TRUNC);
     if (fd == -1) {
-        crashSyscall("open");
+        CRASH_ERROR("open");
     }
     int written = write(fd, contents.c_str(), contents.size());
     if (written == -1) {
-        crashSyscall("write");
+        CRASH_ERROR("write");
     }
     if (written != (int)contents.size()) {
         LOG(FATAL) << "Could not write cgroup file" << endl;
-        crash();
+        CRASH();
     }
     if (close(fd) == -1) {
-        crashSyscall("close");
+        CRASH_ERROR("close");
     }
 }
 
 long long readLongLongFrom(const string& path) {
     int fd = open(path.c_str(), O_RDONLY);
     if (fd == -1) {
-        crashSyscall("open");
+        CRASH_ERROR("open");
     }
     char buf[30];
     int readd = read(fd, buf, sizeof(buf));
     if (readd == -1) {
-        crashSyscall("read");
+        CRASH_ERROR("read");
     }
     if (readd >= (int)sizeof(buf) - 1) {
         LOG(FATAL) << "Could not read cgroup value" << endl;
-        crash();
+        CRASH();
     }
     if (close(fd) == -1) {
-        crashSyscall("close");
+        CRASH_ERROR("close");
     }
     if (readd && buf[readd - 1] == '\n') {
         --readd;
@@ -73,7 +73,7 @@ void Cgroup::enableSubsystem(const string& subsystem) {
     string subsystemPath = getSubsystemPath(subsystem);
     if (mkdir(subsystemPath.c_str(), 0755) == -1) {
         if (errno != EEXIST) {
-            crashSyscall("mkdir");
+            CRASH_ERROR("mkdir");
         }
     }
 
@@ -89,7 +89,7 @@ void Cgroup::disableSubsystem(const string& subsystem) {
     string subsystemPath = getSubsystemPath(subsystem);
     if (rmdir(subsystemPath.c_str()) == -1) {
         if (errno != ENOENT) {
-            crashSyscall("mkdir");
+            CRASH_ERROR("mkdir");
         }
     }
 }
@@ -126,19 +126,19 @@ long long Cgroup::BytesTransferred() {
     // the following somewhat cumbersome reading
     int fd = open(bytesTransferredPath.c_str(), O_RDONLY);
     if (fd == -1) {
-        crashSyscall("open");
+        CRASH_ERROR("open");
     }
     char buf[3000];
     int readd = read(fd, buf, sizeof(buf));
     if (readd == -1) {
-        crashSyscall("read");
+        CRASH_ERROR("read");
     }
     if (readd >= (int)sizeof(buf) - 1) {
         LOG(FATAL) << "Could not read cgroup value" << endl;
-        crash();
+        CRASH();
     }
     if (close(fd) == -1) {
-        crashSyscall("close");
+        CRASH_ERROR("close");
     }
     buf[readd] = 0;
     assert(readd > 0);

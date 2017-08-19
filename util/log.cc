@@ -5,7 +5,8 @@
 
 using namespace std;
 
-#include "logger.h"
+#include "error.h"
+#include "log.h"
 
 DEFINE_string(loglevel, "info", "the lowest log level to display (trace, debug, info, warn, error, fatal, disabled)");
 
@@ -20,7 +21,7 @@ static string toLevelString(const LogLevel level) {
     if (level == LogLevel::FATAL) return "fatal";
     if (level == LogLevel::NONE) return "none";
     LOG(FATAL) << "Invalid log level " << level << endl;
-    exit(1);
+	crash();
 }
 
 static LogLevel toLogLevel(string level) {
@@ -34,7 +35,7 @@ static LogLevel toLogLevel(string level) {
     if (level == "fatal") return LogLevel::FATAL;
     if (level == "none") return LogLevel::NONE;
     LOG(FATAL) << "Invalid log level " << level << endl;
-    exit(1);
+	crash();
 }
 
 static LogLevel leastLogLevel;
@@ -57,7 +58,7 @@ ostream& logAt(const LogLevel level) {
     if (level < leastLogLevel) {
         return nullStream;
     }
-    cerr << "[" << loggerName << "][" << toLevelString(level) << "] ";
+    cerr << "[" << loggerName << "][" << toLevelString(level) << "]";
     return cerr;
 }
 

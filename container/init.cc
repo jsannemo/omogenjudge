@@ -6,9 +6,9 @@
 #include <unistd.h>
 
 #include "chroot.h"
-#include "errors/errors.h"
 #include "init.h"
-#include "logger/logger.h"
+#include "util/error.h"
+#include "util/log.h"
 #include "proto/omogenexec.pb.h"
 
 using std::remove_const;
@@ -16,7 +16,7 @@ using std::remove_const;
 void closeFdsExcept(vector<int> fdsToKeep) {
     DIR *fdDir = opendir("/proc/self/fd");
     if (fdDir == nullptr) {
-        crashSyscall("opendir");
+        CRASH_ERROR("opendir");
     }
     // Do not accidentally close the fd directory fd
     fdsToKeep.push_back(dirfd(fdDir));
@@ -24,7 +24,7 @@ void closeFdsExcept(vector<int> fdsToKeep) {
         struct dirent *entry = readdir(fdDir);
         if (entry == nullptr) {
             if (errno != 0) {
-                crashSyscall("readdir");
+                CRASH_ERROR("readdir");
             }
             break;
         }
@@ -40,20 +40,20 @@ void closeFdsExcept(vector<int> fdsToKeep) {
                 }
             }
             if (close(fd) == -1) {
-                crashSyscall("close");
+                CRASH_ERROR("close");
             }
 skip:;
         }
     }
     if (closedir(fdDir) == -1) {
-        crashSyscall("closedir");
+        CRASH_ERROR("closedir");
     }
 }
 
 void setResourceLimit(int resource, rlim_t limit) {
     rlimit rlim = { .rlim_cur = limit, .rlim_max = limit };
     if (setrlimit(resource, &rlim) == -1) {
-        crashSyscall("setrlimit");
+        CRASH_ERROR("setrlimit");
     }
 }
 
@@ -70,22 +70,22 @@ void setupStreams(const StreamRedirections& streams) {
     // so the newly opened files will be mapped to the correct stream file descriptor
     close(0);
     if (open(streams.infile().c_str(), O_RDONLY) == -1) {
-        crashSyscall("open");
+        CRASH_ERROR("open");
     }
     close(1);
     if (open(streams.outfile().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666) == -1) {
-        crashSyscall("open");
+        CRASH_ERROR("open");
     }
     close(2);
     if (open(streams.errfile().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666) == -1) {
-        crashSyscall("open");
+        CRASH_ERROR("open");
     }
 }
 
 char* strdupOrDie(const char* str) {
     char *ret = strdup(str);
     if (ret == nullptr) {
-        crashSyscall("strdup");
+        CRASH_ERROR("strdup");
     }
     return ret;
 }
@@ -94,7 +94,7 @@ char* strdupOrDie(const char* str) {
 char** setupEnvironment() {
     char **env = static_cast<char**>(malloc(2 * sizeof(char*)));
     if (env == nullptr) {
-        crashSyscall("malloc");
+        CRASH_ERROR("malloc");
     }
     env[0] = strdup("PATH=/bin:/usr/bin");
     env[1] = nullptr;
@@ -104,7 +104,7 @@ char** setupEnvironment() {
 int Init(void* argp) {
     // If the parent dies for some reason, we wish to be SIGKILLed
     if (prctl(PR_SET_PDEATHSIG, SIGKILL) < 0) {
-        crashSyscall("prctl");
+        CRASH_ERROR("prctl");
     }
     InitArgs args = *static_cast<InitArgs*>(argp);
 
@@ -114,7 +114,7 @@ int Init(void* argp) {
     // We move ourself to a new process group so that we can kill(-pid) without
     // accidentally killing the parent
     if (setpgrp() == -1) {
-        crashSyscall("setpgrp");
+        CRASH_ERROR("setpgrp");
     }
 
     Chroot chroot(args.containerRoot);
@@ -122,11 +122,11 @@ int Init(void* argp) {
     ExecuteRequest request;
     if (!request.ParseFromFileDescriptor(args.commandPipe)) {
         LOG(FATAL) << "Could not read request from container" << endl;
-        crash();
+        CRASH();
     }
     LOG(TRACE) << "Init got request " << request.DebugString() << endl;
     if (close(args.commandPipe) == -1) {
-        crashSyscall("close");
+        CRASH_ERROR("close");
     }
 
     for (const auto& rule : request.directories()) {
@@ -146,7 +146,7 @@ int Init(void* argp) {
     // as long as possible
     setupStreams(request.streams());
     if (execve(argv[0], argv, setupEnvironment()) == -1) {
-        crashSyscall("execve");
+        CRASH_ERROR("execve");
     }
     return 1;
 }

@@ -6,11 +6,11 @@
 #include <thread>
 #include <vector>
 
-#include "container.h"
 #include "chroot.h"
-#include "errors/errors.h"
+#include "container.h"
 #include "init.h"
-#include "logger/logger.h"
+#include "util/error.h"
+#include "util/log.h"
 
 using std::atomic;
 using std::chrono::duration_cast;
@@ -22,18 +22,18 @@ using std::vector;
 
 Container::Container() {
     if (pipe(commandPipe) == -1) {
-        crashSyscall("pipe");
+        CRASH_ERROR("pipe");
     }
     containerRoot = CreateTemporaryRoot();
     InitArgs args { commandPipe[0], containerRoot };
     vector<char> stack(100 * 1024);
     initPid = clone(Init, stack.data() + stack.size(), SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUSER | CLONE_NEWUTS, &args);
     if (initPid == -1) {
-        crashSyscall("clone");
+        CRASH_ERROR("clone");
     }
     LOG(TRACE) << "Created new container with process ID is " << initPid << endl;
     if (close(commandPipe[0]) == -1) {
-        crashSyscall("close");
+        CRASH_ERROR("close");
     }
     cgroup = make_unique<Cgroup>(initPid);
 }
@@ -73,7 +73,7 @@ int Container::waitInit() {
             if (errno == EINTR) {
                 continue;
             }
-            crashSyscall("waitpid");
+            CRASH_ERROR("waitpid");
         }
         break;
     }
@@ -156,10 +156,10 @@ ExecuteResponse Container::Execute(const ExecuteRequest& request) {
     cgroup->Reset();
     if (!request.SerializeToFileDescriptor(commandPipe[1])) {
         LOG(FATAL) << "Could not send request to init" << endl;
-        crash();
+        CRASH();
     }
     if (close(commandPipe[1]) == -1) {
-        crashSyscall("close");
+        CRASH_ERROR("close");
     }
     return monitorInit(request.limits());
 }

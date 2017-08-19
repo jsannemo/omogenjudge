@@ -5,13 +5,13 @@
 #include <unistd.h>
 
 #include "chroot.h"
-#include "errors/errors.h"
-#include "logger/logger.h"
+#include "util/error.h"
+#include "util/log.h"
 
 void makeDir(const string& path) {
     errno = 0;
     if (mkdir(path.c_str(), 0755) == -1 && errno != EEXIST) {
-        crashSyscall("mkdir");
+        CRASH_ERROR("mkdir");
     }
 }
 
@@ -32,13 +32,13 @@ void makeDirectoryPath(const string& path) {
     }
     struct stat st;
     if (stat(path.c_str(), &st) == -1) {
-        crashSyscall("stat");
+        CRASH_ERROR("stat");
     }
     // Double-check that the path we should have created is indeed a directory now,
     // and not e.g. a file
     if (!S_ISDIR(st.st_mode)) {
         LOG(FATAL) << "Failed to create path" << endl;
-        crash();
+        CRASH();
     }
 }
 
@@ -54,11 +54,11 @@ void Chroot::AddDirectoryRule(const DirectoryRule& rule) {
     }
     LOG(TRACE) << "Mounting " << rule.source() << " on " << target << endl;
     if (mount(rule.source().c_str(), target.c_str(), nullptr, mountFlags, nullptr) == -1) {
-        crashSyscall("mount");
+        CRASH_ERROR("mount");
     }
     // Remount to make all the flags take effect
     if (mount(rule.source().c_str(), target.c_str(), nullptr, MS_REMOUNT | mountFlags, nullptr) == -1) {
-        crashSyscall("mount");
+        CRASH_ERROR("mount");
     }
 }
 
@@ -66,7 +66,7 @@ void Chroot::addDefaultRules() {
     string procPath = rootfs + "/proc";
     makeDirectoryPath(procPath);
     if (mount("/proc", "proc", "proc", MS_NODEV | MS_NOEXEC | MS_NOSUID, nullptr) == -1) {
-        crashSyscall("mount");
+        CRASH_ERROR("mount");
     }
 
     DirectoryRule rule;
@@ -92,17 +92,17 @@ void Chroot::addDefaultRules() {
 
 void Chroot::SetRoot() {
     if (chroot(rootfs.c_str()) == -1) {
-        crashSyscall("chroot");
+        CRASH_ERROR("chroot");
     }
 }
 
 string CreateTemporaryRoot() {
     char *rootPath = strdup("/tmp/omogencontainXXXXXX");
     if (rootPath == nullptr) {
-        crashSyscall("strdup");
+        CRASH_ERROR("strdup");
     }
     if (mkdtemp(rootPath) == nullptr) {
-        crashSyscall("mkdtemp");
+        CRASH_ERROR("mkdtemp");
     }
     string ret(rootPath);
     free(rootPath);
@@ -111,11 +111,11 @@ string CreateTemporaryRoot() {
 
 Chroot::Chroot(const string& path) : rootfs(path) {
     if (chdir(rootfs.c_str()) == -1) {
-        crashSyscall("chdir");
+        CRASH_ERROR("chdir");
     }
     LOG(TRACE) << "Setting up container root in " << rootfs << endl;
     if (mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr) == -1) {
-        crashSyscall("mount");
+        CRASH_ERROR("mount");
     }
     addDefaultRules();
 }
@@ -123,11 +123,11 @@ Chroot::Chroot(const string& path) : rootfs(path) {
 int removeTree0(const char *filePath, const struct stat *statData, int typeflag, struct FTW *ftwbuf) {
     if (S_ISDIR(statData->st_mode)) {
         if (rmdir(filePath) == -1) {
-            crashSyscall("rmdir");
+            CRASH_ERROR("rmdir");
         }
     } else {
         if (unlink(filePath) == -1) {
-            crashSyscall("unlink");
+            CRASH_ERROR("unlink");
         }
     }
     return FTW_CONTINUE;
@@ -135,6 +135,6 @@ int removeTree0(const char *filePath, const struct stat *statData, int typeflag,
 
 void DestroyDirectory(const string& directoryPath) {
     if (nftw(directoryPath.c_str(), removeTree0, 32, FTW_MOUNT | FTW_PHYS | FTW_DEPTH) == -1) {
-        crashSyscall("nftw");
+        CRASH_ERROR("nftw");
     }
 }

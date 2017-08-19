@@ -1,8 +1,8 @@
 cc_library(
-        name = "logger",
+        name = "util",
         visibility = ["//visibility:public"],
-        srcs = ["logger.cpp"],
-        hdrs = ["logger.h"],
+        srcs = ["log.cc", "error.cc"],
+        hdrs = ["log.h", "error.h"],
         deps = [
                 "//external:gflags",
         ],
