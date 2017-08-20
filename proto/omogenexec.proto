@@ -23,19 +23,19 @@ message StreamRedirections {
 // may read. Some default directories are mounted automatically, such as
 // /usr, /bin, /lib, /lib32, /lib64, /proc.
 message DirectoryRule {
-	// The path to the directory outside the container
+    // The path to the directory outside the container
     string oldPath = 1;
-	// The path inside the container 
+    // The path inside the container 
     string newPath = 2;
-	// Whether the directory should be mounted read-only or not.
-	// Note that if not writable, even e.g. world-writable files will not be writable.
+    // Whether the directory should be mounted read-only or not.
+    // Note that if not writable, even e.g. world-writable files will not be writable.
     bool writable = 3;
 }
 
 message Command {
     string command = 1;
     repeated string flags = 2;
-	// This is the working directory path inside the container.
+    // This is the working directory path inside the container.
     string workingDirectory = 3;
 }
 
@@ -61,12 +61,12 @@ message Termination {
         bool memory = 3;
         bool diskio = 4;
     }
-	// If the process terminated by a signal, it is set here.
+    // If the process terminated by a signal, it is set here.
     Signal signal = 1;
-	// If the process terminated normally, the exit code is set here.
+    // If the process terminated normally, the exit code is set here.
     Exit exit = 2;
-	// If the process exceeded any resources, they are set here.
-	// Note that neither signal nor exit is set in case of an exceeded resource.
+    // If the process exceeded any resources, they are set here.
+    // Note that neither signal nor exit is set in case of an exceeded resource.
     ResourceExceeded resourceExceeded = 3;
 }
 
@@ -88,9 +88,9 @@ message ExecuteRequest {
 
 message ExecuteResponse {
     ExecutionResult result = 1;
-	// A failure is set if an error was encountered when trying to execute a program,
-	// but an internal error occurred. This does not depend on if the contained program
-	// crashes -- this is a property of an ExecutionResult
+    // A failure is set if an error was encountered when trying to execute a program,
+    // but an internal error occurred. This does not depend on if the contained program
+    // crashes -- this is a property of an ExecutionResult
     ExecutionFailure failure = 2;
 }
 
