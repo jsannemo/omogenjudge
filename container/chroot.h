@@ -22,9 +22,11 @@ public:
     void AddDirectoryRule(const DirectoryRule& rule);
 
     // Changes the root of the current file system to the one given as the path.
+    // The new working directory will be the root of the new system.
     void SetRoot();
 
     // Changes the working directory to the root of the new file system.
+    // Note that this can only be used before SetRoot() is called.
     void SetWD();
 
     // Create a new chroot at the specified path, and initalize it with

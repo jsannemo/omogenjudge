@@ -75,6 +75,9 @@ void Chroot::SetRoot() {
     if (chroot(rootfs.c_str()) == -1) {
         OE_FATAL("chroot");
     }
+    if (chdir("/") == -1) {
+        OE_FATAL("chdir");
+    }
 }
 
 void Chroot::SetWD() {
