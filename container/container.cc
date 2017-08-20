@@ -81,7 +81,7 @@ int Container::waitInit() {
     // In case the container is actually used and thus waited for here, we do not want to
     // kill and wait for the process again when we destroy the container, so we mark that
     // we have already waited for the process.
-     waitedFor = true;
+    waitedFor = true;
     return waitStatus;
 }
 
