@@ -1,63 +1,32 @@
 #include <fcntl.h>
-#include <dirent.h>
+#include <iostream>
 #include <sys/prctl.h>
 #include <sys/resource.h>
 #include <type_traits>
 #include <unistd.h>
+#include <vector>
 
 #include "chroot.h"
 #include "init.h"
 #include "util/error.h"
+#include "util/files.h"
 #include "util/log.h"
 #include "proto/omogenexec.pb.h"
 
-using std::remove_const;
+using std::endl;
+using std::string;
+using std::vector;
 
-void closeFdsExcept(vector<int> fdsToKeep) {
-    DIR *fdDir = opendir("/proc/self/fd");
-    if (fdDir == nullptr) {
-        CRASH_ERROR("opendir");
-    }
-    // Do not accidentally close the fd directory fd
-    fdsToKeep.push_back(dirfd(fdDir));
-    while (true) {
-        struct dirent *entry = readdir(fdDir);
-        if (entry == nullptr) {
-            if (errno != 0) {
-                CRASH_ERROR("readdir");
-            }
-            break;
-        }
+namespace omogenexec {
 
-        errno = 0;
-        int fd = strtol(entry->d_name, nullptr, 10);
-        if (errno != 0) {
-            LOG(WARN) << "Ignoring invalid fd entry: " << entry->d_name << endl;
-        } else {
-            for (int fdToKeep : fdsToKeep) {
-                if (fd == fdToKeep) {
-                    goto skip;
-                }
-            }
-            if (close(fd) == -1) {
-                CRASH_ERROR("close");
-            }
-skip:;
-        }
-    }
-    if (closedir(fdDir) == -1) {
-        CRASH_ERROR("closedir");
-    }
-}
-
-void setResourceLimit(int resource, rlim_t limit) {
+static void setResourceLimit(int resource, rlim_t limit) {
     rlimit rlim = { .rlim_cur = limit, .rlim_max = limit };
     if (setrlimit(resource, &rlim) == -1) {
-        CRASH_ERROR("setrlimit");
+        OE_FATAL("setrlimit");
     }
 }
 
-void setResourceLimits(const ResourceLimits& resourceLimits) {
+static void setResourceLimits(const ResourceLimits& resourceLimits) {
     setResourceLimit(RLIMIT_AS, (rlim_t)resourceLimits.memory() * 1000);
     setResourceLimit(RLIMIT_STACK, RLIM_INFINITY);
     setResourceLimit(RLIMIT_MEMLOCK, 0);
@@ -65,68 +34,79 @@ void setResourceLimits(const ResourceLimits& resourceLimits) {
     setResourceLimit(RLIMIT_NOFILE, 100);
 }
 
-void setupStreams(const StreamRedirections& streams) {
-    // File descriptors are reused sequentially when we close our streams,
-    // so the newly opened files will be mapped to the correct stream file descriptor
+static void setupStreams(const StreamRedirections& streams) {
+    // When opening a new file, the lowest unused file descriptor is reused. Thus, we can
+    // map descriptors 0/1/2 to a particular file by closing the descriptor and then opening
+    // the correct file.
+    int fd;
     close(0);
-    if (open(streams.infile().c_str(), O_RDONLY) == -1) {
-        CRASH_ERROR("open");
+    fd = open(streams.infile().c_str(), O_RDONLY);
+    if (fd == -1) {
+        OE_FATAL("open");
     }
+    assert(fd == 0);
+
     close(1);
-    if (open(streams.outfile().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666) == -1) {
-        CRASH_ERROR("open");
+    fd = open(streams.outfile().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (fd == -1) {
+        OE_FATAL("open");
     }
+    assert(fd == 1);
+
     close(2);
-    if (open(streams.errfile().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666) == -1) {
-        CRASH_ERROR("open");
+    fd = open(streams.errfile().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (fd == -1) {
+        OE_FATAL("open");
     }
+    assert(fd == 2);
 }
 
-char* strdupOrDie(const char* str) {
+static char* strdupOrDie(const char* str) {
     char *ret = strdup(str);
     if (ret == nullptr) {
-        CRASH_ERROR("strdup");
+        OE_FATAL("strdup");
     }
     return ret;
 }
 
-// TODO(jsannemo): possible expand this/make it configurable if needed?
-char** setupEnvironment() {
+// TODO(jsannemo): possibly expand this/make it configurable if needed?
+static char** setupEnvironment() {
     char **env = static_cast<char**>(malloc(2 * sizeof(char*)));
     if (env == nullptr) {
-        CRASH_ERROR("malloc");
+        OE_FATAL("malloc");
     }
+    // Path is needed for e.g. gcc, which searchs for some binaries in the path
     env[0] = strdup("PATH=/bin:/usr/bin");
     env[1] = nullptr;
     return env;
 }
 
 int Init(void* argp) {
-    // If the parent dies for some reason, we wish to be SIGKILLed
+    // If the parent dies for some reason, we wish to be SIGKILLed.
     if (prctl(PR_SET_PDEATHSIG, SIGKILL) < 0) {
-        CRASH_ERROR("prctl");
+        OE_FATAL("prctl");
     }
     InitArgs args = *static_cast<InitArgs*>(argp);
 
     // We close all file descriptors to prevent leaks from the parent
-    closeFdsExcept(vector<int> {0, 1, 2, args.commandPipe});
+    CloseFdsExcept(vector<int> {0, 1, 2, args.commandPipe, args.errorPipe});
 
     // We move ourself to a new process group so that we can kill(-pid) without
     // accidentally killing the parent
     if (setpgrp() == -1) {
-        CRASH_ERROR("setpgrp");
+        OE_FATAL("setpgrp");
     }
 
     Chroot chroot(args.containerRoot);
+    chroot.SetWD();
 
     ExecuteRequest request;
     if (!request.ParseFromFileDescriptor(args.commandPipe)) {
-        LOG(FATAL) << "Could not read request from container" << endl;
-        CRASH();
+        OE_LOG(FATAL) << "Could not read request from container" << endl;
+        OE_CRASH();
     }
-    LOG(TRACE) << "Init got request " << request.DebugString() << endl;
     if (close(args.commandPipe) == -1) {
-        CRASH_ERROR("close");
+        OE_FATAL("close");
     }
 
     for (const auto& rule : request.directories()) {
@@ -136,17 +116,19 @@ int Init(void* argp) {
     setResourceLimits(request.limits());
 
     const Command& command = request.command();
-    char *argv[command.flags_size() + 2];
-    argv[0] = strdupOrDie(request.command().command().c_str());
+    vector<char*> argv;
+    argv.push_back(strdupOrDie(request.command().command().c_str()));
     for (int i = 0; i < command.flags_size(); ++i) {
-        argv[i + 1] = strdupOrDie(command.flags(i).c_str());
+        argv.push_back(strdupOrDie(command.flags(i).c_str()));
     }
-    argv[command.flags_size() + 1] = nullptr;
+    argv.push_back(nullptr);
     // We set up the stream redirections last of all so that we can read error logs
     // as long as possible
     setupStreams(request.streams());
-    if (execve(argv[0], argv, setupEnvironment()) == -1) {
-        CRASH_ERROR("execve");
+    if (execve(argv[0], argv.data(), setupEnvironment()) == -1) {
+        OE_FATAL("execve");
     }
     return 1;
+}
+
 }

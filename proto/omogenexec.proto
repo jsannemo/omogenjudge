@@ -1,32 +1,46 @@
 syntax = "proto3";
 
+// If the process exceeds one of these limits, the process will be killed.
+// Note that if unset, the value will default to 0, not infinity.
 message ResourceLimits {
     double cpuTime = 1; // seconds
     double wallTime = 2; // seconds
     double memory = 3; // kilobytes
     double diskio = 4; // kilobytes
+    double processes = 5;
 }
 
+// The file descriptors 0, 1, 2 (stdin, stdout, stderr) will not be inherited
+// from the forking process, but will instead be remapped to some file.
+// If empty, the corresponding descriptor will be mapped to an empty file.
 message StreamRedirections {
     string infile = 1;
     string outfile = 2;
     string errfile = 3;
 }
 
+// Directory rules control what parts of the file system the contained process
+// may read. Some default directories are mounted automatically, such as
+// /usr, /bin, /lib, /lib32, /lib64, /proc.
 message DirectoryRule {
-    string source = 1;
-    string destination = 2;
+	// The path to the directory outside the container
+    string oldPath = 1;
+	// The path inside the container 
+    string newPath = 2;
+	// Whether the directory should be mounted read-only or not.
+	// Note that if not writable, even e.g. world-writable files will not be writable.
     bool writable = 3;
-    bool executable = 4;
 }
 
 message Command {
     string command = 1;
     repeated string flags = 2;
+	// This is the working directory path inside the container.
     string workingDirectory = 3;
 }
 
 
+// The resourced used by the process during execution.
 message ResourceUsage {
     double cpuTime = 1; // seconds
     double wallTime = 2; // seconds
@@ -47,8 +61,12 @@ message Termination {
         bool memory = 3;
         bool diskio = 4;
     }
+	// If the process terminated by a signal, it is set here.
     Signal signal = 1;
+	// If the process terminated normally, the exit code is set here.
     Exit exit = 2;
+	// If the process exceeded any resources, they are set here.
+	// Note that neither signal nor exit is set in case of an exceeded resource.
     ResourceExceeded resourceExceeded = 3;
 }
 
@@ -70,6 +88,9 @@ message ExecuteRequest {
 
 message ExecuteResponse {
     ExecutionResult result = 1;
+	// A failure is set if an error was encountered when trying to execute a program,
+	// but an internal error occurred. This does not depend on if the contained program
+	// crashes -- this is a property of an ExecutionResult
     ExecutionFailure failure = 2;
 }
 

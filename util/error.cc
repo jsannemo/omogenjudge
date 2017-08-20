@@ -1,12 +1,20 @@
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+
 #include "log.h"
 
+using std::string;
+
+namespace omogenexec {
+
 [[noreturn]] void crash() {
-    exit(1);
+    throw 1;
 }
 
 [[noreturn]] void crashSyscall(string file, int line, string syscall) {
-    LOG_LOCATION(FATAL, file, line) << syscall << ": " << strerror(errno) << endl;
+    OE_LOG_LOCATION(FATAL, file, line) << syscall << ": " << strerror(errno) << std::endl;
     crash();
+}
+
 }

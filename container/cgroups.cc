@@ -1,169 +1,105 @@
-#include <fcntl.h>
+#include <gflags/gflags.h>
+#include <map>
 #include <sstream>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <vector>
 
 #include "cgroups.h"
 #include "util/error.h"
+#include "util/files.h"
+#include "util/format.h"
 #include "util/log.h"
 
+namespace omogenexec {
+
+using std::map;
+using std::string;
 using std::stringstream;
+using std::vector;
 
-// TODO(jsannemo): make this configurable
-const string CGROUP_ROOT = "/sys/fs/cgroup";
-const string CPU_ACCT = "cpuacct";
-const string MEMORY = "memory";
-const string PIDS = "pids";
-const string BLKIO = "blkio";
+DEFINE_string(cgroup_root, "/sys/fs/cgroup", "The root of the cgroup file system");
+DEFINE_string(parent_cgroup, "omogencontain", "The name of the parent cgroup that will be used. The user executing the container must have read-write access");
+DEFINE_string(cgroup_prefix, "omogen_", "A prefix used to name the cgroups to avoid collisions");
 
-string getCgroupName(pid_t pid) {
+const string CPU_USAGE = "cpuacct.usage";
+const string MEM_USAGE = "memory.max_usage_in_bytes";
+const string MEM_LIMIT = "memory.limit_in_bytes";
+const string IO_USAGE = "blkio.throttle.io_service_bytes";
+const string IO_RESET = "blkio.reset_stats";
+const string PID_LIMIT = "pids.max";
+
+static map<CgroupSubsystem, string> subsystemNames() {
+    map<CgroupSubsystem, string> ret;
+    ret[CPU_ACCT] = "cpuacct";
+    ret[MEMORY] = "memory";
+    ret[PIDS] = "pids";
+    ret[BLKIO] = "blkio";
+    return ret;
+}
+
+static map<CgroupSubsystem, string> subsystemName = subsystemNames();
+
+static string getCgroupName(pid_t pid) {
     stringstream ss;
-    ss << "omogen_" << pid;
+    ss << FLAGS_cgroup_prefix << pid;
     return ss.str();
 }
 
-string Cgroup::getSubsystemPath(const string& subsystem) {
-    return CGROUP_ROOT + "/" + subsystem + "/omogencontain/" + name;
+string Cgroup::getSubsystemPath(CgroupSubsystem subsystem) {
+    return FLAGS_cgroup_root + "/" + subsystemName[subsystem] + "/omogencontain/" + name;
 }
 
-void writeTo(const string& path, const string& contents) {
-    int fd = open(path.c_str(), O_WRONLY | O_TRUNC);
-    if (fd == -1) {
-        CRASH_ERROR("open");
-    }
-    int written = write(fd, contents.c_str(), contents.size());
-    if (written == -1) {
-        CRASH_ERROR("write");
-    }
-    if (written != (int)contents.size()) {
-        LOG(FATAL) << "Could not write cgroup file" << endl;
-        CRASH();
-    }
-    if (close(fd) == -1) {
-        CRASH_ERROR("close");
-    }
+string Cgroup::getSubsystemOp(CgroupSubsystem subsystem, const string& op) {
+    return getSubsystemPath(subsystem) + "/" + op;
 }
 
-long long readLongLongFrom(const string& path) {
-    int fd = open(path.c_str(), O_RDONLY);
-    if (fd == -1) {
-        CRASH_ERROR("open");
-    }
-    char buf[30];
-    int readd = read(fd, buf, sizeof(buf));
-    if (readd == -1) {
-        CRASH_ERROR("read");
-    }
-    if (readd >= (int)sizeof(buf) - 1) {
-        LOG(FATAL) << "Could not read cgroup value" << endl;
-        CRASH();
-    }
-    if (close(fd) == -1) {
-        CRASH_ERROR("close");
-    }
-    if (readd && buf[readd - 1] == '\n') {
-        --readd;
-    }
-    buf[readd] = 0;
-    long long value = strtoll(buf, nullptr, 10);
-    return value;
-}
-
-void Cgroup::enableSubsystem(const string& subsystem) {
-    string subsystemPath = getSubsystemPath(subsystem);
-    if (mkdir(subsystemPath.c_str(), 0755) == -1) {
-        if (errno != EEXIST) {
-            CRASH_ERROR("mkdir");
-        }
-    }
-
+void Cgroup::enableSubsystem(CgroupSubsystem subsystem) {
+    MakeDir(getSubsystemPath(subsystem));
     stringstream ss;
     ss << pid;
-    string toWrite = ss.str();
-
-    string taskFile = subsystemPath + "/tasks";
-    writeTo(taskFile, toWrite);
+    WriteToFile(getSubsystemOp(subsystem, "/tasks"), ss.str());
 }
 
-void Cgroup::disableSubsystem(const string& subsystem) {
-    string subsystemPath = getSubsystemPath(subsystem);
-    if (rmdir(subsystemPath.c_str()) == -1) {
-        if (errno != ENOENT) {
-            CRASH_ERROR("mkdir");
-        }
-    }
+void Cgroup::disableSubsystem(CgroupSubsystem subsystem) {
+    RemoveDir(getSubsystemPath(subsystem));
 }
 
 long long Cgroup::CpuUsed() {
-    string cpuAcctUsagePath = getSubsystemPath(CPU_ACCT) + "/cpuacct.usage";
-    long long nanoSeconds = readLongLongFrom(cpuAcctUsagePath);
+    vector<string> tokens = TokenizeFile(getSubsystemOp(CPU_ACCT, CPU_USAGE));
+    assert(!tokens.empty());
+    long long nanoSeconds = StringToLL(tokens[0]);
     return nanoSeconds / 1000000;
 }
 
 void Cgroup::SetMemoryLimit(long long memLimitKb) {
-    string memoryLimitPath = getSubsystemPath(MEMORY) + "/memory.limit_in_bytes";
     stringstream memoryLimit;
     memoryLimit << memLimitKb * 1000;
-    writeTo(memoryLimitPath, memoryLimit.str());
+    WriteToFile(getSubsystemOp(MEMORY, MEM_LIMIT), memoryLimit.str());
 }
 
 long long Cgroup::MemoryUsed() {
-    string memoryUsagePath = getSubsystemPath(MEMORY) + "/memory.max_usage_in_bytes";
-    long long bytes = readLongLongFrom(memoryUsagePath);
+    vector<string> tokens = TokenizeFile(getSubsystemOp(MEMORY, MEM_USAGE));
+    assert(!tokens.empty());
+    long long bytes = StringToLL(tokens[0]);
     return bytes / 1000;
 }
 
 void Cgroup::SetProcessLimit(int maxProcesses) {
-    string processPath = getSubsystemPath(PIDS) + "/pids.max";
     stringstream pidLimit;
     pidLimit << maxProcesses;
-    writeTo(processPath, pidLimit.str());
+    WriteToFile(getSubsystemOp(PIDS, PID_LIMIT), pidLimit.str());
 }
 
-long long Cgroup::BytesTransferred() {
-    string bytesTransferredPath = getSubsystemPath(BLKIO) + "/blkio.throttle.io_service_bytes";
-    // The total bytes used is given as the last integer token in the file, which requires
-    // the following somewhat cumbersome reading
-    int fd = open(bytesTransferredPath.c_str(), O_RDONLY);
-    if (fd == -1) {
-        CRASH_ERROR("open");
-    }
-    char buf[3000];
-    int readd = read(fd, buf, sizeof(buf));
-    if (readd == -1) {
-        CRASH_ERROR("read");
-    }
-    if (readd >= (int)sizeof(buf) - 1) {
-        LOG(FATAL) << "Could not read cgroup value" << endl;
-        CRASH();
-    }
-    if (close(fd) == -1) {
-        CRASH_ERROR("close");
-    }
-    buf[readd] = 0;
-    assert(readd > 0);
-    int at = readd - 1;
-    bool sawDigit = false;
-    while (!sawDigit || isdigit(buf[at])) {
-        if (isdigit(buf[at])) {
-            sawDigit = true;
-        } else {
-            buf[at] = 0;
-        }
-        --at;
-    }
-    ++at;
-    long long bytes = strtoll(buf+at, nullptr, 10) / 1000;
-    return bytes;
+long long Cgroup::DiskIOUsed() {
+    vector<string> tokens = TokenizeFile(getSubsystemOp(BLKIO, IO_USAGE));
+    assert(!tokens.empty());
+    long long bytes = StringToLL(tokens.back());
+    return bytes / 1000;
 }
 
 void Cgroup::Reset() {
-    string cpuAcctUsagePath = getSubsystemPath(CPU_ACCT) + "/cpuacct.usage";
-    writeTo(cpuAcctUsagePath, "0");
-    string memoryUsagePath = getSubsystemPath(MEMORY) + "/memory.max_usage_in_bytes";
-    writeTo(memoryUsagePath, "0");
-    string ioResetPath = getSubsystemPath(BLKIO) + "/blkio.reset_stats";
-    writeTo(ioResetPath, "0");
+    WriteToFile(getSubsystemOp(CPU_ACCT, CPU_USAGE), "0");
+    WriteToFile(getSubsystemOp(MEMORY, MEM_USAGE), "0");
+    WriteToFile(getSubsystemOp(BLKIO, IO_RESET), "0");
 }
 
 Cgroup::Cgroup(pid_t pid) : name(getCgroupName(pid)), pid(pid) {
@@ -178,4 +114,6 @@ Cgroup::~Cgroup() {
     disableSubsystem(MEMORY);
     disableSubsystem(PIDS);
     disableSubsystem(BLKIO);
+}
+
 }

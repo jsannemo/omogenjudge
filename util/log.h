@@ -1,7 +1,7 @@
+#pragma once
+
 #include <string>
 #include <ostream>
-
-using namespace std;
 
 enum LogLevel {
     TRACE = 0,
@@ -13,13 +13,13 @@ enum LogLevel {
     NONE
 };
 
-namespace log {
+namespace omogenexec {
 
-void InitLogging(const string& name);
+void InitLogging(const std::string& name);
 
-ostream& logAt(const LogLevel level);
+std::ostream& loggerForLevel(const LogLevel level);
+
+#define OE_LOG(level) OE_LOG_LOCATION(level, __FILE__, __LINE__)
+#define OE_LOG_LOCATION(level, file, line) omogenexec::loggerForLevel(level) << "[" << file << ":" << line << "] "
 
 }
-
-#define LOG(level) LOG_LOCATION(level, __FILE__, __LINE__)
-#define LOG_LOCATION(level, file, line) log::logAt(level) << "[" << file << ":" << line << "] "

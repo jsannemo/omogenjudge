@@ -1,66 +1,67 @@
 #include <atomic>
 #include <chrono>
+#include <iostream>
 #include <memory>
-#include <unistd.h>
 #include <string>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 #include "chroot.h"
 #include "container.h"
 #include "init.h"
 #include "util/error.h"
+#include "util/files.h"
 #include "util/log.h"
+#include "util/time.h"
 
 using std::atomic;
-using std::chrono::duration_cast;
 using std::chrono::steady_clock;
-using std::chrono::time_point;
+using std::endl;
+using std::make_unique;
 using std::string;
 using std::thread;
 using std::vector;
 
+namespace omogenexec {
+
+const int CHILD_STACK_SIZE = 100 * 1000; // 100 KB
+
 Container::Container() {
     if (pipe(commandPipe) == -1) {
-        CRASH_ERROR("pipe");
+        OE_FATAL("pipe");
     }
-    containerRoot = CreateTemporaryRoot();
-    InitArgs args { commandPipe[0], containerRoot };
-    vector<char> stack(100 * 1024);
+    if (pipe(errorPipe) == -1) {
+        OE_FATAL("pipe");
+    }
+    // The container will get a new root with chroot; we store this in a temporary directory
+    containerRoot = MakeTempDir();
+    // Clone requires us to provide a new stack for the child process
+    vector<char> stack(CHILD_STACK_SIZE);
+    InitArgs args { commandPipe[0], errorPipe[1], containerRoot };
+    // Clone and create new namespaces for the contained process
     initPid = clone(Init, stack.data() + stack.size(), SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUSER | CLONE_NEWUTS, &args);
     if (initPid == -1) {
-        CRASH_ERROR("clone");
+        OE_FATAL("clone");
     }
-    LOG(TRACE) << "Created new container with process ID is " << initPid << endl;
+    OE_LOG(TRACE) << "Created new container with process ID is " << initPid << endl;
     if (close(commandPipe[0]) == -1) {
-        CRASH_ERROR("close");
+        OE_FATAL("close");
     }
     cgroup = make_unique<Cgroup>(initPid);
 }
 
 Container::~Container() {
-    DestroyDirectory(containerRoot);
-    if (initPid != 0) {
+    RemoveTree(containerRoot);
+    if (!waitedFor) {
         killInit();
         waitInit();
     }
 }
 
-bool isTermination(int waitStatus) {
-    return WIFEXITED(waitStatus) || WIFSIGNALED(waitStatus) || WIFSTOPPED(waitStatus);
-}
-
-void setTermination(Termination* termination, int waitStatus) {
-    if (WIFEXITED(waitStatus)) {
-        termination->mutable_exit()->set_code(WEXITSTATUS(waitStatus));
-    } else if (WIFSIGNALED(waitStatus)) {
-        termination->mutable_signal()->set_signal(WTERMSIG(waitStatus));
-    } else if (WIFSTOPPED(waitStatus)) {
-        termination->mutable_signal()->set_signal(WSTOPSIG(waitStatus));
-    } else assert(false && "Invalid exit status");
-}
-
 void Container::killInit() {
+    // Since we immediately move the contained process out of our process group,
+    // it is fine to do kill(-initPid)
     kill(-initPid, SIGKILL);
     kill(initPid, SIGKILL);
 }
@@ -73,93 +74,101 @@ int Container::waitInit() {
             if (errno == EINTR) {
                 continue;
             }
-            CRASH_ERROR("waitpid");
+            OE_FATAL("waitpid");
         }
         break;
     }
     // In case the container is actually used and thus waited for here, we do not want to
     // kill and wait for the process again when we destroy the container, so we mark that
-    // init is done by zeroing the pid.
-    initPid = 0;
+    // we have already waited for the process.
+     waitedFor = true;
     return waitStatus;
 }
 
+static void setTermination(Termination* termination, int waitStatus) {
+    if (WIFEXITED(waitStatus)) {
+        termination->mutable_exit()->set_code(WEXITSTATUS(waitStatus));
+    } else if (WIFSIGNALED(waitStatus)) {
+        termination->mutable_signal()->set_signal(WTERMSIG(waitStatus));
+    } else if (WIFSTOPPED(waitStatus)) {
+        termination->mutable_signal()->set_signal(WSTOPSIG(waitStatus));
+    } else assert(false && "Invalid exit status");
+}
+
+
 ExecuteResponse Container::monitorInit(const ResourceLimits& limits) {
     ExecuteResponse response;
-    ExecutionResult *result = response.mutable_result();
-    // Note that mutable_terminaton() creates a new pointer on the first call,
-    // so we call it here to avoid a race condition between the monitor and the 
-    // normal termination setting.
-    Termination *termination = result->mutable_termination();
-    auto startTime = steady_clock::now();
-    atomic<bool> killedByMonitor(false), isDead(false);
+    Stopwatch watch;
+    atomic<bool> isDead(false);
+    // We monitor whether init has exceeded any of the resources we cannot limit explicitly
+    // in a separate thread, since we need also need to wait for the process in case it 
+    // exits normally.
     thread resourceMonitor([&](){
+#define CHECK_LIM(current, limit, name) \
+    if ((current) > (limit)) { \
+        OE_LOG(TRACE) << name << " exceeded" << endl; \
+        killInit(); \
+        break; \
+    }
         while (!isDead) {
             // Memory does not need to be monitored, since this is the only limit
             // that the control groups can be limit by itself.
-            long long cpuUsedMillis = cgroup->CpuUsed();
-            if (cpuUsedMillis > (long long)(limits.cputime() * 1000)) {
-                LOG(TRACE) << "CPU exceeded" << endl;
-                termination->mutable_resourceexceeded()->set_cputime(true);
-                killedByMonitor = true;
-                killInit();
-                break;
-            }
-
-            long long elapsed = duration_cast<std::chrono::milliseconds>(steady_clock::now() - startTime).count();
-            if (elapsed > (long long)(limits.walltime() * 1000)) {
-                LOG(TRACE) << "Wall time exceeded" << endl;
-                termination->mutable_resourceexceeded()->set_walltime(true);
-                killedByMonitor = true;
-                killInit();
-                break;
-            }
-            long long bytesTransferred = cgroup->BytesTransferred();
-            if (bytesTransferred > (long long)(limits.diskio() * 1000)) {
-                LOG(TRACE) << "Disk usage exceeded" << endl;
-                termination->mutable_resourceexceeded()->set_diskio(true);
-                killedByMonitor = true;
-                killInit();
-                break;
-            }
-
+            CHECK_LIM(cgroup->CpuUsed(), (long long)(limits.cputime() * 1000), "CPU");
+            CHECK_LIM(watch.millis(), (long long)(limits.walltime() * 1000), "Wall time");
+            CHECK_LIM(cgroup->DiskIOUsed(), limits.diskio(), "Disk IO");
             const timespec pollSleep { 0, 5000000 }; // 5 milliseconds
             nanosleep(&pollSleep, nullptr);
         }
+#undef CHECK_LIM
     });
     int waitStatus = waitInit();
-    long long elapsed = duration_cast<std::chrono::milliseconds>(steady_clock::now() - startTime).count();
+    long long elapsed = watch.millis();
     isDead = true;
     resourceMonitor.join();
-    assert(isTermination(waitStatus));
-    setTermination(result->mutable_termination(), waitStatus);
-    // It may happen that the resource monitor writes its termination cause,
-    // but init dies before the monitor kills it. In this case, we may
-    // write our termination cause before killedByMonitor is set.
-    // Therefore, we clear the termination explicitly instead of e.g. 
-    // if (!killedByMonitor) setTermination(...)
-    if (killedByMonitor) {
-        result->mutable_termination()->clear_signal();
-        result->mutable_termination()->clear_exit();
+
+    ExecutionResult *result = response.mutable_result();
+    ResourceUsage *resourceUsage = result->mutable_resourceusage();
+    long long cpuUsedMs = cgroup->CpuUsed();
+    long long memoryUsedKb = cgroup->MemoryUsed();
+    long long diskIoKb = cgroup->DiskIOUsed();
+    resourceUsage->set_cputime(cpuUsedMs);
+    resourceUsage->set_walltime(elapsed);
+    resourceUsage->set_memory(memoryUsedKb);
+    resourceUsage->set_diskio(diskIoKb);
+
+    Termination *termination = result->mutable_termination();
+    if (cpuUsedMs > (long long)(limits.cputime() * 1000)) {
+        termination->mutable_resourceexceeded()->set_cputime(true);
     }
-    result->mutable_resourceusage()->set_cputime(cgroup->CpuUsed());
-    result->mutable_resourceusage()->set_walltime(elapsed);
-    result->mutable_resourceusage()->set_memory(cgroup->MemoryUsed());
-    result->mutable_resourceusage()->set_diskio(cgroup->BytesTransferred());
-    LOG(TRACE) << "Responding with " << response.DebugString() << endl;
+    if (elapsed > (long long)(limits.walltime() * 1000)) {
+        termination->mutable_resourceexceeded()->set_walltime(true);
+    }
+    if (memoryUsedKb > (long long)(limits.memory())) {
+        termination->mutable_resourceexceeded()->set_memory(true);
+    }
+    if (diskIoKb > (long long)(limits.diskio())) {
+        termination->mutable_resourceexceeded()->set_diskio(true);
+    }
+    // We only set the normal termination cause in case we did not exceed any resource,
+    // since 
+    if (!termination->has_resourceexceeded()) {
+        setTermination(result->mutable_termination(), waitStatus);
+    }
     return response;
 }
 
 ExecuteResponse Container::Execute(const ExecuteRequest& request) {
     cgroup->SetMemoryLimit(request.limits().memory());
-    cgroup->SetProcessLimit(10);
+    cgroup->SetProcessLimit(request.limits().processes());
     cgroup->Reset();
     if (!request.SerializeToFileDescriptor(commandPipe[1])) {
-        LOG(FATAL) << "Could not send request to init" << endl;
-        CRASH();
+        OE_LOG(FATAL) << "Could not send request to init" << endl;
+        OE_CRASH();
     }
     if (close(commandPipe[1]) == -1) {
-        CRASH_ERROR("close");
+        OE_FATAL("close");
     }
     return monitorInit(request.limits());
 }
+
+} // namespace omogenexec

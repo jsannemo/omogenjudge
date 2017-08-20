@@ -1,140 +1,94 @@
 #include <fcntl.h>
-#include <ftw.h>
+#include <iostream>
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "chroot.h"
 #include "util/error.h"
+#include "util/files.h"
 #include "util/log.h"
 
-void makeDir(const string& path) {
-    errno = 0;
-    if (mkdir(path.c_str(), 0755) == -1 && errno != EEXIST) {
-        CRASH_ERROR("mkdir");
-    }
-}
+using std::endl;
+using std::string;
 
-void makeDirectoryPath(const string& path) {
-    if (path.empty()) {
-        return;
-    }
-    // Create all directories on a path by repeatedly finding the next directory separator
-    // and creating the path up to this location
-    size_t at = 0;
-    while (at < path.size()) {
-        size_t next = path.find('/', at + 1);
-        if (next == string::npos) {
-            next = path.size();
-        }
-        makeDir(path.substr(0, next));
-        at = next;
-    }
-    struct stat st;
-    if (stat(path.c_str(), &st) == -1) {
-        CRASH_ERROR("stat");
-    }
-    // Double-check that the path we should have created is indeed a directory now,
-    // and not e.g. a file
-    if (!S_ISDIR(st.st_mode)) {
-        LOG(FATAL) << "Failed to create path" << endl;
-        CRASH();
-    }
-}
+namespace omogenexec {
 
 void Chroot::AddDirectoryRule(const DirectoryRule& rule) {
-    string target = rootfs + rule.destination();
-    makeDirectoryPath(target);
-    int mountFlags = MS_BIND | MS_NOSUID;
+    if (rule.newpath().empty() || rule.newpath()[0] != '/') {
+        OE_LOG(FATAL) << "Directory rule target is not an absolute path" << endl;
+        OE_CRASH();
+    }
+    string target = rootfs + rule.newpath();
+    MakeDirParents(target);
+    int mountFlags = MS_BIND | MS_NOSUID | MS_NODEV;
     if (!rule.writable()) {
         mountFlags |= MS_RDONLY;
     }
-    if (!rule.executable()) {
-        mountFlags |= MS_NOEXEC;
+    if (mount(rule.oldpath().c_str(), target.c_str(), nullptr, mountFlags, nullptr) == -1) {
+        OE_FATAL("mount");
     }
-    LOG(TRACE) << "Mounting " << rule.source() << " on " << target << endl;
-    if (mount(rule.source().c_str(), target.c_str(), nullptr, mountFlags, nullptr) == -1) {
-        CRASH_ERROR("mount");
-    }
-    // Remount to make all the flags take effect
-    if (mount(rule.source().c_str(), target.c_str(), nullptr, MS_REMOUNT | mountFlags, nullptr) == -1) {
-        CRASH_ERROR("mount");
+    // When BIND:ing using mount, read-only (and possible other flags) may 
+    // require a remount to take effect (see e.g. https://lwn.net/Articles/281157/)
+    if (mount(rule.oldpath().c_str(), target.c_str(), nullptr, MS_REMOUNT | mountFlags, nullptr) == -1) {
+        OE_FATAL("mount");
     }
 }
 
 void Chroot::addDefaultRules() {
+    // Since we are in a new PID namespace, the old procfs will have incorrect data,
+    // so we mount a new one.
     string procPath = rootfs + "/proc";
-    makeDirectoryPath(procPath);
-    if (mount("/proc", "proc", "proc", MS_NODEV | MS_NOEXEC | MS_NOSUID, nullptr) == -1) {
-        CRASH_ERROR("mount");
+    MakeDirParents(procPath);
+    if (mount("/proc", procPath.c_str(), "proc", MS_NODEV | MS_NOEXEC | MS_NOSUID, nullptr) == -1) {
+        OE_FATAL("mount");
     }
 
     DirectoryRule rule;
-    rule.set_source("/bin");
-    rule.set_destination("/bin");
-    rule.set_executable(true);
+    rule.set_oldpath("/bin");
+    rule.set_newpath("/bin");
     AddDirectoryRule(rule);
 
-    rule.set_source("/usr");
-    rule.set_destination("/usr");
+    rule.set_oldpath("/usr");
+    rule.set_newpath("/usr");
     AddDirectoryRule(rule);
 
-    rule.set_source("/lib");
-    rule.set_destination("/lib");
+    rule.set_oldpath("/lib");
+    rule.set_newpath("/lib");
     AddDirectoryRule(rule);
 
-    // TODO(jsannemo): verify that this directory actually exists before mounting it
-    // since this is not necessarily the case on e.g. 32 bit machines
-    rule.set_source("/lib64");
-    rule.set_destination("/lib64");
-    AddDirectoryRule(rule);
+    if (DirectoryExists("/lib64")) {
+        rule.set_oldpath("/lib64");
+        rule.set_newpath("/lib64");
+        AddDirectoryRule(rule);
+    }
+
+    if (DirectoryExists("/lib32")) {
+        rule.set_oldpath("/lib32");
+        rule.set_newpath("/lib32");
+        AddDirectoryRule(rule);
+    }
+
 }
 
 void Chroot::SetRoot() {
     if (chroot(rootfs.c_str()) == -1) {
-        CRASH_ERROR("chroot");
+        OE_FATAL("chroot");
     }
 }
 
-string CreateTemporaryRoot() {
-    char *rootPath = strdup("/tmp/omogencontainXXXXXX");
-    if (rootPath == nullptr) {
-        CRASH_ERROR("strdup");
+void Chroot::SetWD() {
+    if (chdir(rootfs.c_str()) == -1) {
+        OE_FATAL("chdir");
     }
-    if (mkdtemp(rootPath) == nullptr) {
-        CRASH_ERROR("mkdtemp");
-    }
-    string ret(rootPath);
-    free(rootPath);
-    return ret;
 }
 
 Chroot::Chroot(const string& path) : rootfs(path) {
-    if (chdir(rootfs.c_str()) == -1) {
-        CRASH_ERROR("chdir");
-    }
-    LOG(TRACE) << "Setting up container root in " << rootfs << endl;
+    MakeDir(path);
     if (mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr) == -1) {
-        CRASH_ERROR("mount");
+        OE_FATAL("mount");
     }
     addDefaultRules();
 }
 
-int removeTree0(const char *filePath, const struct stat *statData, int typeflag, struct FTW *ftwbuf) {
-    if (S_ISDIR(statData->st_mode)) {
-        if (rmdir(filePath) == -1) {
-            CRASH_ERROR("rmdir");
-        }
-    } else {
-        if (unlink(filePath) == -1) {
-            CRASH_ERROR("unlink");
-        }
-    }
-    return FTW_CONTINUE;
-}
-
-void DestroyDirectory(const string& directoryPath) {
-    if (nftw(directoryPath.c_str(), removeTree0, 32, FTW_MOUNT | FTW_PHYS | FTW_DEPTH) == -1) {
-        CRASH_ERROR("nftw");
-    }
 }
