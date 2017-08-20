@@ -32,7 +32,7 @@ DEFINE_string(dirs, "", "Directory rules for mounting things inside the containe
 // TODO(jsannemo): write flag validators
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-	omogenexec::InitLogging(argv[0]);
+    omogenexec::InitLogging(argv[0]);
     if (FLAGS_walltime == -1) {
         FLAGS_walltime = FLAGS_cputime + 1;
     }
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     vector<string> rules = omogenexec::Split(FLAGS_dirs, ';');
     for (const string& ruleStr : rules) {
         vector<string> fields = omogenexec::Split(ruleStr, ':');
-        assert(fields.size() >= 3);
+        assert(2 <= fields.size() && fields.size() <= 3);
         DirectoryRule *rule = request.add_directories();
         rule->set_oldpath(fields[0]);
         rule->set_newpath(fields[1]);
