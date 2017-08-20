@@ -7,15 +7,17 @@
 
 namespace omogenexec {
 
-// A cgroup enables tracking of a process' resource usage and limiting the memory it can use.
-
-enum CgroupSubsystem {
-    CPU_ACCT = 0,
+// Note: if adding a new subsystem, its name needs to be added to the list of
+// names subsystemName in cgroups.cc
+enum class CgroupSubsystem {
+    BLKIO = 0,
+    CPU_ACCT,
     MEMORY,
     PIDS,
-    BLKIO
 };
 
+
+// A cgroup enables tracking of a process' resource usage and limiting the memory it can use.
 class Cgroup {
 
     std::string name;
