@@ -3,7 +3,9 @@
 
 #include "format.h"
 #include "util/error.h"
+#include "util/log.h"
 
+using std::endl;
 using std::string;
 using std::stringstream;
 using std::vector;
@@ -12,9 +14,14 @@ namespace omogenexec {
 
 long long StringToLL(const std::string& str) {
     errno = 0;
-    long long ret = strtoll(str.c_str(), nullptr, 10);
+    char *end  = const_cast<char*>(str.c_str() + str.size());
+    long long ret = strtoll(str.c_str(), &end, 10);
     if (errno == ERANGE) {
         OE_FATAL("strtoll");
+    }
+    if (end == str.c_str()) {
+        OE_LOG(FATAL) << "No numeric conversion could be performed on " << str << endl;
+        OE_CRASH();
     }
     return ret;
 }
