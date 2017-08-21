@@ -95,7 +95,10 @@ void RemoveTree(const string& directoryPath) {
 
 void WriteToFile(const string& path, const string& contents) {
     ofstream ofs(path);
-    ofs << contents;
+    if (!(ofs << contents)) {
+        OE_LOG(FATAL) << "Failed writing to " << path << endl;
+        OE_CRASH();
+    }
 }
 
 vector<string> TokenizeFile(const string& path) {
@@ -104,6 +107,10 @@ vector<string> TokenizeFile(const string& path) {
     string tok;
     while (ifs >> tok) {
         tokens.push_back(tok);
+    }
+    if (!ifs.eof()) {
+        OE_LOG(FATAL) << "Failed reading from " << path << endl;
+        OE_CRASH();
     }
     return tokens;
 }
@@ -116,6 +123,7 @@ void CloseFdsExcept(vector<int> fdsToKeep) {
     // Do not accidentally close the fd directory file descriptor.
     fdsToKeep.push_back(dirfd(fdDir));
     while (true) {
+        errno = 0;
         struct dirent *entry = readdir(fdDir);
         if (entry == nullptr) {
             if (errno != 0) {

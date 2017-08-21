@@ -5,7 +5,7 @@
 
 namespace omogenexec {
 
-// Returns wehther a directory exists or not.
+// Returns whether a directory exists or not.
 bool DirectoryExists(const std::string& path);
 
 // Creates a single directory with mode 755 specified by the path.
