@@ -38,6 +38,10 @@ bool MakeDir(const string& path) {
         }
         OE_FATAL("mkdir");
     }
+    if (!DirectoryExists(path)) {
+        OE_LOG(FATAL) << "Tried to make directory " << path << " but does not exist" << endl;
+        OE_CRASH();
+    }
     return false;
 }
 
