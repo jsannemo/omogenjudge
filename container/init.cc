@@ -70,7 +70,7 @@ static vector<const char*> setupEnvironment() {
     return env;
 }
 
-int Init(void* argp) {
+[[noreturn]] int Init(void* argp) {
     // If the parent dies for some reason, we wish to be SIGKILLed.
     if (prctl(PR_SET_PDEATHSIG, SIGKILL) < 0) {
         OE_FATAL("prctl");
@@ -115,10 +115,8 @@ int Init(void* argp) {
     // as long as possible
     setupStreams(request.streams());
     vector<const char*> env = setupEnvironment();
-    if (execve(argv[0], const_cast<char**>(argv.data()), const_cast<char**>(env.data())) == -1) {
-        OE_FATAL("execve");
-    }
-    return 1;
+    execve(argv[0], const_cast<char**>(argv.data()), const_cast<char**>(env.data()));
+    abort();
 }
 
 }
