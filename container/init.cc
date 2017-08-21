@@ -61,23 +61,12 @@ static void setupStreams(const StreamRedirections& streams) {
     assert(fd == 2);
 }
 
-static char* strdupOrDie(const char* str) {
-    char *ret = strdup(str);
-    if (ret == nullptr) {
-        OE_FATAL("strdup");
-    }
-    return ret;
-}
-
 // TODO(jsannemo): possibly expand this/make it configurable if needed?
-static char** setupEnvironment() {
-    char **env = static_cast<char**>(malloc(2 * sizeof(char*)));
-    if (env == nullptr) {
-        OE_FATAL("malloc");
-    }
+static vector<const char*> setupEnvironment() {
+    vector<const char*> env;
     // Path is needed for e.g. gcc, which searchs for some binaries in the path
-    env[0] = strdup("PATH=/bin:/usr/bin");
-    env[1] = nullptr;
+    env.push_back("PATH=/bin:/usr/bin");
+    env.push_back(nullptr);
     return env;
 }
 
@@ -116,16 +105,17 @@ int Init(void* argp) {
     setResourceLimits(request.limits());
 
     const Command& command = request.command();
-    vector<char*> argv;
-    argv.push_back(strdupOrDie(request.command().command().c_str()));
+    vector<const char*> argv;
+    argv.push_back(request.command().command().c_str());
     for (int i = 0; i < command.flags_size(); ++i) {
-        argv.push_back(strdupOrDie(command.flags(i).c_str()));
+        argv.push_back(command.flags(i).c_str());
     }
     argv.push_back(nullptr);
     // We set up the stream redirections last of all so that we can read error logs
     // as long as possible
     setupStreams(request.streams());
-    if (execve(argv[0], argv.data(), setupEnvironment()) == -1) {
+    vector<const char*> env = setupEnvironment();
+    if (execve(argv[0], const_cast<char**>(argv.data()), const_cast<char**>(env.data())) == -1) {
         OE_FATAL("execve");
     }
     return 1;
