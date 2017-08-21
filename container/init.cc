@@ -71,7 +71,9 @@ static vector<const char*> setupEnvironment() {
 }
 
 [[noreturn]] int Init(void* argp) {
-    // If the parent dies for some reason, we wish to be SIGKILLed.
+    // If the parent dies for some reason, we wish to be SIGKILLed. This is not
+    // a race with the parent's death, since a parental death will cause the
+    // request.ParseFromFileDescriptor below to fail.
     if (prctl(PR_SET_PDEATHSIG, SIGKILL) < 0) {
         OE_FATAL("prctl");
     }
