@@ -35,12 +35,12 @@ message DirectoryRule {
 message Command {
     string command = 1;
     repeated string flags = 2;
-    // This is the working directory path inside the container.
+    // This is the working directory path of the command (as seen from inside the container).
     string workingDirectory = 3;
 }
 
 
-// The resourced used by the process during execution.
+// The resources used by the process during execution.
 message ResourceUsage {
     double cpuTime = 1; // seconds
     double wallTime = 2; // seconds
@@ -88,9 +88,9 @@ message ExecuteRequest {
 
 message ExecuteResponse {
     ExecutionResult result = 1;
-    // A failure is set if an error was encountered when trying to execute a program,
-    // but an internal error occurred. This does not depend on if the contained program
-    // crashes -- this is a property of an ExecutionResult
+    // A failure is set if, when trying to execute a command, an internal sandbox error occurred.
+    // This is unrelated to whether the actual command e.g. crashes (such failures are instaed
+    // given by the ExecutionResult itself).
     ExecutionFailure failure = 2;
 }
 
