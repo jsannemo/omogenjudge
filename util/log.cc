@@ -13,7 +13,7 @@ using std::ostream;
 using std::streambuf;
 using std::string;
 
-// TODO(jsannemo): write a flag validator for this to avoid crashes
+// TODO(#2): write flag validators
 DEFINE_string(loglevel, "info", "The lowest log level to display (trace, debug, info, warn, error, fatal, none)");
 
 namespace omogenexec {

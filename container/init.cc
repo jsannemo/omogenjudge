@@ -61,7 +61,6 @@ static void setupStreams(const StreamRedirections& streams) {
     assert(fd == 2);
 }
 
-// TODO(jsannemo): possibly expand this/make it configurable if needed?
 static vector<const char*> setupEnvironment() {
     vector<const char*> env;
     // Path is needed for e.g. gcc, which searchs for some binaries in the path
@@ -70,6 +69,7 @@ static vector<const char*> setupEnvironment() {
     return env;
 }
 
+// TODO(#3) do not crash on errors here, instead send them over error pipe
 [[noreturn]] int Init(void* argp) {
     // If the parent dies for some reason, we wish to be SIGKILLed. This is not
     // a race with the parent's death, since a parental death will cause the

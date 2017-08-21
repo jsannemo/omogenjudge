@@ -15,6 +15,7 @@ using std::string;
 using std::thread;
 using std::vector;
 
+// TODO(#2): write flag validators
 DEFINE_double(cputime, 10, "The CPU time limit of the process in seconds");
 DEFINE_double(walltime, -1, "The wall time limit of the process in seconds. Default is the CPU time + 1 second");
 DEFINE_double(memory, 200, "The memory limit in megabytes (10^6 bytes)");
@@ -29,7 +30,6 @@ DEFINE_string(exec, "", "The file path to the executable file");
 
 DEFINE_string(dirs, "", "Directory rules for mounting things inside the container. Format is oldpath:newpath[:writable] separated by semicolon, e.g. /newtmp:/tmp:writable;/home:home");
 
-// TODO(jsannemo): write flag validators
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
     omogenexec::InitLogging(argv[0]);

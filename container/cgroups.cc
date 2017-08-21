@@ -16,6 +16,7 @@ using std::string;
 using std::stringstream;
 using std::vector;
 
+// TODO(#2): write flag validators
 DEFINE_string(cgroup_root, "/sys/fs/cgroup", "The root of the cgroup file system");
 DEFINE_string(parent_cgroup, "omogencontain", "The name of the parent cgroup that will be used. The user executing the container must have read-write access");
 DEFINE_string(cgroup_prefix, "omogen_", "A prefix used to name the cgroups to avoid collisions");
