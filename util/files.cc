@@ -108,11 +108,14 @@ void WriteToFile(const string& path, const string& contents) {
 void WriteToFd(int fd, const string& contents) {
     size_t at = 0;
     while (at != contents.size()) {
-        int wrote = write(fd, contents.c_str(), contents.size() - at);
-        if (wrote == -1 && errno != EINTR) {
-            OE_FATAL("write");
+        int wrote = write(fd, contents.data() + at, contents.size() - at);
+        if (wrote == -1) {
+            if (errno != EINTR) {
+                OE_FATAL("write");
+            }
+        } else {
+            at += wrote;
         }
-        at += wrote;
     }
 }
 

@@ -55,7 +55,7 @@ static void setupStreams(const StreamRedirections& streams) {
     // the correct file, since they will be open when the process starts.
     openFileWithFd(0, streams.infile().c_str(), false);
     openFileWithFd(1, streams.outfile().c_str(), true);
-    //openFileWithFd(2, streams.errfile().c_str(), true);
+    openFileWithFd(2, streams.errfile().c_str(), true);
 }
 
 static vector<const char*> setupEnvironment() {

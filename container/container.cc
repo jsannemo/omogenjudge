@@ -240,10 +240,13 @@ ExecuteResponse Container::Execute(const ExecuteRequest& request) {
             break;
         }
         if (r == -1) {
+            if (errno == EINTR) {
+                continue;
+            }
             OE_FATAL("read");
         }
         err[r] = 0;
-        errMsg += err;
+        errMsg += string(err, err + r);
     }
     if (!errMsg.empty()) {
         // To protect aginst errors we don't handle explicitly, we write a 1 byte just before executing
