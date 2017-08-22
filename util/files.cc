@@ -171,6 +171,7 @@ bool FileIsExecutable(const string& path) {
         if (errno == EACCES || errno == ENAMETOOLONG || errno == ENOTDIR || errno == ENOENT) {
             return false;
         }
+        OE_FATAL("stat");
     }
     return S_ISREG(sb.st_mode) && (S_IXUSR & sb.st_mode);
 }
