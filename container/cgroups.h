@@ -14,6 +14,7 @@ enum class CgroupSubsystem {
     CPU_ACCT,
     MEMORY,
     PIDS,
+    INVALID
 };
 
 

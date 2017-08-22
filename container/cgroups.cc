@@ -11,14 +11,43 @@
 
 namespace omogenexec {
 
+using std::endl;
 using std::map;
 using std::string;
 using std::stringstream;
 using std::vector;
 
-// TODO(#2): write flag validators
+static const string subsystemName[] = {
+    "blkio",
+    "cpuacct",
+    "memory",
+    "pids",
+    "invalid"
+};
+
+static bool validateCgroupPath(const char *flagname, const string& value) {
+    if (value.empty() || value[0] != '/' || !DirectoryExists(value)) {
+        OE_LOG(FATAL) << "Invalid cgroup root -" << flagname << ": " << value << " does not exist" << endl;
+        return false;
+    }
+    return true;
+}
 DEFINE_string(cgroup_root, "/sys/fs/cgroup", "The root of the cgroup file system");
+DEFINE_validator(cgroup_root,  &validateCgroupPath);
+
+static bool validateCgroupParent(const char *flagname, const string& value) {
+    for (int i = 0; i < static_cast<int>(CgroupSubsystem::INVALID); ++i) {
+        string path = FLAGS_cgroup_root + "/" + subsystemName[i] + "/" + value + "/";
+        if (!DirectoryExists(path)) {
+            OE_LOG(FATAL) << "Cgroup parent -" << flagname << ": " << value << " does not contain subsystem " << subsystemName[i] << endl;
+            return false;
+        }
+    }
+    return true;
+}
 DEFINE_string(parent_cgroup, "omogencontain", "The name of the parent cgroup that will be used. The user executing the container must have read-write access");
+DEFINE_validator(parent_cgroup,  &validateCgroupParent);
+
 DEFINE_string(cgroup_prefix, "omogen_", "A prefix used to name the cgroups to avoid collisions");
 
 const string IO_RESET = "blkio.reset_stats";
@@ -33,13 +62,6 @@ static int sub2idx(CgroupSubsystem subsystem) {
     return static_cast<int>(subsystem);
 }
 
-static const string subsystemName[] = {
-    "blkio",
-    "cpuacct",
-    "memory",
-    "pids",
-};
-
 static string getCgroupName(pid_t pid) {
     stringstream ss;
     ss << FLAGS_cgroup_prefix << pid;
@@ -47,7 +69,7 @@ static string getCgroupName(pid_t pid) {
 }
 
 string Cgroup::getSubsystemPath(CgroupSubsystem subsystem) {
-    return FLAGS_cgroup_root + "/" + subsystemName[sub2idx(subsystem)] + "/omogencontain/" + name;
+    return FLAGS_cgroup_root + "/" + subsystemName[sub2idx(subsystem)] + "/" + FLAGS_parent_cgroup + "/" + name;
 }
 
 string Cgroup::getSubsystemOp(CgroupSubsystem subsystem, const string& op) {
@@ -73,6 +95,7 @@ long long Cgroup::CpuUsed() {
 }
 
 void Cgroup::SetMemoryLimit(long long memLimitKb) {
+    assert(memLimitKb >= 0);
     stringstream memoryLimit;
     memoryLimit << memLimitKb * 1000;
     WriteToFile(getSubsystemOp(CgroupSubsystem::MEMORY, MEM_LIMIT), memoryLimit.str());
@@ -86,6 +109,7 @@ long long Cgroup::MemoryUsed() {
 }
 
 void Cgroup::SetProcessLimit(int maxProcesses) {
+    assert(maxProcesses >= 0);
     stringstream pidLimit;
     pidLimit << maxProcesses;
     WriteToFile(getSubsystemOp(CgroupSubsystem::PIDS, PID_LIMIT), pidLimit.str());
