@@ -27,10 +27,16 @@ void RemoveTree(const std::string& path);
 // Overwrite the file given by the path with the given contents.
 void WriteToFile(const std::string& path, const std::string& contents);
 
+// Write the given contents to the file descriptor.
+void WriteToFd(int fd, const std::string& contents);
+
 // Split the contents of a given file into space-separated tokens.
 std::vector<std::string> TokenizeFile(const std::string& path);
 
 // Close all file descriptors except those in a given list.
 void CloseFdsExcept(std::vector<int> fdsToKeep);
+
+// Check if a certain file exists and is executable.
+bool FileIsExecutable(const std::string& path);
 
 }

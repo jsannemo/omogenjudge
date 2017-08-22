@@ -105,6 +105,17 @@ void WriteToFile(const string& path, const string& contents) {
     }
 }
 
+void WriteToFd(int fd, const string& contents) {
+    size_t at = 0;
+    while (at != contents.size()) {
+        int wrote = write(fd, contents.c_str(), contents.size() - at);
+        if (wrote == -1 && errno != EINTR) {
+            OE_FATAL("write");
+        }
+        at += wrote;
+    }
+}
+
 vector<string> TokenizeFile(const string& path) {
     ifstream ifs(path);
     vector<string> tokens;
@@ -150,5 +161,16 @@ void CloseFdsExcept(vector<int> fdsToKeep) {
         OE_FATAL("closedir");
     }
 }
+
+bool FileIsExecutable(const string& path) {
+    struct stat sb;
+    if (stat(path.c_str(), &sb) == -1) {
+        if (errno == EACCES || errno == ENAMETOOLONG || errno == ENOTDIR || errno == ENOENT) {
+            return false;
+        }
+    }
+    return S_ISREG(sb.st_mode) && (S_IXUSR & sb.st_mode);
+}
+
 
 }

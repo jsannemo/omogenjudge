@@ -54,6 +54,9 @@ Container::Container() {
     if (close(commandPipe[0]) == -1) {
         OE_FATAL("close");
     }
+    if (close(errorPipe[1]) == -1) {
+        OE_FATAL("close");
+    }
     cgroup = make_unique<Cgroup>(initPid);
 }
 
@@ -222,7 +225,6 @@ ExecuteResponse Container::monitorInit(const ResourceLimits& limits) {
 ExecuteResponse Container::Execute(const ExecuteRequest& request) {
     cgroup->SetMemoryLimit(request.limits().memory());
     cgroup->SetProcessLimit(request.limits().processes());
-    cgroup->Reset();
     if (!request.SerializeToFileDescriptor(commandPipe[1])) {
         OE_LOG(FATAL) << "Could not send request to init" << endl;
         OE_CRASH();
@@ -230,6 +232,35 @@ ExecuteResponse Container::Execute(const ExecuteRequest& request) {
     if (close(commandPipe[1]) == -1) {
         OE_FATAL("close");
     }
+    string errMsg;
+    char err[1025];
+    while (true) {
+        int r = read(errorPipe[0], err, sizeof(err) - 1);
+        if (r == 0) {
+            break;
+        }
+        if (r == -1) {
+            OE_FATAL("read");
+        }
+        err[r] = 0;
+        errMsg += err;
+    }
+    if (!errMsg.empty()) {
+        // To protect aginst errors we don't handle explicitly, we write a 1 byte just before executing
+        // the child process. If this is not the first byte, we got a real, handled error.
+        if (errMsg[0] != '\1') {
+            ExecuteResponse response;
+            response.mutable_failure()->set_error(errMsg);
+            waitInit();
+            return response;
+        }
+    } else {
+        ExecuteResponse response;
+        response.mutable_failure()->set_error("Init crashed before execve");
+        waitInit();
+        return response;
+    }
+    cgroup->Reset();
     return monitorInit(request.limits());
 }
 

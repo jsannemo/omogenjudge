@@ -17,4 +17,8 @@ namespace omogenexec {
     crash();
 }
 
+string StrError() {
+    return string(strerror(errno));
+}
+
 }

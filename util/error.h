@@ -9,4 +9,6 @@ namespace omogenexec {
 #define OE_CRASH() omogenexec::crash()
 #define OE_FATAL(syscall) omogenexec::crashSyscall(__FILE__, __LINE__, syscall)
 
+std::string StrError();
+
 }
