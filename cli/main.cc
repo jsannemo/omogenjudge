@@ -90,6 +90,39 @@ DEFINE_validator(err, &validateNonEmptyString);
 DEFINE_string(dirs, "", "Directory rules for mounting things inside the container. Format is oldpath:newpath[:writable] separated by semicolon, e.g. /newtmp:/tmp:writable;/home:home");
 DEFINE_validator(dirs, &validateDirectoryRules);
 
+void parseDirectoryRule(DirectoryRule* rule, const string& ruleStr) {
+    vector<string> fields = omogenexec::Split(ruleStr, ':');
+    assert(2 <= fields.size() && fields.size() <= 3);
+    rule->set_oldpath(fields[0]);
+    rule->set_newpath(fields[1]);
+    if (fields.size() == 3) {
+        assert(fields[2] == "writable");
+        rule->set_writable(true);
+    }
+}
+
+void parseDirectoryRules(ExecuteRequest& request, const string& rulesStr) {
+    vector<string> rules = omogenexec::Split(rulesStr, ';');
+    for (const string& ruleStr : rules) {
+        DirectoryRule *rule = request.add_directories();
+        parseDirectoryRule(rule, ruleStr);
+    }
+}
+
+void setLimits(ResourceLimits* limits) {
+    limits->set_cputime(FLAGS_cputime);
+    limits->set_walltime(FLAGS_walltime);
+    limits->set_memory(FLAGS_memory * 1000);
+    limits->set_diskio(FLAGS_diskio * 1000);
+    limits->set_processes(FLAGS_processes);
+}
+
+void setStreams(StreamRedirections* streams) {
+    streams->set_infile(FLAGS_in);
+    streams->set_outfile(FLAGS_out);
+    streams->set_errfile(FLAGS_err);
+}
+
 int main(int argc, char** argv) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
     omogenexec::InitLogging(argv[0]);
@@ -98,28 +131,9 @@ int main(int argc, char** argv) {
     }
 
     ExecuteRequest request;
-    request.mutable_limits()->set_cputime(FLAGS_cputime);
-    request.mutable_limits()->set_walltime(FLAGS_walltime);
-    request.mutable_limits()->set_memory(FLAGS_memory * 1000);
-    request.mutable_limits()->set_diskio(FLAGS_diskio * 1000);
-    request.mutable_limits()->set_processes(FLAGS_processes);
-
-    request.mutable_streams()->set_infile(FLAGS_in);
-    request.mutable_streams()->set_outfile(FLAGS_out);
-    request.mutable_streams()->set_errfile(FLAGS_err);
-
-    vector<string> rules = omogenexec::Split(FLAGS_dirs, ';');
-    for (const string& ruleStr : rules) {
-        vector<string> fields = omogenexec::Split(ruleStr, ':');
-        assert(2 <= fields.size() && fields.size() <= 3);
-        DirectoryRule *rule = request.add_directories();
-        rule->set_oldpath(fields[0]);
-        rule->set_newpath(fields[1]);
-        if (fields.size() == 3) {
-            assert(fields[2] == "writable");
-            rule->set_writable(true);
-        }
-    }
+    setLimits(request.mutable_limits());
+    setStreams(request.mutable_streams());
+    parseDirectoryRules(request, FLAGS_dirs);
 
     if (argc < 2) {
         OE_LOG(FATAL) << "No command provided" << endl;
