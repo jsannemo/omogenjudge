@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+// A type of resource a command may consume during its execution. These can be
+// limited, and their maximum usage is always measured during execution. 
+//
+// Note: a resource type may either refer to a absolute, maximum limit of a
+// resource or a sum of all resources used.
+enum ResourceType {
+    UNKNOWN_RESOURCE = 0;
+    // The total CPU time used, measured in milliseconds.
+    CPU_TIME = 1;
+    // The total wall-clock time used, measured in milliseconds.
+    WALL_TIME = 2;
+    // The maximum main memory usage, measured in kilobytes.
+    MEMORY = 3;
+    // The maximum disk space usage, measured in kilobytes.
+    DISK = 4;
+    // The maximum number of processes.
+    PROCESSES = 5;
+}
+
+// A representation of an amount of a particular resource.
+message ResourceAmount {
+    // The type of resource.
+    ResourceType type = 1;
+    // The amount of the resource. The unit is described in the documentation
+    // of the corresponding ResourceType.
+    int64 amount = 2;
+}
+
+// A set of resource amounts. There will be at most one ResourceAmount entry
+// per ResourceType.
+message ResourceAmounts {
+    repeated ResourceAmount amounts = 1;
+}
+
+// A set of resource types. The set may not have any duplicates.
+message ResourceTypes {
+    repeated ResourceType types = 1;
+}

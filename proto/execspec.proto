@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+import "proto/resources.proto";
+
+// A specification of multiple executions that should run simultaneously. All
+// the executions will be isolated from each other, but may have their IO
+// directed to each other.
+message ExecutionSet {
+    repeated ExecutionSpec executions = 1;
+}
+
+// A list of results from a successful execution of an ExecutionSet.
+message ResultSet {
+    repeated ExecutionResult results = 1;
+}
+
+// A specification of a particular execution, including all details on how the
+// execution should be performed.
+message ExecutionSpec {
+    // The command to execute.
+    Command command = 1;
+    // The environment to execute the command in.
+    ExecutionEnvironment environment = 2;
+    // The resource imits the command will be subject to.
+    ResourceAmounts limits = 3;
+}
+
+// A description of the environment in which a command can be executed.
+message ExecutionEnvironment {
+    // The working directory of the new process.
+    string working_directory = 1;
+    // The environment variables to be passed to the process.
+    map<string, string> variables = 2;
+    // The streams redirections of the process.
+    StreamRedirections redirections = 3;
+}
+
+// A command describes what binary to run and with what flags.
+message Command {
+    // An absolute path to a command to execute.
+    string command = 1;
+    // A list of command-line flags that will be passed to the command.
+    repeated string flags = 2;
+}
+
+// After forking but before executing the new command,  all the old file
+// descriptors will be closed. It may sometimes be the case that some file descriptors
+// should be mapped to something meaningful. For example, you would normally
+// map stdin and stdout to files, or in the case of interactive executions, map
+// stdin and stdout in one process to stdout and stdin in the other process.
+//
+// A StreamRedirection allows you to set a list of such redirections. The
+// redirections will be set in order, so that fd 0 will be set to the first
+// redirection, fd 1 to the second etc. This also allows you to implement
+// distributed executions where one process acts as a message router for the
+// other processes.
+message StreamRedirections {
+    // A redirection to a file.
+    message PathRedirection {
+        // The path of the file to redirect to.
+        string path = 1;
+    }
+
+    // A write redirection to another process. If a write ProcessRedireciton is
+    // set from (pida, fda) to (pidb, fdb), a read ProcessRedirection must be
+    // set from (pidb, fdb) to (pida, fda).
+    message ProcessRedirection {
+        // The index of the process in an ExecutionSet. The process must be
+        // another process.
+        int32 process = 1;
+        // The fd of that process to map to this fd.
+        int32 fd = 2;
+    }
+
+    // A stream redirection.
+    message Redirection {
+        oneof redirection {
+            PathRedirection path = 1;
+            // A read-only fd pointing to the writeable fd in another process.
+            ProcessRedirection read = 2;
+            // A write-only fd pointing to the readable fd in another process.
+            ProcessRedirection write = 3;
+        }
+    }
+
+    repeated Redirection redirections = 1;
+}
+
+// Directory rules control what parts of the file system the contained process
+// may read. Some default directories are mounted automatically, such as
+// /usr, /bin, /lib, /lib32, /lib64, /proc.
+message DirectoryRule {
+    // The path to the directory outside the container
+    string real_path = 1;
+    // The path inside the container 
+    string container_path = 2;
+    // Whether the directory should be mounted read-only or not.
+    // Note that if not writable, even e.g. world-writable files will not be writable.
+    bool writable = 3;
+}
+
+// The cause of termination of the command.
+message TerminationCause {
+    message Signal {
+        int32 signal = 1;
+    }
+    message Exit {
+        int32 code = 1;
+    }
+    // A program may exit for one of three reasons: it is killed by a signal,
+    // it terminates with an exit code, or it is killed by the resource monitor
+    // due to exceeding a resource limit.
+    oneof exit_reason {
+        // If the process terminated by a signal, it is set here.
+        Signal signal = 1;
+        // If the process terminated normally, the exit code is set here.
+        Exit exit = 2;
+        // If the process exceeded any resources, they are set here.
+        ResourceTypes resource_exceedances = 3;
+    }
+}
+
+// A result of a successful started execution. Successful here does not mean
+// that the command exited gracefully, only that the executor managed to start
+// the command.
+message ExecutionResult {
+    // The cause of termination of a command.
+    TerminationCause cause = 1;
+    // The amount of resources used during the execution.
+    ResourceAmounts resource_usage = 2;
+}
