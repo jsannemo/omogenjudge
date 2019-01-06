@@ -1,8 +1,18 @@
-load("@org_pubref_rules_protobuf//cpp:rules.bzl", "cc_proto_library")
+load("@build_stack_rules_proto//cpp:cpp_proto_library.bzl", "cpp_proto_library")
 
-cc_proto_library(
-        name = "omogenexec_cc_proto",
-        protos = ["omogenexec.proto"],
-        with_grpc = True,
-        visibility = ["//visibility:public"],
+proto_library(
+    name = "container_proto",
+    srcs = ["container.proto"],
+    deps = [
+        "//api:execspec_proto",
+        "//api:resources_proto",
+    ],
+)
+
+cpp_proto_library(
+    name = "container_cc_proto",
+    visibility = [
+        "//container:__subpackages__",
+    ],
+    deps = [":container_proto"],
 )

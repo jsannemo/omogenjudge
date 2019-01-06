@@ -1,103 +1,107 @@
 #include <string>
 
+#include "api/omogenexec.pb.h"
+#include "container/outside/container.h"
+#include "glog/logging.h"
 #include "gtest/gtest.h"
-#include "container/container.h"
-#include "proto/omogenexec.pb.h"
 #include "util/files.h"
-#include "util/log.h"
 
 using std::endl;
 using std::ifstream;
 using std::string;
 
 using namespace omogenexec;
+using namespace omogenexec::api;
 
-void setRwDir(DirectoryRule* dr, const string& path) {
-    dr->set_oldpath(path);
-    dr->set_newpath(path);
+void setRwDir(DirectoryMount* dr, const string& path) {
+    dr->set_path_outside_container(path);
+    dr->set_path_inside_container(path);
     dr->set_writable(true);
 }
 
-void setRDir(DirectoryRule* dr, const string& path) {
-    dr->set_oldpath(path);
-    dr->set_newpath(path);
+void setRDir(DirectoryMount* dr, const string& path) {
+    dr->set_path_outside_container(path);
+    dr->set_path_inside_container(path);
+    dr->set_writable(false);
 }
 
-ExecuteResponse compile_and_run(const string& path) {
+void addLimit(ResourceAmount* limit, ResourceType type, long long amount) {
+    limit->set_type(type);
+    limit->set_amount(amount);
+}
+
+void addStream(Streams::Mapping* mapping, const string& path, bool write) {
+    mapping->set_write(write);
+    Streams::Mapping::File* file = mapping->mutable_file();
+    file->set_path_inside_container(path);
+}
+
+Termination compile_and_run(const string& path) {
     string tmp = MakeTempDir();
     WriteToFile(tmp + "/in", "");
 
-    ExecuteRequest compiler;
+    Execution compiler;
     compiler.mutable_command()->set_command("/usr/bin/g++");
     string programDir = string(get_current_dir_name()) + "/container/tests/bad_programs/programs/";
     compiler.mutable_command()->add_flags(programDir + "/" + path);
     compiler.mutable_command()->add_flags("-o");
     compiler.mutable_command()->add_flags(tmp + "/a.out");
-    compiler.mutable_streams()->set_infile(tmp + "/in");
-    compiler.mutable_streams()->set_errfile(tmp + "/err");
-    compiler.mutable_streams()->set_outfile(tmp + "/out");
-    DirectoryRule* dr = compiler.add_directories();
-    setRwDir(dr, tmp);
-    dr = compiler.add_directories();
-    setRDir(dr, programDir);
-    compiler.mutable_limits()->set_cputime(2);
-    compiler.mutable_limits()->set_walltime(4);
-    compiler.mutable_limits()->set_processes(4);
-    compiler.mutable_limits()->set_memory(300 * 1000);
-    compiler.mutable_limits()->set_diskio(300 * 1000);
+    addStream(compiler.mutable_environment()->mutable_stream_redirections()->add_mappings(), tmp + "/in", false);
+    addStream(compiler.mutable_environment()->mutable_stream_redirections()->add_mappings(), tmp + "/out", true);
+    addStream(compiler.mutable_environment()->mutable_stream_redirections()->add_mappings(), tmp + "/err", true);
+    setRwDir(compiler.mutable_environment()->add_mounts(), tmp);
+    setRDir(compiler.mutable_environment()->add_mounts(), programDir);
+    addLimit(compiler.mutable_resource_limits()->add_amounts(), ResourceType::CPU_TIME, 2000);
+    addLimit(compiler.mutable_resource_limits()->add_amounts(), ResourceType::WALL_TIME, 4000);
+    addLimit(compiler.mutable_resource_limits()->add_amounts(), ResourceType::PROCESSES, 4);
+    addLimit(compiler.mutable_resource_limits()->add_amounts(), ResourceType::MEMORY, 300 * 1000);
 
     Container compilerContainer;
-    ExecuteResponse resp = compilerContainer.Execute(compiler);
+    StatusOr<Termination> resp = compilerContainer.Execute(compiler);
 
-    ExecuteRequest exec;
+    Execution exec;
     exec.mutable_command()->set_command(tmp + "/a.out");
     exec.mutable_command()->add_flags(tmp);
     exec.mutable_command()->add_flags(tmp);
     exec.mutable_command()->add_flags(tmp);
-    exec.mutable_streams()->set_infile(tmp + "/in");
-    exec.mutable_streams()->set_errfile(tmp + "/err");
-    exec.mutable_streams()->set_outfile(tmp + "/out");
-    dr = exec.add_directories();
-    setRwDir(dr, tmp);
-    exec.mutable_limits()->set_cputime(2);
-    exec.mutable_limits()->set_walltime(4);
-    exec.mutable_limits()->set_processes(20);
-    exec.mutable_limits()->set_memory(300 * 1000);
-    exec.mutable_limits()->set_diskio(300 * 1000);
+    addStream(exec.mutable_environment()->mutable_stream_redirections()->add_mappings(), tmp + "/in", false);
+    addStream(exec.mutable_environment()->mutable_stream_redirections()->add_mappings(), tmp + "/out", true);
+    addStream(exec.mutable_environment()->mutable_stream_redirections()->add_mappings(), tmp + "/err", true);
+    setRwDir(exec.mutable_environment()->add_mounts(), tmp);
+    addLimit(exec.mutable_resource_limits()->add_amounts(), ResourceType::CPU_TIME, 2000);
+    addLimit(exec.mutable_resource_limits()->add_amounts(), ResourceType::WALL_TIME, 4000);
+    addLimit(exec.mutable_resource_limits()->add_amounts(), ResourceType::PROCESSES, 20);
+    addLimit(exec.mutable_resource_limits()->add_amounts(), ResourceType::MEMORY, 300 * 1000);
 
     Container execContainer;
-    ExecuteResponse resp2 = execContainer.Execute(exec);
-    OE_LOG(INFO) << tmp << endl;
-    //RemoveTree(tmp);
-    return resp2;
+    StatusOr<Termination> resp2 = execContainer.Execute(exec);
+    LOG(INFO) << tmp << endl;
+    CHECK(resp2.ok()) << "Execution failed with " << resp2.status().error_code() << ": " << resp2.status().error_message() << endl;
+     // RemoveTree(tmp);
+    return resp2.value();
 }
 
 TEST(BadPrograms, Brk) {
-    ExecuteResponse resp = compile_and_run("brk.cc");
-    OE_LOG(INFO) << "brk" << endl << resp.DebugString();
+    Termination resp = compile_and_run("brk.cc");
+    LOG(INFO) << "brk" << endl << resp.DebugString();
 }
 
 TEST(BadPrograms, Busy) {
-    ExecuteResponse resp = compile_and_run("busy.cc");
-    OE_LOG(INFO) << "busy" << endl << resp.DebugString();
+    Termination resp = compile_and_run("busy.cc");
+    LOG(INFO) << "busy" << endl << resp.DebugString();
 }
 
 TEST(BadPrograms, ForkBomb) {
-    ExecuteResponse resp = compile_and_run("forkbomb.cc");
-    OE_LOG(INFO) << "forkbomb" << endl << resp.DebugString();
+    Termination resp = compile_and_run("forkbomb.cc");
+    LOG(INFO) << "forkbomb" << endl << resp.DebugString();
 }
 
 TEST(BadPrograms, Malloc) {
-    ExecuteResponse resp = compile_and_run("malloc.cc");
-    OE_LOG(INFO) << "malloc" << endl << resp.DebugString();
+    Termination resp = compile_and_run("malloc.cc");
+    LOG(INFO) << "malloc" << endl << resp.DebugString();
 }
 
 TEST(BadPrograms, Vector) {
-    ExecuteResponse resp = compile_and_run("vector.cc");
-    OE_LOG(INFO) << "vector" << endl << resp.DebugString();
-}
-
-TEST(BadPrograms, WriteBomb2) {
-    ExecuteResponse resp = compile_and_run("writebomb2.cc");
-    OE_LOG(INFO) << "writebomb2" << endl << resp.DebugString();
+    Termination resp = compile_and_run("vector.cc");
+    LOG(INFO) << "vector" << endl << resp.DebugString();
 }

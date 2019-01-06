@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package omogenexec.api;
+
+import "api/resources.proto";
+
+// Information about the termination of a single command.
+message Termination {
+  // A termination due to an unhandled signal.
+  message Signal {
+    int32 signal = 1;
+  }
+
+  // A regular termination of the program.
+  message Exit {
+    int32 code = 1;
+  }
+
+  oneof termination {
+    // If the process terminated by a signal, it is set here.
+    Signal signal = 1;
+    // If the process terminated normally, the exit code is set here.
+    Exit exit = 2;
+    // If the process was terminated by the sandbox because it exceeded a
+    // resource, it is set here.
+    // Note that neither signal nor exit is set in case of an exceeded
+    // resource.
+    ResourceType resource_exceeded = 3;
+  }
+
+  // The resource amounts used by the program.
+  ResourceAmounts used_resources = 4;
+}
+
+// A command that can be executed.
+message Command {
+  // The path of the binary to execute, as seen from within the sandbox.
+  string command = 1;
+
+  // The flags that should be passed to the program.
+  repeated string flags = 2;
+}
+
+// File descriptors (in particular stdin, stdout, stderr) are not inherited
+// from the forking process when executing the commands, but can instead be
+// remapped to a file or an empty stream.
+message Streams {
+  // The mapping of a file descriptor to a stream
+  message Mapping {
+    // A mapping to an empty file.
+    message Empty {
+    }
+
+    // A mapping to a file inside the container.
+    message File {
+      // The path of the file that should be mapped to the stream.
+      string path_inside_container = 1;
+    }
+
+    // The stream mapping
+    oneof mapping {
+      Empty empty = 1;
+      File file = 2;
+    }
+
+    // Whether this is a read or a write stream.
+    bool write = 3;
+  }
+
+  // The mappings of the file descriptors. Mappings are given for each file
+  // descriptor in order.
+  repeated Mapping mappings = 1;
+}
+
+// The execution environment of a command.
+message Environment {
+  // The environment variables that should be set for the program.
+  map<string, string> env = 1;
+
+  // The working directory of the program, specified as a path inside the
+  // container
+  string working_directory = 2;
+
+  // A list of streams that should be opened for the process.
+  Streams stream_redirections = 3;
+}
+
+// An execution of a program.
+message Execution {
+  // The command to execute.
+  Command command = 1;
+
+  // The environment to execute the command in.
+  Environment environment = 2;
+
+  // The resource limits that applies during the execution.
+  //
+  // Note: a limit must be set for each resource type.
+  ResourceAmounts resource_limits = 3;
+}

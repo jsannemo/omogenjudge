@@ -13,12 +13,15 @@ bool DirectoryExists(const std::string& path);
 bool MakeDir(const std::string& path);
 
 // Creates a directory together with all its parents with mode 755.
+// Assumes path components are separated by /.
 void MakeDirParents(const std::string& path);
 
-// Create a new directory in a location meant for temporary files and returns its path.
+// Create a new directory in a location meant for temporary files and returns
+// its path.
 std::string MakeTempDir();
 
-// Remove a single directory, assuming it is non-empty.
+// Remove a single directory, assuming it is non-empty. This function is
+// idempotent.
 void RemoveDir(const std::string& path);
 
 // Destroy an entire directory tree, including any files in it.
@@ -39,4 +42,18 @@ void CloseFdsExcept(std::vector<int> fdsToKeep);
 // Check if a certain file exists and is executable.
 bool FileIsExecutable(const std::string& path);
 
-}
+// Read a string containing a given number of bytes from a file descriptor.
+// Note that fewer bytes may be returned in case the file descriptor closes.
+std::string ReadFromFd(int bytes, int fd);
+
+// Write bytes to a file descriptor.
+void WriteToFd(int bytes, char* ptr, int fd);
+
+// Write an integer in network byte order.
+void WriteIntToFd(int value, int fd);
+
+// Read an integer in network byte order. If enough bytes could
+// not read for an integer, false is returned. Otherwise, true is returned.
+bool ReadIntFromFd(int* val, int fd);
+
+}  // namespace omogenexec

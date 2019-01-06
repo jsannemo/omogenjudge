@@ -1,149 +1,187 @@
 #include <iostream>
 #include <string>
-#include <thread>
 #include <vector>
 
-#include "container/container.h"
+#include "absl/strings/str_split.h"
+#include "api/omogenexec.grpc.pb.h"
 #include "gflags/gflags.h"
-#include "proto/omogenexec.pb.h"
-#include "util/error.h"
+#include "glog/logging.h"
+#include "glog/raw_logging.h"
+#include "grpcpp/grpcpp.h"
 #include "util/files.h"
-#include "util/format.h"
-#include "util/log.h"
 
-using std::cout;
-using std::endl;
-using std::string;
-using std::thread;
-using std::vector;
+using namespace omogenexec;
 
-static bool validateLimit(const char* flagname, double value) {
-    if (value < 0) {
-        OE_LOG(FATAL) << "Invalid value for -" << flagname << ": " << value << endl;
-        return false;
-    }
-    return true;
+template <typename T>
+static bool validateNonNegative(const char* flagname, T value) {
+  if (value < 0) {
+    LOG(ERROR) << "Invalid value for -" << flagname << ": " << value;
+    return false;
+  }
+  return true;
 }
 
-static bool validateLimitWithDefault(const char* flagname, double value) {
-    if (value < 0 && value != -1) {
-        OE_LOG(FATAL) << "Invalid value for -" << flagname << ": " << value << endl;
-        return false;
-    }
-    return true;
+static bool validateNonEmptyString(const char* flagname,
+                                   const std::string& value) {
+  if (value.empty()) {
+    LOG(ERROR) << "Invalid value for -" << flagname << ": " << value;
+    return false;
+  }
+  return true;
 }
 
-static bool validateNonEmptyString(const char* flagname, const string& value) {
-    if (value.empty()) {
-        OE_LOG(FATAL) << "Invalid value for -" << flagname << ": " << value << endl;
-        return false;
+static bool validateDirectoryRules(const char* flagname,
+                                   const std::string& value) {
+  std::vector<std::string> rules = absl::StrSplit(value, ';');
+  for (const std::string& rule : rules) {
+    if (rule.empty()) {
+      continue;
     }
-    return true;
+    // Rules are of the format /path/to/include[:writable]
+    std::vector<std::string> fields = absl::StrSplit(rule, ':');
+    if (fields.size() < 1 || 2 < fields.size()) {
+      LOG(ERROR) << "Directory rule " << rule << " invalid";
+      return false;
+    }
+    if (fields[0].empty() || fields[0][0] != '/') {
+      LOG(ERROR) << "Path " << fields[0] << " is not absolute";
+      return false;
+    }
+    if (!omogenexec::DirectoryExists(fields[0])) {
+      LOG(ERROR) << "Directory outside sandbox " << fields[0]
+                 << " does not exist";
+      return false;
+    }
+    if (fields.size() == 2 && fields[1] != "writable") {
+      LOG(ERROR) << "Invalid directory options " << fields[1];
+      return false;
+    }
+  }
+  return true;
 }
 
-static bool validateDirectoryRules(const char *flagname, const string& value) {
-    vector<string> rules = omogenexec::Split(value, ';');
-    for (const string& rule : rules) {
-        vector<string> fields = omogenexec::Split(rule, ':');
-        if (fields.size() < 2 || 3 < fields.size()) {
-            OE_LOG(FATAL) << "Directory rule " << rule << " invalid" << endl;
-            return false;
-        }
-        if (fields[0].empty() || fields[0][0] != '/') {
-            OE_LOG(FATAL) << "Path " << fields[0] << " is not absolute" << endl;
-            return false;
-        }
-        if (fields[1].empty() || fields[1][0] != '/') {
-            OE_LOG(FATAL) << "Path " << fields[1] << " is not absolute" << endl;
-            return false;
-        }
-        if (!omogenexec::DirectoryExists(fields[0])) {
-            OE_LOG(FATAL) << "Directory outside sandbox " << fields[0] << " does not exist" << endl;
-            return false;
-        }
-        if (fields.size() == 3 && fields[2] != "writable") {
-            OE_LOG(FATAL) << "Invalid directory options " << fields[2] << endl;
-            return false;
-        }
-    }
-    return true;
-}
-
+DEFINE_string(daemon_addr, "127.0.0.1:61810",
+              "The address and port that the daemon listens to");
 DEFINE_double(cputime, 10, "The CPU time limit of the process in seconds");
-DEFINE_validator(cputime,  &validateLimit);
-DEFINE_double(walltime, -1, "The wall time limit of the process in seconds. Default is the CPU time + 1 second");
-DEFINE_validator(walltime,  &validateLimitWithDefault);
+DEFINE_validator(cputime, &validateNonNegative<double>);
 DEFINE_double(memory, 200, "The memory limit in megabytes (10^6 bytes)");
-DEFINE_validator(memory,  &validateLimit);
-DEFINE_double(diskio, 1000, "The disk IO limit in megabytes (10^6 bytes)");
-DEFINE_validator(diskio,  &validateLimit);
-DEFINE_double(processes, 1, "The number of processes allowed");
-DEFINE_validator(processes,  &validateLimit);
+DEFINE_validator(memory, &validateNonNegative<double>);
+DEFINE_int32(processes, 1, "The number of processes allowed");
+DEFINE_validator(processes, &validateNonNegative<int>);
+DEFINE_int32(repetitions, 1, "The number of times to run the process");
+DEFINE_validator(repetitions, &validateNonNegative<int>);
 
-DEFINE_string(in, "", "An input file that is used as stdin");
+DEFINE_string(in, "/dev/null", "An input file that is used as stdin");
 DEFINE_validator(in, &validateNonEmptyString);
-DEFINE_string(out, "", "An output file that is used as stdout");
+DEFINE_string(out, "/dev/null", "An output file that is used as stdout");
 DEFINE_validator(out, &validateNonEmptyString);
-DEFINE_string(err, "", "An error file that is used as stderr");
+DEFINE_string(err, "/dev/null", "An error file that is used as stderr");
 DEFINE_validator(err, &validateNonEmptyString);
 
-DEFINE_string(dirs, "", "Directory rules for mounting things inside the container. Format is oldpath:newpath[:writable] separated by semicolon, e.g. /newtmp:/tmp:writable;/home:home");
+DEFINE_string(
+    dirs, "",
+    "Directory rules for mounting things inside the container. Format is "
+    "path[:writable] separated by semicolon, e.g. /tmp:writable;/home");
 DEFINE_validator(dirs, &validateDirectoryRules);
 
-void parseDirectoryRule(DirectoryRule* rule, const string& ruleStr) {
-    vector<string> fields = omogenexec::Split(ruleStr, ':');
-    assert(2 <= fields.size() && fields.size() <= 3);
-    rule->set_oldpath(fields[0]);
-    rule->set_newpath(fields[1]);
-    if (fields.size() == 3) {
-        assert(fields[2] == "writable");
-        rule->set_writable(true);
+static void parseDirectoryRule(api::DirectoryMount* rule,
+                               const std::string& ruleStr) {
+  std::vector<std::string> fields = absl::StrSplit(ruleStr, ':');
+  CHECK(1 <= fields.size() && fields.size() <= 2) << "Invalid directory rule";
+  rule->set_path_outside_container(fields[0]);
+  rule->set_path_inside_container(fields[0]);
+  if (fields.size() == 2) {
+    CHECK(fields[1] == "writable") << "Invalid directory rule";
+    rule->set_writable(true);
+  }
+}
+
+static void parseDirectoryRules(api::ContainerSpec* request,
+                                const std::string& rulesStr) {
+  std::vector<std::string> rules = absl::StrSplit(rulesStr, ';');
+  for (const std::string& ruleStr : rules) {
+    if (ruleStr.empty()) {
+      return;
     }
+    parseDirectoryRule(request->add_mounts(), ruleStr);
+  }
 }
 
-void parseDirectoryRules(ExecuteRequest& request, const string& rulesStr) {
-    vector<string> rules = omogenexec::Split(rulesStr, ';');
-    for (const string& ruleStr : rules) {
-        DirectoryRule *rule = request.add_directories();
-        parseDirectoryRule(rule, ruleStr);
-    }
+static void setLimit(api::ResourceAmount* amount, api::ResourceType type,
+                     long long limit) {
+  amount->set_type(type);
+  amount->set_amount(limit);
 }
 
-void setLimits(ResourceLimits* limits) {
-    limits->set_cputime(FLAGS_cputime);
-    limits->set_walltime(FLAGS_walltime);
-    limits->set_memory(FLAGS_memory * 1000);
-    limits->set_diskio(FLAGS_diskio * 1000);
-    limits->set_processes(FLAGS_processes);
+static void setLimits(api::ResourceAmounts* limits) {
+  setLimit(limits->add_amounts(), api::ResourceType::CPU_TIME,
+           FLAGS_cputime * 1000);
+  setLimit(limits->add_amounts(), api::ResourceType::WALL_TIME,
+           (FLAGS_cputime + 1) * 1000);
+  setLimit(limits->add_amounts(), api::ResourceType::MEMORY,
+           FLAGS_memory * 1000);
+  setLimit(limits->add_amounts(), api::ResourceType::PROCESSES,
+           FLAGS_processes);
 }
 
-void setStreams(StreamRedirections* streams) {
-    streams->set_infile(FLAGS_in);
-    streams->set_outfile(FLAGS_out);
-    streams->set_errfile(FLAGS_err);
+static void addStream(api::Streams::Mapping* file, const std::string& path,
+                      bool write) {
+  file->mutable_file()->set_path_inside_container(path);
+  file->set_write(write);
+}
+
+static void setStreams(api::Streams* streams) {
+  addStream(streams->add_mappings(), FLAGS_in, false);
+  addStream(streams->add_mappings(), FLAGS_out, true);
+  addStream(streams->add_mappings(), FLAGS_err, true);
+}
+
+static void setCommand(api::Command* command, const std::string& path) {
+  command->set_command(path);
+}
+
+static void addFlag(api::Command* command, const std::string& flag) {
+  command->add_flags(flag);
 }
 
 int main(int argc, char** argv) {
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
-    omogenexec::InitLogging(argv[0]);
-    if (FLAGS_walltime == -1) {
-        FLAGS_walltime = FLAGS_cputime + 1;
-    }
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  google::InitGoogleLogging(argv[0]);
 
-    ExecuteRequest request;
-    setLimits(request.mutable_limits());
-    setStreams(request.mutable_streams());
-    parseDirectoryRules(request, FLAGS_dirs);
+  api::ExecuteRequest request;
+  api::Execution* exec = request.mutable_execution();
+  setLimits(exec->mutable_resource_limits());
+  setStreams(exec->mutable_environment()->mutable_stream_redirections());
+  parseDirectoryRules(request.mutable_container_spec(), FLAGS_dirs);
 
-    if (argc < 2) {
-        OE_LOG(FATAL) << "No command provided" << endl;
-        OE_CRASH();
-    }
-    request.mutable_command()->set_command(string(argv[1]));
-    for (int i = 2; i < argc; ++i) {
-        request.mutable_command()->add_flags(string(argv[i]));
-    }
+  if (argc < 2) {
+    LOG(FATAL) << "No command provided";
+  }
+  setCommand(exec->mutable_command(), std::string(argv[1]));
+  for (int i = 2; i < argc; ++i) {
+    addFlag(exec->mutable_command(), std::string(argv[i]));
+  }
 
-    omogenexec::Container c;
-    cout << c.Execute(request).DebugString();
+  std::unique_ptr<api::ExecuteService::Stub> stub =
+      api::ExecuteService::NewStub(grpc::CreateChannel(
+          FLAGS_daemon_addr, grpc::InsecureChannelCredentials()));
+  grpc::ClientContext context;
+  std::shared_ptr<
+      grpc::ClientReaderWriter<api::ExecuteRequest, api::ExecuteResponse>>
+      stream(stub->Execute(&context));
+
+  for (int i = 0; i < FLAGS_repetitions; i++) {
+    if (!stream->Write(request)) {
+      break;
+    }
+    api::ExecuteResponse response;
+    stream->Read(&response);
+    LOG(INFO) << response.DebugString();
+    request.clear_container_spec();
+  }
+  stream->WritesDone();
+  grpc::Status status = stream->Finish();
+  if (!status.ok()) {
+    LOG(ERROR) << status.error_message();
+  }
 }

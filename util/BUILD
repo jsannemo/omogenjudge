@@ -1,21 +1,28 @@
 cc_library(
     name = "util",
-    visibility = ["//visibility:public"],
     srcs = [
-        "error.cc",
         "files.cc",
-        "format.cc",
-        "log.cc",
         "time.cc",
     ],
     hdrs = [
-        "error.h",
         "files.h",
-        "format.h",
-        "log.h",
+        "statusor.h",
         "time.h",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         "//external:gflags",
+        "//external:glog",
+    ],
+)
+
+cc_library(
+    name = "test_main",
+    srcs = ["test.cc"],
+    linkopts = ["-pthread"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//external:glog",
+        "@gtest",
     ],
 )
