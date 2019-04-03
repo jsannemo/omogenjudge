@@ -60,13 +60,15 @@ void Chroot::addDefaultRules() {
   rule.set_path_inside_container("/usr/lib");
   addDirectoryMount(rule);
 
-  rule.set_path_outside_container("/usr/lib32");
-  rule.set_path_inside_container("/usr/lib32");
-  addDirectoryMount(rule);
-
   rule.set_path_outside_container("/lib");
   rule.set_path_inside_container("/lib");
   addDirectoryMount(rule);
+
+  if (DirectoryExists("/usr/lib32")) {
+    rule.set_path_outside_container("/usr/lib32");
+    rule.set_path_inside_container("/usr/lib32");
+    addDirectoryMount(rule);
+  }
 
   if (DirectoryExists("/lib64")) {
     rule.set_path_outside_container("/lib64");

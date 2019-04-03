@@ -1,4 +1,4 @@
-build --client_env=CC=clang-7
+build --client_env=C=clang++-7
 build --cxxopt='-std=c++17'
 
 build:asan --strip=never

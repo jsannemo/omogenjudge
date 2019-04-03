@@ -8,15 +8,14 @@ package omogenexec.api;
 // Note: a resource type may either refer to an absolute, maximum limit of a
 // resource (as with memory) or a sum of all resources used (as with time).
 enum ResourceType {
-  // The default type. limits of this type are ignored.
-  UNKNOWN_RESOURCE = 0;
-  // The total CPU time used, measured in milliseconds.
+  RESOURCE_TYPE_UNKNOWN = 0;
+  // The total CPU time used, measured in milliseconds. A limit of this type is required.
   CPU_TIME = 1;
-  // The total wall-clock time used, measured in milliseconds.
+  // The total wall-clock time used, measured in milliseconds. A limit of this type is required.
   WALL_TIME = 2;
-  // The maximum main memory usage, measured in kilobytes.
+  // The maximum main memory usage, measured in kilobytes. A limit of this type is required.
   MEMORY = 3;
-  // The maximum number of processes.
+  // The maximum number of processes. A limit of this type is required.
   PROCESSES = 4;
 }
 

@@ -1,7 +1,13 @@
 cc_library(
     name = "outside",
-    srcs = ["container.cc"],
-    hdrs = ["container.h"],
+    srcs = [
+        "container.cc",
+        "container_id.cc",
+        ],
+    hdrs = [
+        "container.h",
+        "container_id.h",
+        ],
     visibility = ["//visibility:public"],
     deps = [
         ":internals",
@@ -10,6 +16,7 @@ cc_library(
         "//proto:container_cc_proto",
         "//util",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 

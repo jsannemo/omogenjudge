@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set +e
+
+if ! id -u omogenexec >/dev/null 2>&1; then
+  useradd -s /usr/bin/nologin -r omogenexec
+fi
+
+set -e
+systemctl start omogenexecd
+mkdir -p /var/lib/omogenexec
+chown omogenexec:omogenexec /var/lib/omogenexec

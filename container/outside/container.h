@@ -5,6 +5,7 @@
 
 #include "api/execspec.pb.h"
 #include "cgroups.h"
+#include "container/outside/container_id.h"
 #include "util/statusor.h"
 
 using std::unique_ptr;
@@ -22,13 +23,15 @@ class Container {
   // Since we may receive the execution request after starting the new process,
   // we use a pipe to send the request to the process.
   int commandPipe[2];
-  // A pipe use by the container to tell us what the return status of the user
+  // A pipe used by the container to tell us what the return status of the user
   // program was.
   int returnPipe[2];
   // The path to the new root with specific paths mounted to it
   std::string containerRoot;
 
   unique_ptr<Cgroup> cgroup;
+
+  unique_ptr<ContainerId> containerId;
 
   StatusOr<api::Termination> monitorInit(const api::ResourceAmounts& limits);
   void killInit();
@@ -37,8 +40,10 @@ class Container {
  public:
   StatusOr<api::Termination> Execute(const api::Execution& request);
 
-  explicit Container(const api::ContainerSpec& spec);
+  Container(unique_ptr<ContainerId> id, const api::ContainerSpec& spec);
   ~Container();
+  
+  bool IsDead();
 
   Container(const Container&) = delete;
   Container& operator=(const Container&) = delete;

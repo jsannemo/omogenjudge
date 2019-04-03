@@ -1,11 +1,15 @@
 cc_binary(
-    name = "init",
+    name = "omogenexec_runner",
     srcs = ["init.cc"],
-    visibility = ["//container:__subpackages__"],
+    visibility = [
+        "//container:__subpackages__",
+        "//deb:__subpackages__",
+    ],
     deps = [
         ":inside",
         "//external:glog",
         "//proto:container_cc_proto",
+        "@com_google_absl//absl/strings",
     ],
 )
 

@@ -1,5 +1,5 @@
 cc_binary(
-    name = "daemon",
+    name = "omogenexec_daemon",
     srcs = [
         "executor.cc",
         "executor.h",

@@ -1,3 +1,4 @@
+#include <sys/fcntl.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/types.h>
@@ -7,6 +8,7 @@
 #include <iostream>
 #include <string>
 
+#include "absl/strings/numbers.h"
 #include "container/inside/chroot.h"
 #include "container/inside/setup.h"
 #include "glog/logging.h"
@@ -15,6 +17,12 @@
 #include "util/files.h"
 
 namespace omogenexec {
+
+// Init is the main process inside a container. Its purpose is to recieve
+// execution requests fron the outside container and fork of a process to
+// execute it.
+// 
+// Communication is done over file descriptors 100 (input) and 101 (output).
 
 // Returns a termination cause based on the given status, which should
 // be given in the waitpid format.
@@ -42,17 +50,19 @@ static proto::ContainerTermination execute(
     const proto::ContainerExecution& request) {
   // We need to set this here rather than in setup since we lose privilege to
   // change this to a potentially higher number after the fork.
-  rlim_t processLimit = request.process_limit() + 1;  // +1 for init
-  rlimit rlim = {.rlim_cur = processLimit, processLimit};
-  PCHECK(setrlimit(RLIMIT_NPROC, &rlim) != -1)
-      << "Could not set the process limit";
+  //rlim_t processLimit = request.process_limit() + 2;  // +1 for init
+  //rlimit rlim = {.rlim_cur = processLimit, .rlim_max = processLimit};
+  //PCHECK(setrlimit(RLIMIT_NPROC, &rlim) != -1)
+      //<< "Could not set the process limit";
 
   // Start a fork to set up the execution environment for the request.
   // In the parent, we will wait for the request to finish. Since an error
   // may occur during setup of the contained process, we keep a pipe open
-  // that the child can send error messages to us with.
+  // that the child can send error messages to us with. We use O_CLOEXEC
+  // so that we don't need to close the stream ourselves to keep it available
+  // for as long as possible.
   int errorPipe[2];
-  PCHECK(pipe(errorPipe) != -1) << "Could not create error pipe";
+  PCHECK(pipe2(errorPipe, O_CLOEXEC) != -1) << "Could not create error pipe";
 
   // Note that the child process will not survive the parent death since the
   // parent is the init process of a new PID namespace. That means the child is
@@ -106,12 +116,12 @@ static proto::ContainerTermination execute(
       // now become a child of us since we are init. Therefore, we make sure to
       // SIGKILL all of them before we return, in case we want to reuse our
       // sandbox.
-      PCHECK(kill(-1, SIGKILL) != -1)
+      PCHECK(kill(-1, SIGKILL) != -1 || errno == ESRCH)
           << "Did not manage to kill all remaining processes in the container";
       while (true) {
         int ret = waitpid(-1, nullptr, WNOHANG);
-        PCHECK(ret != -1) << "Could not wait for remaining daemons";
-        if (ret == 0) {
+        PCHECK(ret != -1 || errno == ECHILD) << "Could not wait for remaining daemons";
+        if (ret == 0 || errno == ECHILD) {
           break;
         }
       }
@@ -123,25 +133,33 @@ static proto::ContainerTermination execute(
 }  // namespace omogenexec
 
 int main(int argc, char** argv) {
+  LOG(INFO) << "argc " << argc;
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
+
+  CHECK(argc == 2) << "Incorrect number of arguments";
+  int sandboxId;
+  CHECK(absl::SimpleAtoi(std::string(argv[1]), &sandboxId)) << "First argument was not int";
+
   // Kill us if the main sandbox is killed, to prevent our child from possibly
   // keeping running. This is not a race with the parent death, since the read
   // later will crash us in case our parent dies after the prctl call.
-  CHECK(prctl(PR_SET_PDEATHSIG, SIGTERM) != -1)
+  // Furthermore, as a result of our death we will take with us any processes
+  // running in the sandbox since we are PID 1 in a PID namespace.
+  CHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
       << "Could not set PR_SET_PDEATHSIG";
-  LOG(INFO) << "Started up container with pid " << getpid();
+  LOG(INFO) << "Started up container";
   // Keep reading execution requests in a loop in case we want to run more
-  // commands in the same sandbox.
+  // commands in the same sandbox. Requests are written in the format 
+  // <number of bytes><request bytes>
   while (true) {
     // Read execution request from the parent.
     omogenexec::proto::ContainerExecution request;
-    LOG(INFO) << "Waiting for request...";
     int length;
-    if (!omogenexec::ReadIntFromFd(&length, 0)) {
+    if (!omogenexec::ReadIntFromFd(&length, 100)) {
       break;
     }
-    std::string requestBytes = omogenexec::ReadFromFd(length, 0);
+    std::string requestBytes = omogenexec::ReadFromFd(length, 100);
     if (!request.ParseFromString(requestBytes)) {
       LOG(ERROR) << "Could not read complete request";
     }
@@ -151,11 +169,9 @@ int main(int argc, char** argv) {
     LOG(INFO) << "Done with termination " << response.DebugString();
     std::string responseBytes;
     response.SerializeToString(&responseBytes);
-    LOG(INFO) << "Trying to write int " << responseBytes.size();
-    omogenexec::WriteIntToFd(responseBytes.size(), 6);
-    omogenexec::WriteToFd(6, responseBytes);
-    LOG(INFO) << "Written response";
+    omogenexec::WriteIntToFd(responseBytes.size(), 101);
+    omogenexec::WriteToFd(101, responseBytes);
   }
-  PCHECK(close(6) != -1) << "Could not close stdout";
+  PCHECK(close(101) != -1) << "Could not close output pipe";
   gflags::ShutDownCommandLineFlags();
 }

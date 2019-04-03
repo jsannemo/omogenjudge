@@ -16,25 +16,34 @@ ExecuteServiceImpl::ExecuteServiceImpl() {
 #define PUSH_CONTAINER_TO_CLEANUP(container)          \
   if ((container) != nullptr) {                       \
     absl::MutexLock containerLock(&deleteQueueMutex); \
-    deleteQueue.push_back((container));               \
+    deleteQueue.push_back(std::move(container));      \
+    (container) = nullptr;                            \
   }
 
 Status ExecuteServiceImpl::Execute(
     ServerContext* context,
     ServerReaderWriter<api::ExecuteResponse, api::ExecuteRequest>* stream) {
   LOG(INFO) << "New request";
-  Container* container = nullptr;
+  unique_ptr<Container> container;
   api::ExecuteRequest request;
+  api::ContainerSpec lastSpec;
+  bool firstRequest = false;
   while (stream->Read(&request)) {
-    // Grab a new container if we have a container spec in the request.
     if (request.has_container_spec()) {
-      PUSH_CONTAINER_TO_CLEANUP(container);
-      container = new Container(request.container_spec());
-    }
-    if (container == nullptr) {
+      lastSpec = request.container_spec();
+    } else if (firstRequest) {
       return grpc::Status(
           grpc::StatusCode::FAILED_PRECONDITION,
           "Can't send an execution before sending a container spec");
+    }
+    firstRequest = false;
+    bool needsNewContainer = 
+      (container == nullptr) || 
+      container->IsDead() ||
+      request.has_container_spec();
+    if (needsNewContainer) {
+      PUSH_CONTAINER_TO_CLEANUP(container);
+      container = std::make_unique<Container>(ContainerIds::GetId(), lastSpec);
     }
     StatusOr<api::Termination> result = container->Execute(request.execution());
     if (result.ok()) {
@@ -53,18 +62,14 @@ Status ExecuteServiceImpl::Execute(
 
 void ExecuteServiceImpl::cleanup() {
   while (true) {
-    std::vector<Container*> toDelete_;
+    std::vector<unique_ptr<Container>> toDelete_;
     {
       absl::MutexLock queueLock(&deleteQueueMutex);
-      toDelete_ = deleteQueue;
-      deleteQueue.clear();
+      toDelete_.swap(deleteQueue);
     }
     VLOG(2) << "Cleanup " << toDelete_.size();
-    for (Container* container : toDelete_) {
-      delete container;
-    }
     if (toDelete_.empty()) {
-      usleep(1000 * 1000);  // 50 milliseconds in microseconds
+      usleep(1000 * 1000);  // 1000 milliseconds in microseconds
     }
   }
 }

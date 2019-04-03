@@ -1,5 +1,5 @@
 cc_binary(
-    name = "cli",
+    name = "omogenexec_cli",
     srcs = ["main.cc"],
     visibility = ["//visibility:public"],
     deps = [

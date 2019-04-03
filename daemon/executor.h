@@ -17,12 +17,12 @@ class ExecuteServiceImpl final : public api::ExecuteService::Service {
   // containers.
   std::thread* cleanupThread;
 
-  absl::Mutex deleteQueueMutex;  // protects toDelete
+  absl::Mutex deleteQueueMutex;
 
   // A vector with containers that should be cleaned up.
-  std::vector<Container*> deleteQueue GUARDED_BY(deleteQueueMutex);
+  std::vector<unique_ptr<Container>> deleteQueue GUARDED_BY(deleteQueueMutex);
 
-  // Runs the cleanup loop th remove old containers.
+  // Runs the cleanup loop the remove old containers.
   void cleanup();
 
  public:

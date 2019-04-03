@@ -11,16 +11,11 @@
 
 #include "util/files.h"
 
-using std::endl;
-using std::find;
-using std::ifstream;
-using std::ofstream;
 using std::string;
-using std::vector;
 
 namespace omogenexec {
 
-bool DirectoryExists(const string& path) {
+bool DirectoryExists(const std::string& path) {
   struct stat sb;
   if (stat(path.c_str(), &sb) == -1) {
     if (errno == ENOENT || errno == ENOTDIR) {
@@ -31,7 +26,7 @@ bool DirectoryExists(const string& path) {
   return S_ISDIR(sb.st_mode);
 }
 
-bool MakeDir(const string& path) {
+bool MakeDir(const std::string& path) {
   RAW_VLOG(2, "Making path %s", path.c_str());
   if (mkdir(path.c_str(), 0755) == -1) {
     if (errno == EEXIST) {
@@ -46,7 +41,7 @@ bool MakeDir(const string& path) {
   return false;
 }
 
-void MakeDirParents(const string& path) {
+void MakeDirParents(const std::string& path) {
   if (path.empty()) {
     return;
   }
@@ -56,7 +51,7 @@ void MakeDirParents(const string& path) {
   size_t at = 0;
   while (at < path.size()) {
     size_t next = path.find('/', at + 1);
-    if (next == string::npos) {
+    if (next == std::string::npos) {
       next = path.size();
     }
     MakeDir(path.substr(0, next));
@@ -64,14 +59,14 @@ void MakeDirParents(const string& path) {
   }
 }
 
-string MakeTempDir() {
+std::string MakeTempDir() {
   char rootPath[] = "/tmp/omogencontainXXXXXX";
   RAW_CHECK(mkdtemp(rootPath) != nullptr,
             "Could not create temporary directory");
-  return string(rootPath);
+  return std::string(rootPath);
 }
 
-void RemoveDir(const string& path) {
+void RemoveDir(const std::string& path) {
   RAW_VLOG(2, "Removing path %s", path.c_str());
   RAW_CHECK(rmdir(path.c_str()) != -1 || errno == ENOENT,
             "Could not remove directory");
@@ -88,22 +83,22 @@ static int removeTree0(const char* filePath, const struct stat* statData,
   return FTW_CONTINUE;
 }
 
-void RemoveTree(const string& directoryPath) {
+void RemoveTree(const std::string& directoryPath) {
   RAW_VLOG(2, "Removing tree %s", directoryPath.c_str());
   RAW_CHECK(nftw(directoryPath.c_str(), removeTree0, 32,
                  FTW_MOUNT | FTW_PHYS | FTW_DEPTH) != -1,
             "Could not tree walk path to remove");
 }
 
-void WriteToFile(const string& path, const string& contents) {
+void WriteToFile(const std::string& path, const std::string& contents) {
   RAW_VLOG(2, "Writing to %s", path.c_str());
-  ofstream ofs(path);
+  std::ofstream ofs(path);
   if (!(ofs << contents)) {
     RAW_LOG(FATAL, "Failed writing to %s", path.c_str());
   }
 }
 
-void WriteToFd(int fd, const string& contents) {
+void WriteToFd(int fd, const std::string& contents) {
   size_t at = 0;
   while (at != contents.size()) {
     int wrote = write(fd, contents.data() + at, contents.size() - at);
@@ -115,10 +110,10 @@ void WriteToFd(int fd, const string& contents) {
   }
 }
 
-vector<string> TokenizeFile(const string& path) {
-  ifstream ifs(path);
-  vector<string> tokens;
-  string tok;
+std::vector<std::string> TokenizeFile(const std::string& path) {
+  std::ifstream ifs(path);
+  std::vector<std::string> tokens;
+  std::string tok;
   while (ifs >> tok) {
     tokens.push_back(tok);
   }
@@ -126,7 +121,7 @@ vector<string> TokenizeFile(const string& path) {
   return tokens;
 }
 
-void CloseFdsExcept(vector<int> fdsToKeep) {
+void CloseFdsExcept(std::vector<int> fdsToKeep) {
   DIR* fdDir = opendir("/proc/self/fd");
   RAW_CHECK(fdDir != nullptr, "Could not open /proc/self/fd");
   // Do not accidentally close the fd directory file descriptor.
@@ -143,7 +138,7 @@ void CloseFdsExcept(vector<int> fdsToKeep) {
     int fd = strtol(entry->d_name, nullptr, 10);
     if (errno != 0) {
       RAW_LOG(ERROR, "Ignoring invalid fd entry: %s", entry->d_name);
-    } else if (find(fdsToKeep.begin(), fdsToKeep.end(), fd) ==
+    } else if (std::find(fdsToKeep.begin(), fdsToKeep.end(), fd) ==
                fdsToKeep.end()) {
       RAW_CHECK(close(fd) != -1, "Closing file descriptor %d failed");
     }
@@ -151,7 +146,7 @@ void CloseFdsExcept(vector<int> fdsToKeep) {
   RAW_CHECK(closedir(fdDir) != -1, "Closing file descriptor folder failed");
 }
 
-bool FileIsExecutable(const string& path) {
+bool FileIsExecutable(const std::string& path) {
   struct stat sb;
   if (stat(path.c_str(), &sb) == -1) {
     if (errno == EACCES || errno == ENAMETOOLONG || errno == ENOTDIR ||

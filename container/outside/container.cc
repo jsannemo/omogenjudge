@@ -28,9 +28,13 @@ using namespace std::chrono_literals;  // for ms
 
 namespace omogenexec {
 
+DEFINE_string(container_root, "/var/lib/omogenexec", "A non-world writable directory to store the container root systems in");
+
 static const int CHILD_STACK_SIZE = 100 * 1000;  // 100 KB
 
 struct SandboxArgs {
+  int id;
+
   int stdinFd;
   int stdoutFd;
 
@@ -41,10 +45,7 @@ struct SandboxArgs {
   api::ContainerSpec containerSpec;
 };
 
-static char* const argv[] = {strdup("/usr/bin/omogenrunner"),
-                             strdup("--logtostderr"), strdup("--v=3"), NULL};
-
-static int startSandbox(void* argp) {
+static int startSandbox [[ noreturn ]] (void* argp) {
   SandboxArgs args = *static_cast<SandboxArgs*>(argp);
   PCHECK(prctl(PR_SET_KEEPCAPS, 1) != -1) << "Could not keep capabilities";
   // Close the other ends of the pipes we use for stdin/stdout to avoid keeping
@@ -53,28 +54,31 @@ static int startSandbox(void* argp) {
       << "Could not close other end of stdin pipe";
   PCHECK(close(args.closeFd2) != -1)
       << "Could not close other end of stdout pipe";
-  PCHECK(dup2(args.stdinFd, 0) != -1) << "Could not open stdin";
-  PCHECK(dup2(args.stdoutFd, 6) != -1) << "Could not open stdout";
+  PCHECK(dup2(args.stdinFd, 100) != -1) << "Could not open stdin";
+  PCHECK(dup2(args.stdoutFd, 101) != -1) << "Could not open stdout";
   PCHECK(close(args.stdinFd) != -1) << "Could not close old stdin";
   PCHECK(close(args.stdoutFd) != -1) << "Could not close old stdout";
   Chroot chroot = Chroot::ForNewRoot(args.rootfs);
   chroot.ApplyContainerSpec(args.containerSpec);
   chroot.SetRoot();
-  PCHECK(execv("/usr/bin/omogenrunner", argv) != -1)
+  std::string sandboxId = absl::StrCat(args.id);
+  char* const argv[] = {strdup("/usr/bin/omogenrunner"), strdup(sandboxId.c_str()), NULL};
+  PCHECK(execv("/usr/bin/omogenexec_runner", argv) != -1)
       << "Could not start sandbox";
   assert(false && "unreachable");
 }
 
-Container::Container(const api::ContainerSpec& spec) {
+Container::Container(std::unique_ptr<ContainerId> containerId_, const api::ContainerSpec& spec) : containerId(std::move(containerId_)) {
   PCHECK(pipe(commandPipe) != -1) << "Failed creating command pipe";
   PCHECK(pipe(returnPipe) != -1) << "Failed creating return pipe";
   // The container will get a new root with chroot; we store this in a temporary
   // directory
-  containerRoot = MakeTempDir();
+  containerRoot = absl::StrCat(FLAGS_container_root, "/", containerId->Get());
+  MakeDir(containerRoot);
   // Clone requires us to provide a new stack for the child process
   std::vector<char> stack(CHILD_STACK_SIZE);
   // Clone and create new namespaces for the contained process
-  SandboxArgs args{commandPipe[0], returnPipe[1], commandPipe[1],
+  SandboxArgs args{containerId->Get(), commandPipe[0], returnPipe[1], commandPipe[1],
                    returnPipe[0],  containerRoot, spec};
   PCHECK((initPid = clone(startSandbox, stack.data() + stack.size(),
                           SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS |
@@ -105,6 +109,7 @@ void Container::killInit() {
   // it is fine to do kill(-initPid)
   kill(-initPid, SIGKILL);
   kill(initPid, SIGKILL);
+  initPid = 0;
 }
 
 int Container::waitInit() {
@@ -117,6 +122,10 @@ int Container::waitInit() {
     PLOG(FATAL) << "Failed waitpid for init";
   }
   return status;
+}
+
+bool Container::IsDead() {
+  return initPid == 0;
 }
 
 static void setTermination(
@@ -239,7 +248,7 @@ StatusOr<api::Termination> Container::monitorInit(
                 << "Unreasonable termination length";
             VLOG(3) << "Got length " << length;
             CHECK(state->termination.ParseFromString(
-                ReadFromFd(2, state->returnPipe)))
+                ReadFromFd(length, state->returnPipe)))
                 << "Could not read resulting termination reason";
             break;
           }
@@ -323,8 +332,9 @@ StatusOr<api::Termination> Container::Execute(const api::Execution& request) {
   containerRequest.set_allocated_command(new api::Command(request.command()));
   containerRequest.set_allocated_environment(
       new api::Environment(request.environment()));
+  // Allow one extra process for the init process.
   containerRequest.set_process_limit(
-      getLimit(request.resource_limits(), api::ResourceType::PROCESSES));
+      1 + getLimit(request.resource_limits(), api::ResourceType::PROCESSES));
   LOG(INFO) << "Sending execution request " << containerRequest.DebugString()
             << " to init";
   std::string requestBytes;

@@ -14,6 +14,9 @@
 
 namespace omogenexec {
 
+// Setup performs the main setup of a process that is to run an execution
+// request, such as rlimits and stream redirections.
+
 class InitException : public std::runtime_error {
   std::string msg;
 
@@ -37,38 +40,47 @@ static void setResourceLimits() {
   setResourceLimit(RLIMIT_NOFILE, 100);
 }
 
-static void openFileWithFd(int wantFd, const std::string& path, bool writable) {
-  VLOG(2) << "Opening path " << path << " with file descriptor " << wantFd;
-  if (close(wantFd) == -1) {
-    throw InitException("close failed");
-  }
+static int openFileWithFd(const std::string& path, bool writable) {
+  VLOG(2) << "Opening path " << path;
   int fd = writable ? open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666)
                     : open(path.c_str(), O_RDONLY);
   if (fd == -1) {
     throw InitException("open failed");
   }
-  if (fd != wantFd) {
-    throw InitException("Got the wrong fd for stream");
-  }
+  return fd;
 }
 
-static void setupStreams(const api::Streams& streams) {
-  // When opening a new file, the lowest unused file descriptor is reused. Thus,
-  // we can map descriptors 0/1/2 to a particular file by closing the descriptor
-  // and then opening the correct file, since they will be open when the process
-  // starts.
+static std::map<int, int> openStreams(const api::Streams& streams) {
+  std::map<int, int> newFds;
   for (int fd = 0; fd < streams.mappings_size(); fd++) {
     const api::Streams::Mapping& mapping = streams.mappings(fd);
     switch (mapping.mapping_case()) {
       case api::Streams::Mapping::kEmpty:
-        openFileWithFd(fd, "/dev/null", mapping.write());
+        newFds[fd] = openFileWithFd("/dev/null", mapping.write());
         break;
       case api::Streams::Mapping::kFile:
-        openFileWithFd(fd, mapping.file().path_inside_container(),
-                       mapping.write());
+        newFds[fd] = openFileWithFd(mapping.file().path_inside_container(),
+                                    mapping.write());
         break;
       case api::Streams::Mapping::MAPPING_NOT_SET:
         assert(false && "Unsupported mapping");
+    }
+  }
+  return newFds;
+}
+
+static void replaceStreams(const std::map<int, int>& newFds) {
+  // TODO(jsannemo): this is a bit shaky if we are mapping more
+  // fds than 0, 1, 2 since we don't know which file descriptors
+  // we got when we opened the above, or what file descriptor
+  // the error had. They should be chosen in a manner that won't conflict
+  // with the low fds we get when opening.
+  for (const auto& toReplace : newFds) {
+    if (dup2(toReplace.second, toReplace.first) == -1) {
+      throw InitException("Could not open new file descriptor");
+    }
+    if (close(toReplace.second) == -1) {
+      throw InitException("Could not close old file descriptor");
     }
   }
 }
@@ -106,11 +118,14 @@ static std::vector<const char*> getEnv(
       throw InitException(
           "Command is not an executable file inside the sandbox");
     }
+    std::map<int, int> newFds =
+        openStreams(request.environment().stream_redirections());
     // Write a \1 that the parent will read to make sure we didn't crash
     // before we decided to close the error pipe.
     WriteToFd(errorPipe, "\1");
-    PCHECK(close(errorPipe) != -1) << "Could not close the error pipe!";
-    setupStreams(request.environment().stream_redirections());
+    // TODO(jsannemo): make sure we can wait with writing \1 after fixing file
+    // descriptors by keeping the error stream at a high fd.
+    replaceStreams(newFds);
     execve(argv[0], const_cast<char**>(argv.data()),
            const_cast<char**>(env.data()));
     exit(255);
