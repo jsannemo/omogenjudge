@@ -169,7 +169,9 @@ int main(int argc, char** argv) {
     if (!ReadIntFromFd(&length, 100)) {
       break;
     }
+    LOG(INFO) << "Read length " << length;
     string requestBytes = ReadFromFd(length, 100);
+    LOG(INFO) << "Read string ";
     if (!request.ParseFromString(requestBytes)) {
       LOG(ERROR) << "Could not read complete request";
     }

@@ -116,12 +116,13 @@ static vector<const char*> getEnv(
     setResourceLimits();
 
     const Command& command = request.command();
-    vector<const char*> argv;
-    argv.push_back(request.command().command().c_str());
+    const char** argv = new const char*[2 + command.flags_size()];
+    argv[0] = command.command().c_str();
+    argv[1] = nullptr;
     for (int i = 0; i < command.flags_size(); ++i) {
-      argv.push_back(command.flags(i).c_str());
+      argv[i + 1] = strdup(command.flags(i).c_str());
     }
-    argv.push_back(nullptr);
+    argv[command.flags_size() + 1] = nullptr;
     vector<const char*> env = getEnv(request.environment().env());
 
     if (!FileIsExecutable(argv[0])) {
@@ -130,14 +131,16 @@ static vector<const char*> getEnv(
     }
     map<int, int> newFds =
         openStreams(request.environment().stream_redirections());
+    if (!request.environment().working_directory().empty()) {
+      PCHECK(chdir(request.environment().working_directory().c_str()) == 0);
+    }
     // Write a \1 that the parent will read to make sure we didn't crash
     // before we decided to close the error pipe.
     WriteToFd(errorPipe, "\1");
     // TODO(jsannemo): make sure we can wait with writing \1 after fixing file
     // descriptors by keeping the error stream at a high fd.
     replaceStreams(newFds);
-    execve(argv[0], const_cast<char**>(argv.data()),
-           const_cast<char**>(env.data()));
+    execve(argv[0], const_cast<char**>(argv), const_cast<char**>(env.data()));
     exit(255);
   } catch (InitException e) {
     LOG(ERROR) << "Caught exception: " << e.what();

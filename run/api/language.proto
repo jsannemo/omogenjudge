@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package omogen.run;
+
+// A LanguageGroup vaguely categorizes programming languages based on whether
+// they have features that are not backwards-compatible (such as C++ major
+// versions, Python 2/3).
+enum LanguageGroup {
+  LANGUAGE_GROUP_UNKNOWN = 0;
+  CPP_11 = 1;
+  CPP_14 = 2;
+  CPP_17 = 3;
+  PYTHON_2 = 4;
+  PYTHON_3 = 5;
+}
+
+// A Language represents an installed compiler or runtime that can be used to
+// execute programs.
+message Language {
+  // A unique, short id representing this language. The ID will contain only
+  // alphanumerics and dashes.
+  string language_id = 1;
+
+  // The language group this language belongs to.
+  LanguageGroup group = 2;
+
+  // A version string of the compiler or runtime used for programs of this
+  // language, such as:
+  // - "gcc version 7.3.0 (Debian 7.3.0-5)"
+  // - "Python 3.6.5"
+  string version = 3;
+
+  // A description of how a program of this language is compiled, such as:
+  // - "javac source.java"
+  // - "g++ -O2 -std=c++14 source.cpp"
+  string compilation_description = 4;
+
+  // A description of how a program of this language is run, such as:
+  // - "./program"
+  // - "pypy source.py"
+  // - "java source"
+  string run_description = 5;
+}

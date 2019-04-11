@@ -160,9 +160,10 @@ bool FileIsExecutable(const std::string& path) {
 }
 
 void WriteIntToFd(int value, int fd) {
-  char buf[4];
+  unsigned char buf[4];
   for (int i = 0; i < 4; i++) {
-    buf[i] = value & (0xff << ((3 - i) * 8));
+    buf[3 - i] = value & 0xff;
+    value >>= 8;
   }
   WriteToFd(4, buf, fd);
 }
@@ -173,13 +174,13 @@ bool ReadIntFromFd(int* val, int fd) {
     return false;
   }
   *val = 0;
-  for (char p : ret) {
-    *val = *val << 8 | p;
+  for (unsigned char p : ret) {
+    *val = (*val << 8) | p;
   }
   return true;
 }
 
-void WriteToFd(int bytes, char* ptr, int fd) {
+void WriteToFd(int bytes, unsigned char* ptr, int fd) {
   int at = 0;
   while (at != bytes) {
     int r = write(fd, ptr + at, bytes - at);

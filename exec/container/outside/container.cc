@@ -74,7 +74,7 @@ static int startSandbox [[noreturn]] (void* argp) {
   chroot.ApplyContainerSpec(args.containerSpec);
   chroot.SetRoot();
   string sandboxId = absl::StrCat(args.id);
-  char* const argv[] = {strdup("/usr/bin/omogenrunner"),
+  char* const argv[] = {strdup("/usr/bin/omogenrunner"), strdup("-logtostderr"),
                         strdup(sandboxId.c_str()), NULL};
   PCHECK(execv("/usr/bin/omogenexec_runner", argv) != -1)
       << "Could not start sandbox";

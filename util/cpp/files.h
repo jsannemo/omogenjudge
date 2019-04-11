@@ -48,7 +48,7 @@ bool FileIsExecutable(const std::string& path);
 std::string ReadFromFd(int bytes, int fd);
 
 // Write bytes to a file descriptor.
-void WriteToFd(int bytes, char* ptr, int fd);
+void WriteToFd(int bytes, unsigned char* ptr, int fd);
 
 // Write an integer in network byte order.
 void WriteIntToFd(int value, int fd);

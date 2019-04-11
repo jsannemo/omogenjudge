@@ -165,6 +165,7 @@ int main(int argc, char** argv) {
   std::shared_ptr<grpc::ClientReaderWriter<ExecuteRequest, ExecuteResponse>>
       stream(stub->Execute(&context));
 
+  LOG(INFO) << "Sending execute " << request.DebugString();
   for (int i = 0; i < FLAGS_repetitions; i++) {
     if (!stream->Write(request)) {
       break;

@@ -2,6 +2,7 @@ package(default_visibility = ["//visibility:public"])
 
 load("@build_stack_rules_proto//cpp:cpp_proto_library.bzl", "cpp_proto_library")
 load("@build_stack_rules_proto//cpp:cpp_grpc_library.bzl", "cpp_grpc_library")
+load("@build_stack_rules_proto//go:go_grpc_library.bzl", "go_grpc_library")
 
 proto_library(
     name = "exec_proto",
@@ -16,6 +17,12 @@ proto_library(
 cpp_grpc_library(
     name = "exec_cc_proto",
     deps = [":exec_proto"],
+)
+
+go_grpc_library(
+    name = "exec_go_proto",
+    deps = [":exec_proto"],
+    importpath = "github.com/jsannemo/omogenexec/exec/api",
 )
 
 proto_library(
