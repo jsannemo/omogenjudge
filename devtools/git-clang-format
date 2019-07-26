@@ -323,11 +323,23 @@ def filter_by_extension(dictionary, allowed_extensions):
   excluding the period."""
   allowed_extensions = frozenset(allowed_extensions)
   for filename in list(dictionary.keys()):
+    if ignore_folder(os.path.dirname(filename)):
+      del dictionary[filename]
+      continue
     base_ext = filename.rsplit('.', 1)
     if len(base_ext) == 1 and '' in allowed_extensions:
         continue
     if len(base_ext) == 1 or base_ext[1].lower() not in allowed_extensions:
       del dictionary[filename]
+
+
+def ignore_folder(path):
+    ignorefile = os.path.join(path, ".ignore-clang")
+    if os.path.exists(ignorefile): return True
+    parent = os.path.dirname(path)
+    if parent != path:
+        return ignore_folder(parent)
+    return False
 
 
 def cd_to_toplevel():

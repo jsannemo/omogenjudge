@@ -1,0 +1,2 @@
+# gazelle:prefix golang.org/x/crypto
+# gazelle:importmap_prefix golang.org/x/crypto

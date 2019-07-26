@@ -29,8 +29,12 @@ git_repository(
 git_repository(
     name = "com_google_protobuf",
     remote = "https://github.com/google/protobuf.git",
-    tag = "v3.6.1.3",
+    tag = "v3.8.0",
 )
+
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
+protobuf_deps()
 
 # Abseil
 
@@ -56,22 +60,36 @@ bind(
 # Golang
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 http_archive(
     name = "io_bazel_rules_go",
-    urls = ["https://github.com/bazelbuild/rules_go/releases/download/0.18.2/rules_go-0.18.2.tar.gz"],
-    sha256 = "31f959ecf3687f6e0bb9d01e1e7a7153367ecd82816c9c0ae149cd0e5a92bf8c",
+    sha256 = "8df59f11fb697743cbb3f26cfb8750395f30471e9eabde0d174c3aebc7a1cd39",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.19.1/rules_go-0.19.1.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/0.19.1/rules_go-0.19.1.tar.gz",
+    ],
 )
-load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+
 go_rules_dependencies()
+
 go_register_toolchains()
+
+# Gazelle, BUILD file generator for go
 
 http_archive(
     name = "bazel_gazelle",
-    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.17.0/bazel-gazelle-0.17.0.tar.gz"],
-    sha256 = "3c681998538231a2d24d0c07ed5a7658cb72bfb5fd4bf9911157c0e9ac6a2687",
+    sha256 = "be9296bfd64882e3c08e3283c58fcb461fa6dd3c171764fcc4cf322f60615a9b",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/bazel-gazelle/releases/download/0.18.1/bazel-gazelle-0.18.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/0.18.1/bazel-gazelle-0.18.1.tar.gz",
+    ],
 )
-load("@bazel_gazelle//:deps.bzl", "go_repository")
 
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
+
+gazelle_dependencies()
 
 # Proto/gRPC
 
@@ -79,35 +97,109 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "build_stack_rules_proto",
-    urls = ["https://github.com/stackb/rules_proto/archive/e783457abea020e7df6b94acb54f668c0473ae31.tar.gz"],
-    strip_prefix = "rules_proto-e783457abea020e7df6b94acb54f668c0473ae31",
+    strip_prefix = "rules_proto-d9a123032f8436dbc34069cfc3207f2810a494ee",
+    urls = ["https://github.com/stackb/rules_proto/archive/d9a123032f8436dbc34069cfc3207f2810a494ee.tar.gz"],
 )
 
 load("@build_stack_rules_proto//cpp:deps.bzl", "cpp_proto_library")
+
 cpp_proto_library()
+
 load("@build_stack_rules_proto//go:deps.bzl", "go_proto_library")
+
 go_proto_library()
 
 load("@build_stack_rules_proto//cpp:deps.bzl", "cpp_grpc_library")
+
 cpp_grpc_library()
+
 load("@build_stack_rules_proto//go:deps.bzl", "go_grpc_library")
+
 go_grpc_library()
 
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
+
 grpc_deps()
 
 go_repository(
     name = "org_golang_google_grpc",
-    commit = "3507fb8e1a5ad030303c106fef3a47c9fdad16ad",
+    commit = "1d89a3c832915b2314551c1d2a506874d62e53f7",
     importpath = "google.golang.org/grpc",
+)
+
+go_repository(
+    name = "org_golang_x_net",
+    commit = "65e2d4e15006aab9813ff8769e768bbf4bb667a0",
+    importpath = "golang.org/x/net",
+)
+
+go_repository(
+    name = "org_golang_x_text",
+    commit = "e6919f6577db79269a6443b9dc46d18f2238fb5d",
+    importpath = "golang.org/x/text",
+)
+
+go_repository(
+    name = "org_golang_x_crypto",
+    commit = "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+    importpath = "golang.org/x/crypto",
+)
+
+# Markdown for go
+go_repository(
+    name = "com_github_gomarkdown",
+    commit = "ee6a7931a1e4b802c9ff93e4dabcabacf4cb91db",
+    importpath = "github.com/gomarkdown/markdown",
+)
+
+# Yaml for go
+go_repository(
+    name = "in_gopkg_yaml",
+    commit = "51d6538a90f86fe93ac480b35f37b2be17fef232",
+    importpath = "gopkg.in/yaml.v2",
+)
+
+# Postgres for go
+go_repository(
+    name = "com_github_lib_pq",
+    commit = "3427c32cb71afc948325f299f040e53c1dd78979",
+    importpath = "github.com/lib/pq",
+)
+
+# Gorilla utilities
+
+go_repository(
+    name = "com_github_gorilla_securecookie",
+    commit = "e59506cc896acb7f7bf732d4fdf5e25f7ccd8983",
+    importpath = "github.com/gorilla/securecookie",
+)
+
+go_repository(
+    name = "com_github_gorilla_sessions",
+    commit = "4355a998706e83fe1d71c31b07af94e34f68d74a",
+    importpath = "github.com/gorilla/sessions",
+)
+
+go_repository(
+    name = "com_github_gorilla_mux",
+    commit = "00bdffe0f3c77e27d2cf6f5c70232a2d3e4d9c15",
+    importpath = "github.com/gorilla/mux",
+)
+
+# Go logger
+
+go_repository(
+    name = "com_github_google_logger",
+    commit = "7047ffcb7339f3f59be32de74a92217cb17cb40c",
+    importpath = "github.com/google/logger",
 )
 
 # Buildifier
 
 http_archive(
     name = "com_github_bazelbuild_buildtools",
-    strip_prefix = "buildtools-2a27d63db79086b75a7dd646cacce0e931535691",
-    url = "https://github.com/bazelbuild/buildtools/archive/2a27d63db79086b75a7dd646cacce0e931535691.zip",
+    strip_prefix = "buildtools-master",
+    url = "https://github.com/bazelbuild/buildtools/archive/master.zip",
 )
 
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")

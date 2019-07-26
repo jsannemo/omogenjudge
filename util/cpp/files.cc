@@ -73,6 +73,11 @@ void RemoveDir(const std::string& path) {
             "Could not remove directory");
 }
 
+void TryRemoveDir(const std::string& path) {
+  RAW_VLOG(2, "Removing path %s", path.c_str());
+  rmdir(path.c_str());
+}
+
 static int removeTree0(const char* filePath, const struct stat* statData,
                        int typeflag, struct FTW* ftwbuf) {
   RAW_VLOG(3, "Recursive remove path %s", filePath);

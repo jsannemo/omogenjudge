@@ -1,0 +1,33 @@
+package main
+
+import (
+  "flag"
+
+  "github.com/google/logger"
+
+	"github.com/jsannemo/omogenjudge/evaluator/queue"
+)
+
+func main() {
+	flag.Parse()
+
+  judgeQueue := make(chan int, 1000)
+  if err := queue.StartQueue(judgeQueue); err != nil {
+    logger.Fatalf("Failed queue startup: %v", err)
+  }
+  for w := 1; w <= 20; w++ {
+  }
+  startCompilation(judgeQueue, compiledQueue)
+  startRunning(compiledQueue)
+}
+
+func startCompilation(judgeQueue <-chan int, compiledQueue chan<- int) {
+  for w := 1; w <= 3; w++ {
+    go func() {
+      for {
+        id <- judgeQueue
+        compile(id)
+      }
+    }()
+  }
+}

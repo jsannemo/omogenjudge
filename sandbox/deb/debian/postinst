@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set +e
+
+if ! id -u omogensandbox >/dev/null 2>&1; then
+  useradd -s /usr/bin/nologin -r omogensandbox
+fi
+
+set -e
+systemctl start omogensandboxd
+mkdir -p /var/lib/omogen/sandbox
+chown omogensandbox:omogensandbox /var/lib/omogen/sandbox

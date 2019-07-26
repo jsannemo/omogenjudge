@@ -25,11 +25,19 @@ std::string MakeTempDir();
 // idempotent.
 void RemoveDir(const std::string& path);
 
+// Remove a single directory, assuming it is non-empty. This function is
+// idempotent. Ignores errors.
+void TryRemoveDir(const std::string& path);
+
 // Destroy an entire directory tree, including any files in it.
 void RemoveTree(const std::string& path);
 
 // Overwrite the file given by the path with the given contents.
 void WriteToFile(const std::string& path, const std::string& contents);
+
+// Overwrite the file given by the path with the given contents, ignoring
+// failures.
+void TryWriteToFile(const std::string& path, const std::string& contents);
 
 // Write the given contents to the file descriptor.
 void WriteToFd(int fd, const std::string& contents);

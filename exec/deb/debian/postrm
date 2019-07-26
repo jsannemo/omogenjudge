@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set +e
-userdel omogenexec || true
-set -e
-rm -rf /var/lib/omogen/exec

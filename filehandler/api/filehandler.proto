@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+// A file handle uniquely describes the contents of a while and where it is
+// stored.
+message FileHandle {
+  // The SHA-256 hash of the file contents.
+  string sha256_hash = 1;
+
+  // An application-define descriptor of how to retrive the file.
+  bytes url = 2;
+}
+
+// Request to ensure that the files described by the handles is present on the
+// system.
+message EnsureFileRequest {
+  // The handles of the files to ensure the presence of.
+  repeated FileHandle handles = 1;
+}
+
+// Response to an EnsureFile request.
+message EnsureFileResponse {
+  // The path at which the files are now present.
+  repeated string paths = 1;
+}
+
+// FileHandlerService handles reading and storing files on a server.
+service FileHandlerService {
+  // EnsureFile makes sure some particular files will be present on the server.
+  // The files will always be stored in separate directories containing no other
+  // files.
+  rpc EnsureFile(EnsureFileRequest) returns (EnsureFileResponse) {}
+}

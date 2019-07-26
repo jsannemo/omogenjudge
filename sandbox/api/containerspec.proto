@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package omogen.sandbox;
+
+// A container spec describes the sandbox environment that commands should
+// be executed in.
+message ContainerSpec {
+  // The directory mounts that should apply in he container.
+  repeated DirectoryMount mounts = 1;
+}
+
+// Directory mounts control what parts of the file system outside the
+// container that should appear within the containre for the contained process
+// to read from and write to. Some default directories are mounted automatically
+// as read-only before starting the contained process, such as:
+// - /usr
+// - /bin
+// - /lib
+// - /lib32
+// - /lib64
+// - /proc
+message DirectoryMount {
+  // The path inside the container that should be made available.
+  string path_outside_container = 1;
+
+  // The path inside the container the directory from outside should be made
+  // availabe as.
+  string path_inside_container = 2;
+
+  // Whether the directory should be mounted read-only or not.
+  //
+  // Note: if not writable, even e.g. world-writable files in the directory
+  // tree will not be writable.
+  bool writable = 3;
+}

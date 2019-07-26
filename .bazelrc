@@ -1,3 +1,7 @@
+# Temporary rules
+build --incompatible_depset_is_not_iterable=false
+build --host_force_python=PY2
+
 build --cxxopt=-std=c++17
 
 build:asan --strip=never
@@ -41,3 +45,4 @@ build:ubsan --copt=-DNDEBUG
 build:ubsan --copt=-DUNDEFINED_BEHAVIOR_SANITIZER  # used by absl
 build:ubsan --linkopt=-fsanitize=undefined
 build:ubsan --action_env=UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+

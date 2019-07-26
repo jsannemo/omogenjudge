@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package omogen.problemtools;
+
+import "problemtools/api/problem.proto";
+
+// A request to ParseProblem.
+message ParseProblemRequest {
+  // An absolute path to the folder containing the problem files.
+  string problem_path = 1;
+}
+
+// A response to ParseProblem.
+message ParseProblemResponse {
+  // A parsed version of the problem.
+  Problem parsed_problem = 1;
+
+  // Errors that occured during parsing.
+  repeated string errors = 2;
+
+  // Warnings that occured during parsing.
+  repeated string warnings = 3;
+}
+
+// A request to VerifyPRoblem.
+message VerifyProblemRequest {
+  // A problem that was parsed by ParseProblem
+  Problem problem_to_verify = 1;
+}
+
+// A response to VerifyPRoblem.
+message VerifyProblemResponse {
+  // A the problem that was to be verified, possibly with additions.
+  Problem verified_problem = 1;
+
+  // Errors that occured during verification.
+  repeated string errors = 2;
+
+  // Warnings that occured during verification.
+  repeated string warnings = 3;
+}
+
+// The ToolService provides various utility methods used for problems, such as
+// parsing and validating them.
+service ToolService {
+  // Parse a given problem into a structured representation of it.
+  rpc ParseProblem(ParseProblemRequest) returns (ParseProblemResponse) {}
+
+  // Verify a problem that was parsed by ParseProblem.
+  rpc VerifyProblem(VerifyProblemRequest) returns (VerifyProblemResponse) {}
+}

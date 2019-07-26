@@ -1,0 +1,6 @@
+author: Johan Sannemo
+license: public domain 
+judging:
+  limits:
+    time: 1
+    memory: 1024

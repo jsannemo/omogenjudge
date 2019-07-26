@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "language.go",
+        "python.go",
+        "cmd.go",
+        "cpp.go",
+    ],
+    importpath = "github.com/jsannemo/omogenjudge/runner/language",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//runner/api:go_default_library",
+        "//runner/compilers:go_default_library",
+        "//runner/runners:go_default_library",
+        "//sandbox/api:go_default_library",
+        "@com_github_google_logger//:go_default_library",
+    ],
+)
