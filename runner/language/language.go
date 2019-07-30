@@ -33,7 +33,7 @@ type Language struct {
   Compile CompileFunc
 
   // The run function that should be used to run compiled programs of this language.
-  Run RunFunc
+  Run func() RunFunc
 }
 
 // ToApiLanguage converts the internal language to the external API representaiton.

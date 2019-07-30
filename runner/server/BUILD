@@ -13,7 +13,9 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//runner/api:go_default_library",
+        "//runner/diff:go_default_library",
         "//runner/language:go_default_library",
+        "//runner/runners:go_default_library",
         "//sandbox/api:go_default_library",
         "//sandbox/client:go_default_library",
         "@com_github_google_logger//:go_default_library",

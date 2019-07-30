@@ -14,9 +14,16 @@ message CompileRequest {
   string output_path = 2;
 }
 
-// A response to a compilation request
+// A response to a compilation request.
 message CompileResponse {
+  // The compiled program.
   CompiledProgram program = 1;
+
+  // The output output from the compiler.
+  string compilation_output = 2;
+
+  // The error output from the compiler.
+  string compilation_error = 3;
 }
 
 // A reuqest to execute a program.
@@ -39,9 +46,9 @@ message RunRequest {
   // The time limit of the run in kilobytes.
   int64 memory_limit_kb = 6;
 
-  repeated string extra_read_paths = 7;
-
-  repeated string args = 8;
+  // A directory that can be used to store various files used for running the
+  // program.
+  string env_root = 7;
 }
 
 // Metadata about a run that exceeded its time limit.
@@ -95,6 +102,24 @@ message GetLanguagesResponse {
   repeated Language installed_languages = 1;
 }
 
+// A request to compare two outputs to see if they are equivalent.
+message DiffRequest {
+  // The file path to the reference output.
+  string reference_output_path = 1;
+
+  // The file path to the output to compare with.
+  string output_path = 2;
+}
+
+// A response to a DiffRequest.
+message DiffResponse {
+  // Whether the output matched the reference output.
+  bool matching = 1;
+
+  // A description of why the outputs did not match.
+  string diff_description = 2;
+}
+
 // Runservice is capable of compiling and running source files in a given
 // language. It also provides a list of installed languages together with their
 // current versions.
@@ -102,9 +127,12 @@ service RunService {
   // Compile source files in a program, producing a compiled program.
   rpc Compile(CompileRequest) returns (CompileResponse) {}
 
-  // Run a compiled program on a given input and output
+  // Run a compiled program on a given input and output.
   rpc Run(stream RunRequest) returns (stream RunResponse) {}
 
   // Fetch all supported languages of the machine hosting this service.
   rpc GetLanguages(GetLanguagesRequest) returns (GetLanguagesResponse) {}
+
+  // Diff two files in the local machine.
+  rpc Diff(DiffRequest) returns (DiffResponse) {}
 }

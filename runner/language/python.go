@@ -82,7 +82,7 @@ func initPython(executable, name, tag string, languageGroup runpb.LanguageGroup)
     Version: version,
     LanguageGroup: languageGroup,
     Compile: compilers.Copy,
-    Run: runFunc(realPath),
+    Run: func() RunFunc { return runFunc(realPath) },
   }
   registerLanguage(language)
 }

@@ -55,6 +55,7 @@ type RunArgs struct {
   ExtraWritePaths []string
   TimeLimitMs int64
   MemoryLimitKb int64
+  ReuseContainer bool
 }
 
 func ensureFolder(path string) {
@@ -116,6 +117,9 @@ func CommandRunner(exec execpb.ExecuteService_ExecuteClient, args RunArgs) (*exe
     ContainerSpec: &execpb.ContainerSpec{
       Mounts: makeMounts(args.ExtraReadPaths, args.ExtraWritePaths),
     },
+  }
+  if args.ReuseContainer {
+    req.ContainerSpec = nil
   }
   logger.Infof("Sending Execute: %v", req)
   err := exec.Send(req)

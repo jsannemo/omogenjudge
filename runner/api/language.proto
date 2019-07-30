@@ -6,13 +6,22 @@ package omogen.runner;
 // they have features that are not backwards-compatible (such as C++ major
 // versions, Python 2/3).
 enum LanguageGroup {
-  LANGUAGE_GROUP_UNKNOWN = 0;
+  LANGUAGE_GROUP_UNSPECIFIED = 0;
+
+  // C++ 11
   CPP_11 = 1;
+
+  // C++ 14
   CPP_14 = 2;
+
+  // C++ 17
   CPP_17 = 3;
+
+  // Python 2
   PYTHON_2 = 4;
+
+  // Python 3
   PYTHON_3 = 5;
-  CMD = 6;
 }
 
 // A Language represents an installed compiler or runtime that can be used to

@@ -70,7 +70,7 @@ func cppCompile(executable, version string) CompileFunc {
     errf := tmp()
     termination, err := runners.CommandRunner(stream, runners.RunArgs{
       Command: executable,
-      Args: files,
+      Args: append(files, version, "-Ofast", "-static"),
       WorkingDirectory: outputPath,
       InputPath: inf,
       OutputPath: outf, 
@@ -100,6 +100,7 @@ func cppCompile(executable, version string) CompileFunc {
 }
 
 func runSubmission() RunFunc {
+  first := true
   return func(req *runpb.RunRequest, exec execpb.ExecuteService_ExecuteClient) (*runpb.RunResponse, error) {
     result, err := runners.CommandRunner(exec, runners.RunArgs{
       Command: filepath.Join(req.Program.ProgramRoot, req.Program.CompiledPaths[0]),
@@ -111,7 +112,9 @@ func runSubmission() RunFunc {
       ExtraWritePaths: []string{filepath.Dir(req.OutputPath), filepath.Dir(req.ErrorPath),},
       TimeLimitMs: req.TimeLimitMs,
       MemoryLimitKb: req.MemoryLimitKb,
+      ReuseContainer: !first,
     })
+    first = false
     if err != nil {
       return nil, err
     }
@@ -131,7 +134,7 @@ func initCpp(executable, name, tag string, languageGroup runpb.LanguageGroup) {
     Version: version,
     LanguageGroup: languageGroup,
     Compile: cppCompile(realPath, "--std=gnu++17"),
-    Run: runSubmission(),
+    Run: runSubmission,
   }
   registerLanguage(language)
 }

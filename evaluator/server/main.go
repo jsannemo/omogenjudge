@@ -4,8 +4,8 @@ import (
   "context"
   "flag"
   "fmt"
-  "path/filepath"
   "errors"
+"os"
 
   "github.com/google/logger"
 
@@ -65,12 +65,12 @@ func judge(id int32) error {
 
   tests := problem.Tests()
 	stream, err := runner.Run(context.Background())
-	validatorStream, err := runner.Run(context.Background())
   if err != nil {
     return err
   }
   verdict := "AC"
   for _, test := range tests {
+    logger.Info("Sending exec request")
     err := stream.Send(&runpb.RunRequest{
       Program: compiledProgram,
       InputPath: testPathMap[test.InputFile.Hash],
@@ -105,54 +105,28 @@ func judge(id int32) error {
       return errors.New("No exit set")
 		}
 
-    err = validatorStream.Send(&runpb.RunRequest{
-      Program: &runpb.CompiledProgram {
-        ProgramRoot: "/usr/bin/diff",
-        LanguageId: "cmd",
-      },
-      InputPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/%d/output", id, test.TestCaseId),
-      OutputPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/%d/valoutput", id, test.TestCaseId),
-      ErrorPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/%d/valerror", id, test.TestCaseId),
-      TimeLimitMs: 2000,
-      MemoryLimitKb: 512 * 1024,
-      ExtraReadPaths: []string{
-        fmt.Sprintf("/var/lib/omogen/submissions/%d/%d", id, test.TestCaseId),
-        filepath.Dir(testPathMap[test.OutputFile.Hash]),
-      },
-      Args: []string{
-        testPathMap[test.OutputFile.Hash],
-        "-",
-        "-b",
-      },
+    logger.Info("Sending diff request")
+    val, err := runner.Diff(context.TODO(), &runpb.DiffRequest{
+      ReferenceOutputPath: testPathMap[test.OutputFile.Hash],
+      OutputPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/%d/output", id, test.TestCaseId),
     })
-    if err != nil {
-      return err
+    logger.Info("Got diff response")
+
+    if !val.Matching {
+      verdict = "WA"
+      break
     }
-    val, err := validatorStream.Recv()
-    if err != nil {
-      return err
-    }
-    logger.Info(val)
-    switch x := val.Exit.(type) {
-		case *runpb.RunResponse_Exited:
-      if x.Exited.ExitCode == 0 {
-      } else if x.Exited.ExitCode == 1 {
-        verdict = "WA"
-      } else {
-        return errors.New("Validator crashed :(")
-      }
-		default:
-      return errors.New("Invalid exit for validator :(")
-		}
   }
+
   logger.Infof("Verdict: %s", verdict)
   stream.CloseSend()
-  validatorStream.CloseSend()
   return nil
 }
 
 func main() {
 	flag.Parse()
+  defer logger.Init("evaluator", false, true, os.Stderr).Close()
+
   runner = rclient.NewClient()
   filehandler = fhclient.NewClient()
 

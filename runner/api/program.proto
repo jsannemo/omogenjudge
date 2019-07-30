@@ -22,10 +22,10 @@ message Program {
 
 // A compiled program ready to be executed in some language.
 message CompiledProgram {
-  // The compilation root of the program
+  // The compilation root of the program.
   string program_root = 1;
 
-  // The paths, relative to the compilation root
+  // The paths, relative to the compilation root.
   repeated string compiled_paths = 2;
 
   // The language_id of the Language that this program was written in.
