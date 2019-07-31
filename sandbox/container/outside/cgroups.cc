@@ -102,6 +102,10 @@ long long Cgroup::CpuUsed() {
 
 void Cgroup::SetMemoryLimit(long long memLimitKb) {
   VLOG(2) << "Setting memory limit to " << memLimitKb;
+  if (memLimitKb == _memLimitKb) {
+    return;
+  }
+  _memLimitKb = memLimitKb;
   CHECK(memLimitKb >= 0) << "Memory limit was negative: " << memLimitKb;
   WriteToFile(getSubsystemOp(CgroupSubsystem::MEMORY, MEM_LIMIT),
               absl::StrCat(memLimitKb * 1000));

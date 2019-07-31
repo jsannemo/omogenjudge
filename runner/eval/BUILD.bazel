@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["eval.go"],
+    importpath = "github.com/jsannemo/omogenjudge/runner/eval",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//runner/api:go_default_library",
+        "//runner/diff:go_default_library",
+        "//runner/runners:go_default_library",
+    ],
+)

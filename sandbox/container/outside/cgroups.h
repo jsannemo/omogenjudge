@@ -22,6 +22,7 @@ enum class CgroupSubsystem { CPU_ACCT = 0, MEMORY, PIDS, INVALID };
 class Cgroup {
   string name;
   pid_t pid;
+  long long _memLimitKb;
 
   string getSubsystemPath(CgroupSubsystem subsystem);
   string getSubsystemOp(CgroupSubsystem subsystem, const string& op);

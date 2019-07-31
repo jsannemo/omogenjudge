@@ -42,10 +42,12 @@ class Container {
  public:
   StatusOr<Termination> Execute(const Execution& request);
 
+  bool IsDead();
+
+  void Reset();
+
   Container(unique_ptr<ContainerId> id, const ContainerSpec& spec);
   ~Container();
-
-  bool IsDead();
 
   Container(const Container&) = delete;
   Container& operator=(const Container&) = delete;

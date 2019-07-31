@@ -4,6 +4,7 @@ package language
 import (
   "github.com/google/logger"
 
+	"github.com/jsannemo/omogenjudge/runner/runners"
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 )
@@ -13,9 +14,6 @@ var languages = make(map[string]*Language)
 // CompileFunc is a function used to compile a program into the given path.
 // It may use calls to the execution service in order to perform the compilation.
 type CompileFunc func(program *runpb.Program, outputPath string, client execpb.ExecuteServiceClient) (*runpb.CompiledProgram, error)
-
-// RunFunc is a function used to run a given program.
-type RunFunc func(*runpb.RunRequest, execpb.ExecuteService_ExecuteClient) (*runpb.RunResponse, error)
 
 // A programming language.
 type Language struct {
@@ -33,7 +31,7 @@ type Language struct {
   Compile CompileFunc
 
   // The run function that should be used to run compiled programs of this language.
-  Run func() RunFunc
+  Program  runners.RunFunc
 }
 
 // ToApiLanguage converts the internal language to the external API representaiton.

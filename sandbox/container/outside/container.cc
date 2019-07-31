@@ -59,6 +59,7 @@ struct SandboxArgs {
 };
 
 static int startSandbox [[noreturn]] (void* argp) {
+  setpgid(getpid(), getpid());
   SandboxArgs args = *static_cast<SandboxArgs*>(argp);
   PCHECK(prctl(PR_SET_KEEPCAPS, 1) != -1) << "Could not keep capabilities";
   // Close the other ends of the pipes we use for stdin/stdout to avoid keeping
@@ -116,6 +117,7 @@ Container::~Container() {
   VLOG(3) << "Going to wait";
   while (waitInit() == -1)
     ;
+  initPid = 0;
   VLOG(3) << "Removing container root";
   RemoveTree(containerRoot);
   VLOG(3) << "Removed container root!";
@@ -126,7 +128,6 @@ void Container::killInit() {
   // it is fine to do kill(-initPid)
   kill(-initPid, SIGKILL);
   kill(initPid, SIGKILL);
-  initPid = 0;
 }
 
 int Container::waitInit() {
@@ -337,9 +338,11 @@ StatusOr<Termination> Container::monitorInit(const ResourceAmounts& limits) {
 }
 
 StatusOr<Termination> Container::Execute(const Execution& request) {
+  VLOG(3) << "Parsing limits for container";
+  long long memoryLimit =
+      getLimit(request.resource_limits(), ResourceType::MEMORY);
   VLOG(3) << "Setting limits for container";
-  cgroup->SetMemoryLimit(
-      getLimit(request.resource_limits(), ResourceType::MEMORY));
+  cgroup->SetMemoryLimit(memoryLimit);
   // The sandbox uses one extra process, so increase the limit with this.
   proto::ContainerExecution containerRequest;
   *containerRequest.mutable_command() = request.command();
@@ -352,11 +355,13 @@ StatusOr<Termination> Container::Execute(const Execution& request) {
   string requestBytes;
   containerRequest.SerializeToString(&requestBytes);
   WriteIntToFd(requestBytes.size(), commandPipe[1]);
+  Reset();
   WriteToFd(commandPipe[1], requestBytes);
-  cgroup->Reset();
   VLOG(2) << "Starting monitoring " << request.command().DebugString();
   return monitorInit(request.resource_limits());
 }
+
+void Container::Reset() { cgroup->Reset(); }
 
 }  // namespace sandbox
 }  // namespace omogen

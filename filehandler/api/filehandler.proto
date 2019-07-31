@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package omogen.filehandler;
+
 // A file handle uniquely describes the contents of a while and where it is
 // stored.
 message FileHandle {

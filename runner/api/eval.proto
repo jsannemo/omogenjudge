@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package omogen.runner;
+
+import "filehandler/api/filehandler.proto";
+
+enum Verdict {
+  VERDICT_UNSPECIFIED = 0;
+
+  ACCEPTED = 1;
+
+  TIME_LIMIT_EXCEEDED = 2;
+
+  WRONG_ANSWER = 3;
+
+  RUN_TIME_ERROR = 4;
+}
+
+message TestCase {
+  string name = 1;
+  string input_path = 2;
+  string output_path = 3;
+}
+
+message TestCaseResult {
+  Verdict verdict = 1;
+}
+
+message SubmissionResult {
+  Verdict verdict = 1;
+}

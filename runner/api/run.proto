@@ -4,6 +4,7 @@ package omogen.runner;
 
 import "runner/api/language.proto";
 import "runner/api/program.proto";
+import "runner/api/eval.proto";
 
 // A request to compile a program.
 message CompileRequest {
@@ -26,74 +27,6 @@ message CompileResponse {
   string compilation_error = 3;
 }
 
-// A reuqest to execute a program.
-message RunRequest {
-  // The program that should be executed.
-  CompiledProgram program = 1;
-
-  // The input file path.
-  string input_path = 2;
-
-  // The output file path.
-  string output_path = 3;
-
-  // The error output file path.
-  string error_path = 4;
-
-  // The time limit of the run in milliseconds.
-  int64 time_limit_ms = 5;
-
-  // The time limit of the run in kilobytes.
-  int64 memory_limit_kb = 6;
-
-  // A directory that can be used to store various files used for running the
-  // program.
-  string env_root = 7;
-}
-
-// Metadata about a run that exceeded its time limit.
-message TimeLimitExceeded {}
-
-// Metadata about a run that exceeded its memory limit.
-message MemoryLimitExceeded {}
-
-// Metadata about a run that exit with a signal.
-message Signaled {
-  // The signal that the program exited with.
-  int32 signal = 1;
-}
-
-// Metadata about a run that exited with an exit code.
-message Exited {
-  // The code that the program exited with.
-  int32 exit_code = 1;
-}
-
-// A response to a run request with the exit status of the execution.
-message RunResponse {
-  // The cause behind the termination of the program.
-  oneof exit {
-    // Set if the time limit was exceeded.
-    TimeLimitExceeded time_limit_exceeded = 1;
-
-    // Set if the memory limit was exceeded.
-    MemoryLimitExceeded memory_limit_exceeded = 2;
-
-    // Set if the program exited with a signal.
-    Signaled signaled = 3;
-
-    // Set if the program exited with a code.
-    Exited exited = 4;
-  }
-
-  // The time that the program took to finish.
-  int64 time_usage_ms = 5;
-
-  // The maximum memory usage of the program during its execution.
-  int64 memory_usage_kb = 6;
-}
-
-// A request to retrieve all installed languages on this server.
 message GetLanguagesRequest {}
 
 // A response with all installed languages.
@@ -102,37 +35,43 @@ message GetLanguagesResponse {
   repeated Language installed_languages = 1;
 }
 
-// A request to compare two outputs to see if they are equivalent.
-message DiffRequest {
-  // The file path to the reference output.
-  string reference_output_path = 1;
+// A request to evaluate an already compiled program on testdata.
+message EvaluateRequest {
+  int32 submission_id = 1;
 
-  // The file path to the output to compare with.
-  string output_path = 2;
+  // The compiled program.
+  CompiledProgram program = 2;
+
+  // The test cases to evaluate the program on.
+  // They will be evaluated in order.
+  repeated TestCase cases = 3;
+
+  int64 time_limit_ms = 4;
+  int64 mem_limit_kb = 5;
 }
 
-// A response to a DiffRequest.
-message DiffResponse {
-  // Whether the output matched the reference output.
-  bool matching = 1;
-
-  // A description of why the outputs did not match.
-  string diff_description = 2;
+// A partial response to an evaluation.
+message EvaluateResponse {
+  // Depending on how far the evaluation has progressed, the result can be for
+  // different things.
+  oneof result {
+    // If a test case was evaluated, test_case is set.
+    TestCaseResult test_case = 1;
+    // If the entire submission was evaluated, submission is set.
+    SubmissionResult submission = 2;
+  }
 }
 
-// Runservice is capable of compiling and running source files in a given
-// language. It also provides a list of installed languages together with their
-// current versions.
+// Runservice is capable of evaluating submissions. It also provides a list of
+// installed languages together with their current versions.
 service RunService {
   // Compile source files in a program, producing a compiled program.
   rpc Compile(CompileRequest) returns (CompileResponse) {}
 
-  // Run a compiled program on a given input and output.
-  rpc Run(stream RunRequest) returns (stream RunResponse) {}
+  // Evaluate a compiled submission.
+  rpc Evaluate(EvaluateRequest) returns (stream EvaluateResponse) {}
 
   // Fetch all supported languages of the machine hosting this service.
   rpc GetLanguages(GetLanguagesRequest) returns (GetLanguagesResponse) {}
 
-  // Diff two files in the local machine.
-  rpc Diff(DiffRequest) returns (DiffResponse) {}
 }

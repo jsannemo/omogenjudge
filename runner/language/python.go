@@ -2,16 +2,12 @@
 package language
 
 import (
-	"bytes"
   "os/exec"
-  "strings"
-  "path/filepath"
 
   "github.com/google/logger"
 
 	"github.com/jsannemo/omogenjudge/runner/compilers"
 	"github.com/jsannemo/omogenjudge/runner/runners"
-	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 )
 
@@ -23,66 +19,34 @@ func init() {
   initPython3()
 }
 
-func head(output string) string {
-  temp := strings.Split(output,"\n")
-  return temp[0]
-}
-
-func getVersion(path string) string {
-  cmd := exec.Command(path, "--version")
-	var stderr, stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-    logger.Fatalf("Failed retreiving python version: %v", err)
-	}
-  outLine := head(stdout.String())
-  errLine := head(stderr.String())
-  if len(outLine) != 0 {
-    return outLine
-  }
-  if len(errLine) != 0 {
-    return errLine
-  }
-  logger.Fatalf("Could not find a version for python %s", path)
-  return ""
-}
-
-func runFunc(executable string) RunFunc {
-  return func(req *runpb.RunRequest, exec execpb.ExecuteService_ExecuteClient) (*runpb.RunResponse, error) {
-    result, err := runners.CommandRunner(exec, runners.RunArgs{
+func runPython(executable string) runners.RunFunc {
+  argFunc := func (prog *runpb.CompiledProgram) *runners.CommandArgs {
+    return &runners.CommandArgs{
       Command: executable,
-      Args: req.Program.CompiledPaths,
-      WorkingDirectory: req.Program.ProgramRoot,
-      InputPath: req.InputPath,
-      OutputPath: req.OutputPath,
-      ErrorPath: req.ErrorPath,
-      ExtraReadPaths: []string{filepath.Dir(req.InputPath), req.Program.ProgramRoot,},
-      ExtraWritePaths: []string{filepath.Dir(req.OutputPath), filepath.Dir(req.ErrorPath),},
-      TimeLimitMs: req.TimeLimitMs,
-      MemoryLimitKb: req.MemoryLimitKb,
-    })
-    if err != nil {
-      return nil, err
+      Args: prog.CompiledPaths,
+      WorkingDirectory: prog.ProgramRoot,
     }
-    return runners.TerminationToResponse(result), nil
   }
+  return runners.CommandProgram(argFunc)
 }
 
 func initPython(executable, name, tag string, languageGroup runpb.LanguageGroup) {
   logger.Infof("Checking for Python executable %s", executable)
   realPath, err := exec.LookPath(executable)
   if err != nil {
+    // TODO: check if error was because of something other than not existing
     return
   }
-  version := getVersion(realPath)
+  version, err := runners.FirstLineFromCommand(realPath, []string{"--version"})
+  if err != nil {
+    logger.Fatalf("Could not retrieve version for python %v", realPath)
+  }
   language := &Language{
     Id: tag,
     Version: version,
     LanguageGroup: languageGroup,
     Compile: compilers.Copy,
-    Run: func() RunFunc { return runFunc(realPath) },
+    Program: runPython(realPath),
   }
   registerLanguage(language)
 }

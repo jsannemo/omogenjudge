@@ -2,10 +2,9 @@
 package language
 
 import (
-	"bytes"
-  "errors"
   "context"
   "os/exec"
+  "errors"
   "io/ioutil"
   "strings"
   "path/filepath"
@@ -28,27 +27,6 @@ func first(output string) string {
   return temp[0]
 }
 
-func cppVersion(path string) string {
-  cmd := exec.Command(path, "--version")
-	var stderr, stdout bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-    logger.Fatalf("Failed retreiving cpp version: %v", err)
-	}
-  outLine := head(stdout.String())
-  errLine := head(stderr.String())
-  if len(outLine) != 0 {
-    return outLine
-  }
-  if len(errLine) != 0 {
-    return errLine
-  }
-  logger.Fatalf("Could not find a cpp for python %s", path)
-  return ""
-}
-
 func tmp() string {
   file, err := ioutil.TempFile("/tmp", "omogendummy")
   if err != nil {
@@ -65,32 +43,29 @@ func cppCompile(executable, version string) CompileFunc {
     if err != nil {
       return nil, err
     }
+    // TODO clear files
     inf := tmp()
     outf := tmp()
     errf := tmp()
-    termination, err := runners.CommandRunner(stream, runners.RunArgs{
+    termination, err := runners.Execute(stream, &runners.ExecArgs{
       Command: executable,
       Args: append(files, version, "-Ofast", "-static"),
       WorkingDirectory: outputPath,
       InputPath: inf,
-      OutputPath: outf, 
+      OutputPath: outf,
       ErrorPath: errf,
-      ExtraReadPaths: []string{filepath.Dir(inf), outputPath, "/usr/include", "/usr/lib/gcc"},
-      ExtraWritePaths: []string{filepath.Dir(outf), outputPath},
+      ExtraReadPaths: []string{"/usr/include", "/usr/lib/gcc"},
+      ExtraWritePaths: []string{outputPath},
+      // TODO: revisit limits
       TimeLimitMs: 10000,
       MemoryLimitKb: 500 * 1024,
     })
     if err != nil {
       return nil, err
     }
-    switch termination.Termination.(type) {
-    case *execpb.Termination_Exit_:
-      if termination.GetExit().Code != 0 {
-        return nil, errors.New("Compiler crashed :(")
-      }
-		default:
-      return nil, errors.New("Invalid exit for compiler :(")
-		}
+    if termination.ExitReason != runners.Exited || termination.ExitCode != 0 {
+      return nil, errors.New("Compiler crashed :(")
+    }
     return &runpb.CompiledProgram{
       ProgramRoot: outputPath,
       CompiledPaths: []string{"a.out"},
@@ -99,46 +74,37 @@ func cppCompile(executable, version string) CompileFunc {
   }
 }
 
-func runSubmission() RunFunc {
-  first := true
-  return func(req *runpb.RunRequest, exec execpb.ExecuteService_ExecuteClient) (*runpb.RunResponse, error) {
-    result, err := runners.CommandRunner(exec, runners.RunArgs{
-      Command: filepath.Join(req.Program.ProgramRoot, req.Program.CompiledPaths[0]),
-      WorkingDirectory: req.Program.ProgramRoot,
-      InputPath: req.InputPath,
-      OutputPath: req.OutputPath,
-      ErrorPath: req.ErrorPath,
-      ExtraReadPaths: []string{filepath.Dir(req.InputPath), req.Program.ProgramRoot,},
-      ExtraWritePaths: []string{filepath.Dir(req.OutputPath), filepath.Dir(req.ErrorPath),},
-      TimeLimitMs: req.TimeLimitMs,
-      MemoryLimitKb: req.MemoryLimitKb,
-      ReuseContainer: !first,
-    })
-    first = false
-    if err != nil {
-      return nil, err
+func runCpp(executable string) runners.RunFunc {
+  argFunc := func (prog *runpb.CompiledProgram) *runners.CommandArgs {
+    return &runners.CommandArgs{
+      Command: filepath.Join(prog.ProgramRoot, prog.CompiledPaths[0]),
+      WorkingDirectory: prog.ProgramRoot,
     }
-    return runners.TerminationToResponse(result), nil
   }
+  return runners.CommandProgram(argFunc)
 }
 
-func initCpp(executable, name, tag string, languageGroup runpb.LanguageGroup) {
+func initCpp(executable, name, tag, versionFlag string, languageGroup runpb.LanguageGroup) {
   logger.Infof("Checking for C++ executable %s", executable)
   realPath, err := exec.LookPath(executable)
+  // TODO check why this failed
   if err != nil {
     return
   }
-  version := getVersion(realPath)
+  version, err := runners.FirstLineFromCommand(realPath, []string{"--version"})
+  if err != nil {
+    logger.Fatalf("Failed retreiving C++ version: %v", err)
+  }
   language := &Language{
     Id: tag,
     Version: version,
     LanguageGroup: languageGroup,
-    Compile: cppCompile(realPath, "--std=gnu++17"),
-    Run: runSubmission,
+    Compile: cppCompile(realPath, versionFlag),
+    Program: runCpp(realPath),
   }
   registerLanguage(language)
 }
 
 func initCpp17() {
-  initCpp("g++", "GCC C++17", "gpp17", runpb.LanguageGroup_CPP_17)
+  initCpp("g++", "GCC C++17", "gpp17", "--std=gnu++17",runpb.LanguageGroup_CPP_17)
 }

@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = ["queue.go"],
-    importpath = "github.com/jsannemo/omogenjudge/evaluator/queue",
+    importpath = "github.com/jsannemo/omogenjudge/judgemaster/queue",
     visibility = ["//visibility:public"],
     deps = [
         "//storage/db:go_default_library",

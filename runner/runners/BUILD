@@ -4,6 +4,8 @@ go_library(
     name = "go_default_library",
     srcs = [
         "env.go",
+        "exec.go",
+        "program.go",
         "runners.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/runner/runners",

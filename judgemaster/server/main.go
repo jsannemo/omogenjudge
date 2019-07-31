@@ -4,12 +4,12 @@ import (
   "context"
   "flag"
   "fmt"
-  "errors"
-"os"
+	"os"
+  "io"
 
   "github.com/google/logger"
 
-	"github.com/jsannemo/omogenjudge/evaluator/queue"
+	"github.com/jsannemo/omogenjudge/judgemaster/queue"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
 	"github.com/jsannemo/omogenjudge/storage/problems"
   runpb "github.com/jsannemo/omogenjudge/runner/api"
@@ -64,62 +64,35 @@ func judge(id int32) error {
   }
 
   tests := problem.Tests()
-	stream, err := runner.Run(context.Background())
+  var reqTests []*runpb.TestCase
+  for _, test := range tests{
+    reqTests = append(reqTests, &runpb.TestCase{
+      Name: fmt.Sprintf("test-%d", test.TestCaseId),
+      InputPath: testPathMap[test.InputFile.Hash],
+      OutputPath: testPathMap[test.OutputFile.Hash],
+    })
+  }
+	stream, err := runner.Evaluate(context.Background(),
+    &runpb.EvaluateRequest{
+      SubmissionId: id,
+      Program: compiledProgram,
+      Cases: reqTests,
+      TimeLimitMs: 1000,
+      MemLimitKb: 1024 * 1000,
+    })
   if err != nil {
     return err
   }
-  verdict := "AC"
-  for _, test := range tests {
-    logger.Info("Sending exec request")
-    err := stream.Send(&runpb.RunRequest{
-      Program: compiledProgram,
-      InputPath: testPathMap[test.InputFile.Hash],
-      OutputPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/%d/output", id, test.TestCaseId),
-      ErrorPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/%d/error", id, test.TestCaseId),
-      TimeLimitMs: 2000,
-      MemoryLimitKb: 512 * 1024,
-    })
+  for {
+    verdict, err := stream.Recv()
+    if err == io.EOF {
+      break
+    }
     if err != nil {
       return err
     }
-    in, err := stream.Recv()
-    if err != nil {
-      return err
-    }
-    logger.Info(in)
-    switch x := in.Exit.(type) {
-		case *runpb.RunResponse_TimeLimitExceeded:
-      verdict = "TLE"
-      break
-		case *runpb.RunResponse_MemoryLimitExceeded:
-      verdict = "RTE"
-      break
-		case *runpb.RunResponse_Signaled:
-      verdict = "RTE"
-      break
-		case *runpb.RunResponse_Exited:
-      if x.Exited.ExitCode != 0 {
-        verdict = "RTE"
-      }
-		default:
-      return errors.New("No exit set")
-		}
-
-    logger.Info("Sending diff request")
-    val, err := runner.Diff(context.TODO(), &runpb.DiffRequest{
-      ReferenceOutputPath: testPathMap[test.OutputFile.Hash],
-      OutputPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/%d/output", id, test.TestCaseId),
-    })
-    logger.Info("Got diff response")
-
-    if !val.Matching {
-      verdict = "WA"
-      break
-    }
+    logger.Infof("Verdict: %v", verdict)
   }
-
-  logger.Infof("Verdict: %s", verdict)
-  stream.CloseSend()
   return nil
 }
 
