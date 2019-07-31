@@ -5,8 +5,15 @@ import (
   runpb "github.com/jsannemo/omogenjudge/runner/api"
 )
 
-type NewSubmission struct {
-}
+type Status string
+
+const (
+  StatusCompiling Status = "compiling"
+  StatusRunning Status = "running"
+  StatusSuccessful Status = "successful"
+)
+
+type Verdict string
 
 // A stored file
 type Submission struct {
@@ -22,6 +29,10 @@ type Submission struct {
 
   // An identifier of the location of this resource.
   Files []*SubmissionFile
+
+  Status Status
+
+  Verdict Verdict
 }
 
 type SubmissionFile struct {

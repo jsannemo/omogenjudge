@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"path/filepath"
-  "html/template"
 	"io/ioutil"
 
 	"github.com/google/logger"
@@ -25,7 +24,7 @@ func toStorageStatements(statements []*toolspb.ProblemStatement) []*problems.Pro
 			&problems.ProblemStatement{
 				Language: s.LanguageCode,
 				Title:    s.Title,
-				Html:     template.HTML(s.StatementHtml),
+				Html:     s.StatementHtml,
 			})
 	}
 	return storage

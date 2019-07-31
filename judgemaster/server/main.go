@@ -21,8 +21,8 @@ import (
 var runner runpb.RunServiceClient
 var filehandler filepb.FileHandlerServiceClient
 
-func compile(s *submissions.Submission, output chan<- *runpb.CompiledProgram, outerr **error) {
-  response, err := runner.Compile(context.TODO(),
+func compile(ctx context.Context, s *submissions.Submission, output chan<- *runpb.CompiledProgram, outerr **error) {
+  response, err := runner.Compile(ctx,
     &runpb.CompileRequest{
       Program: s.ToRunnerProgram(),
       OutputPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/program", s.SubmissionId),
@@ -36,21 +36,25 @@ func compile(s *submissions.Submission, output chan<- *runpb.CompiledProgram, ou
 }
 
 
-func judge(id int32) error {
-  submission, err := submissions.GetSubmission(context.TODO(), id)
-  logger.Infof("Judging submission %d", id)
-  if err != nil {
-    return err
-  }
+func judge(ctx context.Context, submission *submissions.Submission) error {
+  logger.Infof("Judging submission %d", submission.SubmissionId)
   var compileErr *error = nil
   compileOutput := make(chan *runpb.CompiledProgram)
-  go compile(submission, compileOutput, &compileErr)
-  problem, err := problems.GetProblemForJudging(context.TODO(), submission.ProblemId)
+  go compile(ctx, submission, compileOutput, &compileErr)
+  submission.Status = submissions.StatusCompiling
+  if err := submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}}); err != nil {
+    logger.Errorf("Could not set submission as compiling: %v", err)
+  }
+  problems, err := problems.ListProblems(ctx, problems.ListArgs{WithTests: true}, problems.ListFilter{ProblemId: submission.ProblemId})
   if err != nil {
     return err
   }
+  if len(problems) != 1 {
+    return fmt.Errorf("requested problem %d, got %d problems", submission.ProblemId, len(problems))
+  }
+  problem := problems[0]
   testHandles := problem.TestDataFiles().ToHandlerFiles()
-  resp, err := filehandler.EnsureFile(context.TODO(), &filepb.EnsureFileRequest{Handles: testHandles})
+  resp, err := filehandler.EnsureFile(ctx, &filepb.EnsureFileRequest{Handles: testHandles})
   if err != nil {
     return err
   }
@@ -62,6 +66,10 @@ func judge(id int32) error {
   if compiledProgram == nil {
     return *compileErr
   }
+  submission.Status = submissions.StatusRunning
+  if err := submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}}); err != nil {
+    logger.Errorf("Could not set submission as running: %v", err)
+  }
 
   tests := problem.Tests()
   var reqTests []*runpb.TestCase
@@ -72,9 +80,9 @@ func judge(id int32) error {
       OutputPath: testPathMap[test.OutputFile.Hash],
     })
   }
-	stream, err := runner.Evaluate(context.Background(),
+	stream, err := runner.Evaluate(ctx,
     &runpb.EvaluateRequest{
-      SubmissionId: id,
+      SubmissionId: submission.SubmissionId,
       Program: compiledProgram,
       Cases: reqTests,
       TimeLimitMs: 1000,
@@ -92,25 +100,40 @@ func judge(id int32) error {
       return err
     }
     logger.Infof("Verdict: %v", verdict)
+    switch res := verdict.Result.(type) {
+    case *runpb.EvaluateResponse_TestCase:
+      // TODO report this
+    case *runpb.EvaluateResponse_Submission:
+      submission.Verdict = submissions.Verdict(res.Submission.Verdict.String())
+      submission.Status = submissions.StatusSuccessful
+      if err := submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldVerdict, submissions.FieldStatus}}); err != nil {
+        return err
+      }
+    case nil:
+      logger.Warningf("Got empty response")
+    default:
+      return fmt.Errorf("Got unexpected result %T", res)
+    }
+
   }
   return nil
 }
 
 func main() {
-	flag.Parse()
+  flag.Parse()
   defer logger.Init("evaluator", false, true, os.Stderr).Close()
 
   runner = rclient.NewClient()
   filehandler = fhclient.NewClient()
 
-  judgeQueue := make(chan int32, 1000)
+  judgeQueue := make(chan *submissions.Submission, 1000)
   if err := queue.StartQueue(judgeQueue); err != nil {
     logger.Fatalf("Failed queue startup: %v", err)
   }
   for w := 1; w <= 10; w++ {
     go func() {
       for {
-        if err := judge(<-judgeQueue); err != nil {
+        if err := judge(context.Background(), <-judgeQueue); err != nil {
           logger.Errorf("Failed judging submission: %v", err)
         }
       }

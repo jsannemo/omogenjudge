@@ -6,6 +6,7 @@ import (
   "fmt"
   "net"
   "os"
+  "sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -90,6 +91,8 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
   }
 
   results := make(chan *eval.Result, 10)
+  wg := sync.WaitGroup{}
+  wg.Add(1)
   go func() {
     for res := range results {
       if res.TestCaseVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
@@ -102,10 +105,12 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
         })
       }
     }
+    wg.Done()
   }()
   if err := evaluator.Evaluate(tcs, req.TimeLimitMs, req.MemLimitKb, results); err != nil {
     return fmt.Errorf("failed evaluation: %v", err)
   }
+  wg.Wait()
   return nil
 }
 

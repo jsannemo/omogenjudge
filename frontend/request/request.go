@@ -91,6 +91,17 @@ func Error(err error) Response {
 	return &errorResponse{err}
 }
 
+type notFoundResponse struct {
+}
+
+func (notFoundResponse) Code() int {
+  return http.StatusNotFound
+}
+
+func NotFound() Response {
+	return &notFoundResponse{}
+}
+
 // Redirect returns a Response that will cause a client to redirect to the given URL.
 func Redirect(url string) Response {
 	return &redirectResponse{url}

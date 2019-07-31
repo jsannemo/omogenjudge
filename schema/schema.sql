@@ -77,14 +77,15 @@ GRANT ALL ON problem_testcase_problem_testcase_id_seq TO omogenjudge;
 CREATE INDEX problem_testcase_problem_testgroup_id ON problem_testcase(problem_testgroup_id);
 
 CREATE TYPE status AS ENUM('new', 'compiling', 'running', 'successful');
-CREATE TYPE verdict AS ENUM('AC', 'WA', 'TLE', 'RTE');
+CREATE TYPE verdict AS ENUM('VERDICT_UNSPECIFIED', 'UNJUDGED', 'ACCEPTED', 'WRONG_ANSWER', 'TIME_LIMIT_EXCEEDED', 'RUN_TIME_EXCEEDED');
 
 -- Submission tables
 CREATE TABLE submission(
   submission_id SERIAL PRIMARY KEY,
   account_id INTEGER NOT NULL REFERENCES account,
   problem_id INTEGER NOT NULL REFERENCES problem,
-  status status NOT NULL
+  status status NOT NULL DEFAULT 'new',
+  verdict verdict DEFAULT 'UNJUDGED'
 );
 
 GRANT ALL ON submission TO omogenjudge;

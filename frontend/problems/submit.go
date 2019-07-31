@@ -33,10 +33,14 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 	}
 
 	vars := mux.Vars(r.Request)
-	problem, err := problems.GetProblem(r.Request.Context(), vars[paths.ProblemNameArg], true)
+  problems, err := problems.ListProblems(r.Request.Context(), problems.ListArgs{WithTitles: true}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
 	if err != nil {
 		return request.Error(err), nil
 	}
+  if len(problems) == 0 {
+    return request.NotFound(), nil
+  }
+  problem := problems[0]
 
 	if r.Request.Method == http.MethodPost {
 		submit := r.Request.FormValue("submission")

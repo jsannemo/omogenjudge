@@ -16,12 +16,12 @@ var listTemplates = template.Must(template.ParseFiles(
 ))
 
 type Params struct {
-	Problems problems.ProblemMap
+	Problems []*problems.Problem
 }
 
 // Request handler for listing problem
 func ListHandler(r *request.Request) (request.Response, error) {
-	problems, err := problems.ListProblems(r.Request.Context())
+  problems, err := problems.ListProblems(r.Request.Context(), problems.ListArgs{WithTitles: true}, problems.ListFilter{})
 	if err != nil {
 		return request.Error(err), nil
 	}

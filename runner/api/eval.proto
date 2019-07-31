@@ -14,6 +14,8 @@ enum Verdict {
   WRONG_ANSWER = 3;
 
   RUN_TIME_ERROR = 4;
+
+  UNJUDGED = 5;
 }
 
 message TestCase {

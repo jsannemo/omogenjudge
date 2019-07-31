@@ -22,7 +22,7 @@ type ProblemStatement struct {
   Title string
 
   // The HTML template of the statement.
-  Html template.HTML
+  Html string
 }
 
 type Problem struct {
@@ -90,7 +90,7 @@ func (p *Problem) LocalizedTitle(langs []language.Tag) string {
 
 // LocalizedStatement returns the HTML statement of the statement best corresponding to the languages in langs.
 func (p *Problem) LocalizedStatement(langs []language.Tag) template.HTML {
-  return localizedStatement(p, langs).Html
+  return template.HTML(localizedStatement(p, langs).Html)
 }
 
 // Link returns the link to this problem.
