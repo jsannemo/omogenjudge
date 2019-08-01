@@ -2,195 +2,129 @@
 package problems
 
 import (
-  "context"
-  "database/sql"
-  "fmt"
-  "strings"
+	"context"
+	"fmt"
+	"strings"
 
-  "github.com/jsannemo/omogenjudge/storage/db"
-  "github.com/jsannemo/omogenjudge/storage/files"
+	"github.com/jsannemo/omogenjudge/storage/db"
+	"github.com/jsannemo/omogenjudge/storage/models"
+  "github.com/jmoiron/sqlx"
 )
 
 type ListFilter struct {
-  ShortName string
-  ProblemId int32
+	ShortName string
+	ProblemId int32
+	Submissions []*models.Submission
 }
 
+type TestOpt byte
+type StmtOpt byte
+
+const (
+	TestsNone TestOpt = iota
+	TestsSamples
+	TestsAll
+
+	StmtNone StmtOpt = iota
+	StmtTitles
+	StmtAll
+)
+
 type ListArgs struct {
-  WithTitles bool
-  WithStatements bool
-  WithTests bool
-  WithSamples bool
+	WithStatements StmtOpt
+	WithTests TestOpt
 }
 
 func problemQuery(args ListArgs, filter ListFilter) (string, []interface{}) {
-  var joins []string
-  cols := []string{"problem_id", "short_name"}
-  if args.WithTitles || args.WithStatements {
-    cols = append(cols, "title", "language")
-    joins = append(joins, "problem_statement")
-  }
-  if args.WithStatements {
-    cols = append(cols, "html")
-  }
+	var params []interface{}
+	var filterSegs []string
 
-  filterStr := ""
-  var params []interface{}
-  if filter.ShortName != "" {
-    filterStr = "WHERE short_name = $1"
-    params = append(params, filter.ShortName)
-  } else {
-  if filter.ProblemId != 0 {
-    filterStr = "WHERE problem_id = $1"
-    params = append(params, filter.ProblemId)
-  }
-  }
-
-  joinStr := ""
-  if len(joins) != 0 {
-    joinStr = fmt.Sprintf("NATURAL JOIN %s", strings.Join(joins, ","))
-  }
-  return fmt.Sprintf("SELECT %s FROM problem %s %s ORDER BY short_name", strings.Join(cols, ","), joinStr, filterStr), params
-}
-
-func ListProblems(ctx context.Context, args ListArgs, filter ListFilter) ([]*Problem, error) {
-  conn := db.GetPool()
-  query, params := problemQuery(args, filter)
-  rows, err := conn.Query(query, params...)
-  if err != nil {
-    return nil, err
-  }
-  defer rows.Close()
-  problems := make(map[int32]*Problem)
-  for rows.Next() {
-    err := scanProblem(rows, problems, args)
-    if err != nil {
-      return nil, err
-    }
-  }
-	if err := rows.Err(); err != nil {
-    return nil, err
+	if filter.ShortName != "" {
+		params = append(params, filter.ShortName)
+		filterSegs = append(filterSegs, fmt.Sprintf("short_name = $%d", len(params)))
 	}
-  var pList []*Problem
-  for _, problem := range problems {
-    if args.WithTests || args.WithSamples {
-      if err := includeTestData(conn, problem, args); err != nil {
-        return nil, err
-      }
-    }
-    pList = append(pList, problem)
-  }
-  return pList, nil
-}
-
-func scanProblem(sc db.Scannable, problems ProblemMap, args ListArgs) error {
-  var id int32
-  statement := ProblemStatement{}
-  var shortName string
-
-  ptrs := []interface{}{&id, &shortName}
-  if args.WithTitles || args.WithStatements {
-    ptrs = append(ptrs, &statement.Title, &statement.Language)
-  }
-  if args.WithStatements {
-    ptrs = append(ptrs, &statement.Html)
-  }
-  if err := sc.Scan(ptrs...); err != nil {
-    return err
-  }
-
-  p, ok := problems[id]
-  if !ok {
-    p = &Problem{ProblemId: id, ShortName: shortName}
-  }
-  if args.WithTitles || args.WithStatements {
-    p.Statements = append(p.Statements, &statement)
-  }
-  if !ok {
-    problems[id] = p
-  }
-  return nil
-}
-
-func includeTestData(conn *sql.DB, problem *Problem, args ListArgs) error {
-  filter := "WHERE problem_id = $1"
-  if args.WithSamples && !args.WithTests {
-    filter = filter + " AND public_visibility = true"
-  }
-  query := fmt.Sprintf("SELECT problem_testgroup_id, testgroup_name, public_visibility FROM problem_testgroup %s ORDER BY testgroup_name", filter)
-  rows, err := conn.Query(query, problem.ProblemId)
-  if err != nil {
-    return err
-  }
-  defer rows.Close()
-  testGroups := make(TestGroupMap)
-  for rows.Next() {
-    err := scanGroup(rows, testGroups)
-    if err != nil {
-      return err
-    }
-  }
-	if err := rows.Err(); err != nil {
-    return err
+	if filter.ProblemId != 0 {
+		params = append(params, filter.ProblemId)
+		filterSegs = append(filterSegs, fmt.Sprintf("problem_id = $%d", len(params)))
 	}
 
-  if err := includeTests(conn, testGroups, problem, args); err != nil {
-    return err
-  }
-  for _, group := range testGroups {
-    problem.TestGroups = append(problem.TestGroups, group)
-  }
-  return nil
-}
-
-func scanGroup(sc db.Scannable, testGroups TestGroupMap) error {
-  group := &TestCaseGroup{}
-  err := sc.Scan(&group.TestCaseGroupId, &group.Name, &group.PublicVisibility)
-  if err != nil {
-    return err
-  }
-  testGroups[group.TestCaseGroupId] = group
-  return nil
-}
-
-func includeTests(conn *sql.DB, testGroups TestGroupMap, problem *Problem, args ListArgs) error {
-  filter := "WHERE problem_id = $1"
-  if args.WithSamples && !args.WithTests {
-    filter = filter + " AND public_visibility = true"
-  }
-  rows, err := conn.Query(
-    fmt.Sprintf(
-    `
-    SELECT
-      problem_testgroup_id,
-      problem_testcase_id,
-      testcase_name,
-      file_hash(input_file_hash),
-      file_url(input_file_hash),
-      file_hash(output_file_hash),
-      file_url(output_file_hash)
-    FROM problem_testcase
-    NATURAL JOIN problem_testgroup
-    %s
-    ORDER BY testcase_name`, filter), problem.ProblemId)
-  if err != nil {
-    return err
-  }
-  defer rows.Close()
-  for rows.Next() {
-    var groupId int32
-    var infile, outfile files.StoredFile
-    tc := TestCase{}
-    err := rows.Scan(&groupId, &tc.TestCaseId, &tc.Name, &infile.Hash, &infile.Url, &outfile.Hash, &outfile.Url)
-    tc.InputFile = &infile
-    tc.OutputFile = &outfile
-    if err != nil {
-      return err
-    }
-    testGroups[groupId].Tests = append(testGroups[groupId].Tests, &tc)
-  }
-	if err := rows.Err(); err != nil {
-    return err
+	filterStr := ""
+	if len(filterSegs) != 0 {
+		filterStr = "WHERE " + strings.Join(filterSegs, " AND ")
 	}
-  return nil
+	return fmt.Sprintf("SELECT problem_id, short_name FROM problem %s ORDER BY short_name", filterStr), params
+}
+
+func List(ctx context.Context, args ListArgs, filter ListFilter) models.ProblemList {
+	conn := db.Conn()
+	var probs models.ProblemList
+	query, params := problemQuery(args, filter)
+	if err := conn.SelectContext(ctx, &probs, query, params...); err != nil {
+		panic(err)
+	}
+	if args.WithStatements != StmtNone {
+		includeStatements(ctx, probs.AsMap(), args.WithStatements)
+	}
+	for _, p := range probs {
+		if args.WithTests != TestsNone {
+			includeTests(ctx, p, args.WithTests)
+		}
+	}
+	return probs
+}
+
+func includeTests(ctx context.Context, p *models.Problem, opt TestOpt) {
+	filter := "WHERE problem_id = $1"
+	if opt == TestsSamples {
+		filter = filter + " AND public_visibility = true"
+	}
+	query := "SELECT problem_id, problem_testgroup_id, testgroup_name, public_visibility FROM problem_testgroup " + filter + " ORDER BY testgroup_name"
+	var groups models.TestGroupList
+	if err := db.Conn().SelectContext(ctx, &groups, query, p.ProblemId); err != nil {
+		panic(err)
+	}
+	p.TestGroups = groups
+	query = `
+	SELECT
+	problem_testgroup_id,
+	problem_testcase_id,
+	testcase_name,
+	file_hash(input_file_hash) "input_file.hash",
+	file_url(input_file_hash) "input_file.url",
+	file_hash(output_file_hash) "output_file.hash",
+	file_url(output_file_hash) "output_file.url"
+	FROM problem_testcase
+	NATURAL JOIN problem_testgroup ` + filter
+	var tests []*models.TestCase
+	if err := db.Conn().SelectContext(ctx, &tests, query, p.ProblemId); err != nil {
+		panic(err)
+	}
+	groupMap := groups.AsMap()
+	for _, t := range tests {
+    fmt.Printf("tc %v map %v\n", t.TestGroupId, groupMap)
+		g := groupMap[t.TestGroupId]
+		g.Tests = append(g.Tests, t)
+	}
+}
+
+func includeStatements(ctx context.Context, ps models.ProblemMap, arg StmtOpt) {
+  if len(ps) == 0 {
+    return
+  }
+	pids := ps.Ids()
+  var cols string
+  if arg == StmtAll {
+    cols = ", html"
+  }
+	query, args, err := sqlx.In(fmt.Sprintf("SELECT problem_id, title, language %s FROM problem_statement WHERE problem_id IN (?);", cols), pids)
+  if err != nil {
+    panic(err)
+  }
+  conn := db.Conn()
+	query = conn.Rebind(query)
+  var statements models.StatementList
+	if err := conn.SelectContext(ctx, &statements, query, args...); err != nil {
+    panic(err)
+  }
+  statements.AddTo(ps)
 }

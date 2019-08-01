@@ -24,6 +24,7 @@ func WithMiddlewares(responseFn Processor) []Middleware {
 	return []Middleware{
 		Middleware{readSession, true},
 		Middleware{i18n, true},
+		Middleware{readUser, false},
 		Middleware{responseFn, false},
 		Middleware{writeSession, true},
 	}

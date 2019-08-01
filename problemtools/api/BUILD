@@ -20,6 +20,7 @@ go_library(
 proto_library(
     name = "omogen_problemtools_proto",
     srcs = [
+        "course.proto",
         "problem.proto",
         "tools.proto",
     ],

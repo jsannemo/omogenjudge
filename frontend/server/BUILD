@@ -25,6 +25,7 @@ go_library(
         "//frontend/paths",
         "//frontend/problems",
         "//frontend/request",
+        "//frontend/submissions:go_default_library",
         "//frontend/users",
         "@com_github_google_logger//:go_default_library",
         "@com_github_gorilla_mux//:go_default_library",

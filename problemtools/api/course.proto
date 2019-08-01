@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package omogen.problemtools;
+
+message Course {
+  string course_id = 1;
+  map<string, string> name = 2;
+  repeated Chapter chapters = 3;
+}
+
+message Chapter {
+  string chapter_id = 1;
+  map<string, string> name = 2;
+  repeated Section sections = 3;
+}
+
+message Section {
+  string section_id = 1;
+  repeated LocalizedContent localized_content = 2;
+}
+
+message LocalizedContent {
+  string language_code = 1;
+  string title = 2;
+  string content_html = 3;
+}

@@ -1,6 +1,4 @@
-{{ define "page" }}
-{{ template "header" }}
-{{ template "nav" }}
+{{ define "users_login" }}
 <section>
   <article>
     <header class="article-header">
@@ -27,5 +25,4 @@
     </div>
   </article>
 </section>
-{{ template "footer" }}
 {{ end }}

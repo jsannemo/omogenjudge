@@ -2,18 +2,22 @@ package request
 
 import (
 	"context"
-	"html/template"
 	"net/http"
 
 	"github.com/google/logger"
 	"github.com/gorilla/sessions"
 	"golang.org/x/text/language"
+
+  "github.com/jsannemo/omogenjudge/frontend/templates"
+  "github.com/jsannemo/omogenjudge/storage/models"
 )
 
 // RequestContext keeps request-scoped information available during a request
 type RequestContext struct {
 	// ID of the currently logged-in user
 	UserId int32
+
+  User *models.Account
 
 	// Locales as set in Accept-Language
 	Locales []language.Tag
@@ -53,9 +57,6 @@ type Response interface {
 }
 
 type templateResponse struct {
-  // The template to execute
-	Template *template.Template
-
   // The name of the template element to execute
 	Name     string
 
@@ -91,15 +92,21 @@ func Error(err error) Response {
 	return &errorResponse{err}
 }
 
-type notFoundResponse struct {
+type codedResponse struct {
+  msg string
+  code int
 }
 
-func (notFoundResponse) Code() int {
-  return http.StatusNotFound
+func (c *codedResponse) Code() int {
+  return c.code
 }
 
 func NotFound() Response {
-	return &notFoundResponse{}
+  return &codedResponse{code: http.StatusNotFound}
+}
+
+func BadRequest(msg string) Response {
+  return &codedResponse{msg: msg, code: http.StatusBadRequest}
 }
 
 // Redirect returns a Response that will cause a client to redirect to the given URL.
@@ -108,8 +115,8 @@ func Redirect(url string) Response {
 }
 
 // Template returns a Response that renders a given template to the client.
-func Template(t *template.Template, name string, data interface{}) Response {
-	return &templateResponse{t, name, data}
+func Template(name string, data interface{}) Response {
+	return &templateResponse{name, data}
 }
 
 // Write writes the Response currently stored in the request to the client.
@@ -122,7 +129,7 @@ func (req *Request) Write(w http.ResponseWriter) {
 		w.Header().Set("Location", r.Path)
 		w.WriteHeader(r.Code())
 	case *templateResponse:
-		err := r.Template.ExecuteTemplate(w, r.Name,
+		err := templates.ExecuteTemplates(w, r.Name,
 			struct {
 				D interface{}
 				C interface{}

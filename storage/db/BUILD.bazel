@@ -5,11 +5,13 @@ go_library(
     srcs = [
         "client.go",
         "errors.go",
+        "txn.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/storage/db",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_google_logger//:go_default_library",
+        "@com_github_jmoiron_sqlx//:go_default_library",
         "@com_github_lib_pq//:go_default_library",
     ],
 )

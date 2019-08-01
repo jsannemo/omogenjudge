@@ -11,6 +11,7 @@ go_library(
         "//judgemaster/queue:go_default_library",
         "//runner/api:go_default_library",
         "//runner/client:go_default_library",
+        "//storage/models:go_default_library",
         "//storage/problems",
         "//storage/submissions:go_default_library",
         "@com_github_google_logger//:go_default_library",

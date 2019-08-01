@@ -1,17 +1,13 @@
-// Stored file storage models.
-package files
+package models
 
 import (
   "github.com/jsannemo/omogenjudge/util/go/filestore"
   filepb "github.com/jsannemo/omogenjudge/filehandler/api"
 )
 
-// A stored file
 type StoredFile struct {
-  // A unique hash of this file
   Hash string
 
-  // An identifier of the location of this resource.
   Url []byte
 }
 

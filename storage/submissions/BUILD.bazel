@@ -5,13 +5,13 @@ go_library(
     srcs = [
         "create.go",
         "list.go",
-        "model.go",
         "update.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/storage/submissions",
     visibility = ["//visibility:public"],
     deps = [
-        "//runner/api:go_default_library",
         "//storage/db:go_default_library",
+        "//storage/models:go_default_library",
+        "@com_github_jmoiron_sqlx//:go_default_library",
     ],
 )

@@ -13,8 +13,12 @@
       <ul>
         <li class="active"><a href="/">Hem</a></li>
         <li class="active"><a href="/problems">Problem</a></li>
-        <li class="active"><a href="/login">Logga in</a></li>
-        <li class="active"><a href="/register">Skapa konto</a></li>
+        {{ if .C.User }}
+          <li class="active"><a href="/users/{{ .C.User.Username}}">{{ .C.User.Username }}</a></li>
+        {{ else }}
+          <li class="active"><a href="/login">Logga in</a></li>
+          <li class="active"><a href="/register">Skapa konto</a></li>
+        {{ end }}
       </ul>
     </nav>
   </div>

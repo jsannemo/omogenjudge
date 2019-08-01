@@ -8,7 +8,7 @@ message SourceFile {
   string path = 1;
 
   // The binary contents of the file.
-  bytes contents = 2;
+  string contents = 2;
 }
 
 // An uncompiled program in some language.

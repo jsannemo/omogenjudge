@@ -1,42 +1,30 @@
 package problems
 
 import (
-	"html/template"
 	"net/http"
 
 	"github.com/jsannemo/omogenjudge/frontend/request"
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"github.com/jsannemo/omogenjudge/storage/problems"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
+	"github.com/jsannemo/omogenjudge/storage/models"
 
 	"github.com/gorilla/mux"
 )
 
-var submitTemplates = template.Must(template.ParseFiles(
-	"frontend/problems/submit.tpl",
-	"frontend/templates/header.tpl",
-	"frontend/templates/nav.tpl",
-	"frontend/templates/footer.tpl",
-))
 type SubmitParams struct {
-	Problem *problems.Problem
+	Problem *models.Problem
 }
 
 func SubmitHandler(r *request.Request) (request.Response, error) {
-	loginUrl, err := paths.Route(paths.Login).URL()
-	if err != nil {
-		return nil, err
-	}
+	loginUrl := paths.Route(paths.Login)
   // TODO save current page location
 	if r.Context.UserId == 0 {
-		return request.Redirect(loginUrl.String()), nil
+		return request.Redirect(loginUrl), nil
 	}
 
 	vars := mux.Vars(r.Request)
-  problems, err := problems.ListProblems(r.Request.Context(), problems.ListArgs{WithTitles: true}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
-	if err != nil {
-		return request.Error(err), nil
-	}
+  problems := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
   if len(problems) == 0 {
     return request.NotFound(), nil
   }
@@ -44,21 +32,23 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 
 	if r.Request.Method == http.MethodPost {
 		submit := r.Request.FormValue("submission")
-    s := &submissions.Submission{
+    s := &models.Submission{
       AccountId: r.Context.UserId,
       ProblemId: problem.ProblemId,
-      Files: []*submissions.SubmissionFile{
-        &submissions.SubmissionFile{
+      Files: []*models.SubmissionFile{
+        &models.SubmissionFile{
           Path: "main.cpp",
-          Contents: []byte(submit),
+          Contents: submit,
         },
       },
     }
-    err := submissions.CreateSubmission(r.Request.Context(), s)
+    err := submissions.Create(r.Request.Context(), s)
     if err != nil {
       return request.Error(err), nil
     }
+    subUrl := paths.Route(paths.Submission, paths.SubmissionIdArg, s.SubmissionId)
+    return request.Redirect(subUrl), nil
   }
 
-	return request.Template(submitTemplates, "page", &SubmitParams{problem}), nil
+	return request.Template("problems_submit", &SubmitParams{problem}), nil
 }

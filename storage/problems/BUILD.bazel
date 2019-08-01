@@ -5,15 +5,12 @@ go_library(
     srcs = [
         "create.go",
         "list.go",
-        "model.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/storage/problems",
     visibility = ["//visibility:public"],
     deps = [
-        "//frontend/paths",
         "//storage/db:go_default_library",
-        "//storage/files:go_default_library",
-        "@com_github_google_logger//:go_default_library",
-        "@org_golang_x_text//language:go_default_library",
+        "//storage/models:go_default_library",
+        "@com_github_jmoiron_sqlx//:go_default_library",
     ],
 )

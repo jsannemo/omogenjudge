@@ -166,6 +166,12 @@ go_repository(
     importpath = "github.com/lib/pq",
 )
 
+go_repository(
+    name = "com_github_jmoiron_sqlx",
+    commit = "38398a30ed8516ffda617a04c822de09df8a3ec5",
+    importpath = "github.com/jmoiron/sqlx",
+)
+
 # Gorilla utilities
 
 go_repository(

@@ -13,8 +13,10 @@ go_library(
     deps = [
         "//frontend/paths",
         "//frontend/request",
+        "//storage/models:go_default_library",
         "//storage/problems",
         "//storage/submissions:go_default_library",
+        "@com_github_google_logger//:go_default_library",
         "@com_github_gorilla_mux//:go_default_library",
     ],
 )

@@ -9,6 +9,7 @@ go_library(
         "//problemtools/api:go_default_library",
         "//problemtools/client:go_default_library",
         "//storage/files:go_default_library",
+        "//storage/models:go_default_library",
         "//storage/problems",
         "//util/go/cli:go_default_library",
         "//util/go/filestore:go_default_library",

@@ -3,82 +3,73 @@ package problems
 import (
   "context"
   "errors"
-  "database/sql"
 
   "github.com/jsannemo/omogenjudge/storage/db"
+  "github.com/jsannemo/omogenjudge/storage/models"
+  "github.com/jmoiron/sqlx"
 )
 
 var ErrDuplicateProblemName = errors.New("Duplicate problem name")
 
-func insertTests(ctx context.Context, group *TestCaseGroup, tx *sql.Tx) error {
-  for _, tc := range group.Tests {
-    if err := tx.QueryRowContext(
+func insertTest(ctx context.Context, tc *models.TestCase, tx *sqlx.Tx) error {
+  return tx.QueryRowContext(
       ctx,
       "INSERT INTO problem_testcase(problem_testgroup_id, testcase_name, input_file_hash.hash, output_file_hash.hash) VALUES($1, $2, $3, $4) RETURNING problem_testcase_id",
-      group.TestCaseGroupId, tc.Name, tc.InputFile.Hash, tc.OutputFile.Hash).Scan(&tc.TestCaseId); err != nil {
+      tc.TestGroupId, tc.Name, tc.InputFile.Hash, tc.OutputFile.Hash).Scan(&tc.TestCaseId)
+}
+
+func insertTestGroup(ctx context.Context, tg *models.TestGroup, tx *sqlx.Tx) error {
+  if err := tx.QueryRowContext(
+    ctx,
+    "INSERT INTO problem_testgroup(problem_id, testgroup_name, public_visibility) VALUES($1, $2, $3) RETURNING problem_testgroup_id",
+    tg.ProblemId, tg.Name, tg.PublicVisibility).Scan(&tg.TestGroupId); err != nil {
+    return err
+  }
+  for _, tc := range tg.Tests {
+    tc.TestGroupId = tg.TestGroupId
+    if err := insertTest(ctx, tc, tx); err != nil {
       return err
     }
   }
   return nil
 }
 
-func insertTestGroups(ctx context.Context, problem *Problem, tx *sql.Tx) error {
-  for _, group := range problem.TestGroups {
-    if err := tx.QueryRowContext(
-      ctx,
-      "INSERT INTO problem_testgroup(problem_id, testgroup_name, public_visibility) VALUES($1, $2, $3) RETURNING problem_testgroup_id",
-      problem.ProblemId, group.Name, group.PublicVisibility).Scan(&group.TestCaseGroupId); err != nil {
-      return err
-    }
-    if err := insertTests(ctx, group, tx); err != nil {
-      return err
-    }
+func insertStatement(ctx context.Context, s *models.ProblemStatement, tx *sqlx.Tx) error {
+  if _, err := tx.ExecContext(
+    ctx,
+    "INSERT INTO problem_statement(problem_id, language, title, html) VALUES($1, $2, $3, $4)",
+    s.ProblemId, s.Language, s.Title, s.Html); err != nil {
+    return err
   }
   return nil
 }
 
-func insertStatements(ctx context.Context, problem *Problem, tx *sql.Tx) error {
-  for _, statement := range problem.Statements {
-    if _, err := tx.ExecContext(
-      ctx,
-      "INSERT INTO problem_statement(problem_id, language, title, html) VALUES($1, $2, $3, $4)",
-      problem.ProblemId, statement.Language, statement.Title, statement.Html); err != nil {
-      return err
-    }
-  }
-  return nil
+func insertProblem(ctx context.Context, problem *models.Problem, tx *sqlx.Tx) error {
+  return tx.QueryRowContext(ctx, "INSERT INTO problem(short_name) VALUES($1) RETURNING problem_id", problem.ShortName).Scan(&problem.ProblemId)
 }
 
-func insertProblem(ctx context.Context, problem *Problem, tx *sql.Tx) error {
-  return tx.QueryRow("INSERT INTO problem(short_name) VALUES($1) RETURNING problem_id", problem.ShortName).Scan(&problem.ProblemId)
-}
-
-// CreateProblem inserts the given problem into the database.
-// Insertion is atomic, so that if insertion of any aspect of the problem fails, none of it is inserted.
-func CreateProblem(ctx context.Context, problem *Problem) error {
-  tx, err := db.GetPool().BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
-  if err != nil {
-    return err
-  }
-  if err := insertProblem(ctx, problem, tx); err != nil {
-    tx.Rollback()
-    if db.PgErrCode(err) == db.UniquenessViolation {
-      return ErrDuplicateProblemName
-    } else {
-      return err
+func Create(ctx context.Context, p *models.Problem) error {
+  err := db.InTransaction(ctx, func (tx *sqlx.Tx) error {
+    if err := insertProblem(ctx, p, tx); err != nil {
+      if db.PgErrCode(err) == db.UniquenessViolation {
+        return ErrDuplicateProblemName
+      } else {
+        return err
+      }
     }
-  }
-  if err := insertStatements(ctx, problem, tx); err != nil {
-    tx.Rollback()
-    return err
-  }
-  if err := insertTestGroups(ctx, problem, tx); err != nil {
-    tx.Rollback()
-    return err
-  }
-  if err := tx.Commit(); err != nil {
-    tx.Rollback()
-    return err
-  }
-  return nil
+    for _, s := range p.Statements {
+      s.ProblemId = p.ProblemId
+      if err := insertStatement(ctx, s, tx); err != nil {
+        return err
+      }
+    }
+    for _, tg := range p.TestGroups {
+      tg.ProblemId = p.ProblemId
+      if err := insertTestGroup(ctx, tg, tx); err != nil {
+        return err
+      }
+    }
+    return nil
+  })
+  return err
 }

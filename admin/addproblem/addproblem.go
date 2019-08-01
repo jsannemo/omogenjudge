@@ -12,16 +12,17 @@ import (
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
 	ptclient "github.com/jsannemo/omogenjudge/problemtools/client"
 	"github.com/jsannemo/omogenjudge/storage/problems"
+	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/files"
 	"github.com/jsannemo/omogenjudge/util/go/cli"
 	"github.com/jsannemo/omogenjudge/util/go/filestore"
 )
 
-func toStorageStatements(statements []*toolspb.ProblemStatement) []*problems.ProblemStatement {
-	var storage []*problems.ProblemStatement
+func toStorageStatements(statements []*toolspb.ProblemStatement) []*models.ProblemStatement {
+	var storage []*models.ProblemStatement
 	for _, s := range statements {
 		storage = append(storage,
-			&problems.ProblemStatement{
+			&models.ProblemStatement{
 				Language: s.LanguageCode,
 				Title:    s.Title,
 				Html:     s.StatementHtml,
@@ -30,7 +31,7 @@ func toStorageStatements(statements []*toolspb.ProblemStatement) []*problems.Pro
 	return storage
 }
 
-func insertFile(ctx context.Context, path string) (*files.StoredFile, error) {
+func insertFile(ctx context.Context, path string) (*models.StoredFile, error) {
 	dat, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -39,8 +40,8 @@ func insertFile(ctx context.Context, path string) (*files.StoredFile, error) {
   if err != nil {
     return nil, err
   }
-  storedFile := &files.StoredFile{hash, url}
-  err = files.CreateFile(ctx, storedFile)
+  storedFile := &models.StoredFile{hash, url}
+  files.Create(ctx, storedFile)
   if err != nil {
     return nil, err
   }
@@ -48,7 +49,7 @@ func insertFile(ctx context.Context, path string) (*files.StoredFile, error) {
 }
 
 
-func toStorageTest(ctx context.Context, tc *toolspb.TestCase) (*problems.TestCase, error) {
+func toStorageTest(ctx context.Context, tc *toolspb.TestCase) (*models.TestCase, error) {
   inputFile, err := insertFile(ctx, tc.InputPath)
   if err != nil {
     return nil, err
@@ -57,15 +58,15 @@ func toStorageTest(ctx context.Context, tc *toolspb.TestCase) (*problems.TestCas
   if err != nil {
     return nil, err
   }
-  return &problems.TestCase{
+  return &models.TestCase{
     Name: tc.Name,
     InputFile: inputFile,
     OutputFile: outputFile,
   }, nil
 }
 
-func toStorageTestGroup(ctx context.Context, tc *toolspb.TestGroup) (*problems.TestCaseGroup, error) {
-  var tests []*problems.TestCase
+func toStorageTestGroup(ctx context.Context, tc *toolspb.TestGroup) (*models.TestGroup, error) {
+  var tests []*models.TestCase
   for _, test := range tc.Tests {
     storageTest, err := toStorageTest(ctx, test)
     if err != nil {
@@ -73,14 +74,14 @@ func toStorageTestGroup(ctx context.Context, tc *toolspb.TestGroup) (*problems.T
     }
     tests = append(tests, storageTest)
   }
-  return &problems.TestCaseGroup{
+  return &models.TestGroup{
     Name: tc.Name,
     PublicVisibility: tc.PublicSamples,
     Tests: tests}, nil
 }
 
-func toStorageTestGroups(ctx context.Context, testGroups []*toolspb.TestGroup) ([]*problems.TestCaseGroup, error) {
-  var groups []*problems.TestCaseGroup
+func toStorageTestGroups(ctx context.Context, testGroups []*toolspb.TestGroup) ([]*models.TestGroup, error) {
+  var groups []*models.TestGroup
   for _, group := range testGroups {
     storageGroup, err := toStorageTestGroup(ctx, group)
     if err != nil {
@@ -130,7 +131,7 @@ func main() {
   if err != nil {
     logger.Fatalf("Failed converting test groups: %v", err)
   }
-	err = problems.CreateProblem(ctx, &problems.Problem{
+	err = problems.Create(ctx, &models.Problem{
 		ShortName:  problem.Metadata.ProblemId,
 		Statements: toStorageStatements(problem.Statements),
     TestGroups: storageTestGroups,

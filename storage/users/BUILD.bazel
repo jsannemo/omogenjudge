@@ -3,13 +3,13 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "users",
     srcs = [
-        "actions.go",
-        "model.go",
+        "create.go",
+        "list.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/storage/users",
     visibility = ["//visibility:public"],
     deps = [
         "//storage/db:go_default_library",
-        "//vendor/golang.org/x/crypto/bcrypt:go_default_library",
+        "//storage/models:go_default_library",
     ],
 )

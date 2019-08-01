@@ -1,8 +1,6 @@
-// Database client and utilities for setting up a connection
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"flag"
 	"strings"
@@ -10,6 +8,7 @@ import (
 
 	"github.com/google/logger"
 	"github.com/lib/pq"
+  "github.com/jmoiron/sqlx"
 )
 
 var (
@@ -19,7 +18,7 @@ var (
 	dbHost     = flag.String("db_host", "localhost:5432", "Host in the form host:port that the database listens to")
 )
 
-var pool *sql.DB // Database connection pool.
+var pool *sqlx.DB // Database connection pool.
 
 func connString() string {
 	hostPort := strings.Split(*dbHost, ":")
@@ -28,34 +27,18 @@ func connString() string {
 }
 
 func init() {
-	var err error
-	pool, err = sql.Open("postgres", connString())
-	if err != nil {
-		logger.Fatalf("Could not connect to database: %v", err)
-	}
-
-	if err = pool.Ping(); err != nil {
-		logger.Fatalf("Could not ping database: %v", err)
-	}
-
-	pool.SetConnMaxLifetime(0)
-	pool.SetMaxIdleConns(3)
-	pool.SetMaxOpenConns(3)
+	pool = sqlx.MustConnect("postgres", connString())
 	logger.Infof("Connected to database: %v", *dbName)
 }
 
-type Scannable interface {
-	Scan(dest ...interface{}) error
-}
-
-func GetPool() (*sql.DB) {
+func Conn() (*sqlx.DB) {
 	return pool
 }
 
 func NewListener() *pq.Listener {
 	reportProblem := func(ev pq.ListenerEventType, err error) {
 		if err != nil {
-      logger.Errorf("Postgres listener failure: %v", err)
+      logger.Fatalf("Postgres listener failure: %v", err)
 		}
 	}
 

@@ -6,6 +6,7 @@ go_library(
         "login.go",
         "logout.go",
         "register.go",
+        "view.go",
     ],
     data = [":templates"],
     importpath = "github.com/jsannemo/omogenjudge/frontend/users",
@@ -13,6 +14,9 @@ go_library(
     deps = [
         "//frontend/paths",
         "//frontend/request",
+        "//storage/models:go_default_library",
+        "//storage/problems",
+        "//storage/submissions:go_default_library",
         "//storage/users",
     ],
 )

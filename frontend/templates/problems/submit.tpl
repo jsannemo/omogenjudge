@@ -1,6 +1,4 @@
-{{ define "page" }}
-{{ template "header" }}
-{{ template "nav" }}
+{{ define "problems_submit" }}
 <section>
   <article>
     <header class="article-header">
@@ -34,5 +32,4 @@
       document.getElementById('submission').value = code;
     }
 </script>
-{{ template "footer" }}
 {{ end }}

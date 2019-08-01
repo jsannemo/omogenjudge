@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "enums.go",
+        "files.go",
+        "problems.go",
+        "submissions.go",
+        "testdata.go",
+        "users.go",
+    ],
+    importpath = "github.com/jsannemo/omogenjudge/storage/models",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//filehandler/api:go_default_library",
+        "//frontend/paths",
+        "//runner/api:go_default_library",
+        "//util/go/filestore:go_default_library",
+        "//vendor/golang.org/x/crypto/bcrypt:go_default_library",
+        "@com_github_google_logger//:go_default_library",
+        "@org_golang_x_text//language:go_default_library",
+    ],
+)

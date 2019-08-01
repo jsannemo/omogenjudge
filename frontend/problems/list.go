@@ -1,29 +1,17 @@
-// Handler for listing problems
 package problems
 
 import (
-	"html/template"
-
 	"github.com/jsannemo/omogenjudge/frontend/request"
 	"github.com/jsannemo/omogenjudge/storage/problems"
+	"github.com/jsannemo/omogenjudge/storage/models"
 )
 
-var listTemplates = template.Must(template.ParseFiles(
-	"frontend/problems/list.tpl",
-	"frontend/templates/header.tpl",
-	"frontend/templates/nav.tpl",
-	"frontend/templates/footer.tpl",
-))
-
 type Params struct {
-	Problems []*problems.Problem
+	Problems []*models.Problem
 }
 
 // Request handler for listing problem
 func ListHandler(r *request.Request) (request.Response, error) {
-  problems, err := problems.ListProblems(r.Request.Context(), problems.ListArgs{WithTitles: true}, problems.ListFilter{})
-	if err != nil {
-		return request.Error(err), nil
-	}
-	return request.Template(listTemplates, "page", &Params{problems}), nil
+  problems := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{})
+	return request.Template("problems_list", &Params{problems}), nil
 }

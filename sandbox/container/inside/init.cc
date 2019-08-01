@@ -174,9 +174,10 @@ int main(int argc, char** argv) {
     }
     LOG(INFO) << "Read length " << length;
     string requestBytes = ReadFromFd(length, inId);
-    LOG(INFO) << "Read string ";
+    LOG(INFO) << "Read string " << requestBytes.length();
     if (!request.ParseFromString(requestBytes)) {
       LOG(ERROR) << "Could not read complete request";
+      break;
     }
     LOG(INFO) << "Received request " << request.DebugString();
     ContainerTermination response = omogen::sandbox::execute(request);

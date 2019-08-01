@@ -1,6 +1,4 @@
-{{ define "page" }}
-{{ template "header" }}
-{{ template "nav" }}
+{{ define "problems_view" }}
 <section>
   <article>
     <header class="article-header">
@@ -21,5 +19,4 @@
     </div>
   </article>
 </section>
-{{ template "footer" }}
 {{ end }}

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package omogen.problemtools;
 
+import "problemtools/api/course.proto";
 import "problemtools/api/problem.proto";
 
 // A request to ParseProblem.
@@ -40,6 +41,16 @@ message VerifyProblemResponse {
   repeated string warnings = 3;
 }
 
+message ParseCourseRequest {
+  string course_path = 1;
+}
+
+message ParseCourseResponse {
+  Course parsed_course = 1;
+  repeated string errors = 2;
+  repeated string warnings = 3;
+}
+
 // The ToolService provides various utility methods used for problems, such as
 // parsing and validating them.
 service ToolService {
@@ -48,4 +59,7 @@ service ToolService {
 
   // Verify a problem that was parsed by ParseProblem.
   rpc VerifyProblem(VerifyProblemRequest) returns (VerifyProblemResponse) {}
+
+  // Parse a given problem into a structured representation of it.
+  // rpc ParseCourse(ParseCourseRequest) returns (ParseCourseResponse) {}
 }

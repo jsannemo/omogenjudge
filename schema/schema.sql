@@ -76,7 +76,7 @@ GRANT ALL ON problem_testcase_problem_testcase_id_seq TO omogenjudge;
 
 CREATE INDEX problem_testcase_problem_testgroup_id ON problem_testcase(problem_testgroup_id);
 
-CREATE TYPE status AS ENUM('new', 'compiling', 'running', 'successful');
+CREATE TYPE status AS ENUM('new', 'compiling', 'compilation_failed', 'running', 'successful');
 CREATE TYPE verdict AS ENUM('VERDICT_UNSPECIFIED', 'UNJUDGED', 'ACCEPTED', 'WRONG_ANSWER', 'TIME_LIMIT_EXCEEDED', 'RUN_TIME_EXCEEDED');
 
 -- Submission tables
@@ -84,6 +84,7 @@ CREATE TABLE submission(
   submission_id SERIAL PRIMARY KEY,
   account_id INTEGER NOT NULL REFERENCES account,
   problem_id INTEGER NOT NULL REFERENCES problem,
+  language TEXT NOT NULL,
   status status NOT NULL DEFAULT 'new',
   verdict verdict DEFAULT 'UNJUDGED'
 );
@@ -107,9 +108,66 @@ FOR EACH ROW EXECUTE PROCEDURE notify_submission();
 CREATE TABLE submission_file(
   submission_id INTEGER NOT NULL REFERENCES submission,
   file_path TEXT NOT NULL,
-  file_contents bytea NOT NULL
+  file_contents TEXT NOT NULL
 );
 
 GRANT ALL ON submission_file TO omogenjudge;
 
 CREATE INDEX submission_file_submission ON submission_file(submission_id);
+
+-- Course tables
+CREATE TABLE course(
+  course_id SERIAL PRIMARY KEY,
+  short_name TEXT NOT NULL
+);
+
+GRANT ALL ON course TO omogenjudge;
+GRANT ALL ON course_course_id_seq TO omogenjudge;
+
+CREATE TABLE course_localization(
+  course_id INTEGER NOT NULL REFERENCES course,
+  language TEXT NOT NULL,
+  course_name TEXT NOT NULL,
+  UNIQUE(course_id, language)
+);
+
+GRANT ALL ON course_localization TO omogenjudge;
+
+CREATE TABLE course_chapter(
+  course_id INTEGER REFERENCES course,
+  course_chapter_id SERIAL PRIMARY KEY,
+  short_name TEXT NOT NULL,
+  UNIQUE(course_id, course_chapter_id)
+);
+
+GRANT ALL ON course_chapter TO omogenjudge;
+GRANT ALL ON course_chapter_course_chapter_id_seq TO omogenjudge;
+
+CREATE TABLE course_chapter_localization(
+  course_chapter_id INTEGER NOT NULL REFERENCES course_chapter,
+  language TEXT NOT NULL,
+  chapter_name TEXT NOT NULL,
+  UNIQUE(course_chapter_id, language)
+);
+
+GRANT ALL ON course_chapter_localization TO omogenjudge;
+
+CREATE TABLE course_section(
+  course_chapter_id INTEGER REFERENCES course_chapter,
+  course_section_id SERIAL PRIMARY KEY,
+  short_name TEXT NOT NULL,
+  UNIQUE(course_chapter_id, short_name)
+);
+
+GRANT ALL ON course_section TO omogenjudge;
+GRANT ALL ON course_section_course_section_id_seq TO omogenjudge;
+
+CREATE TABLE course_section_localization(
+  course_section_id INTEGER NOT NULL REFERENCES course_section,
+  language TEXT NOT NULL,
+  section_html TEXT NOT NULL,
+  section_name TEXT NOT NULL,
+  UNIQUE(course_section_id, language)
+);
+
+GRANT ALL ON course_section_localization TO omogenjudge;

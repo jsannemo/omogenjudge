@@ -9,9 +9,10 @@ import (
 
   "github.com/jsannemo/omogenjudge/storage/db"
   "github.com/jsannemo/omogenjudge/storage/submissions"
+  "github.com/jsannemo/omogenjudge/storage/models"
 )
 
-func StartQueue(judge chan<- *submissions.Submission) error {
+func StartQueue(judge chan<- *models.Submission) error {
   listener := db.NewListener()
   err := listener.Listen("new_submission")
   if err != nil {
@@ -31,7 +32,7 @@ func StartQueue(judge chan<- *submissions.Submission) error {
     for {
         notification := <-listener.Notify
         submissionId, _ := strconv.Atoi(notification.Extra)
-        subs, err := submissions.ListSubmissions(context.TODO(), submissions.ListArgs{WithFiles: true}, submissions.ListFilter{SubmissionId: submissionId})
+        subs, err := submissions.ListSubmissions(context.TODO(), submissions.ListArgs{WithFiles: true}, submissions.ListFilter{SubmissionId: int32(submissionId)})
         if err != nil {
           logger.Errorf("failed listing unjudged submission: %v", err)
         } else if len(subs) == 0 {

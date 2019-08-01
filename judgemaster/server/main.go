@@ -6,12 +6,14 @@ import (
   "fmt"
 	"os"
   "io"
+  "sync"
 
   "github.com/google/logger"
 
 	"github.com/jsannemo/omogenjudge/judgemaster/queue"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
 	"github.com/jsannemo/omogenjudge/storage/problems"
+	"github.com/jsannemo/omogenjudge/storage/models"
   runpb "github.com/jsannemo/omogenjudge/runner/api"
   rclient "github.com/jsannemo/omogenjudge/runner/client"
   filepb "github.com/jsannemo/omogenjudge/filehandler/api"
@@ -20,8 +22,16 @@ import (
 
 var runner runpb.RunServiceClient
 var filehandler filepb.FileHandlerServiceClient
+var slotPool = sync.Pool{}
 
-func compile(ctx context.Context, s *submissions.Submission, output chan<- *runpb.CompiledProgram, outerr **error) {
+func init() {
+  slotPool.Put(0)
+  slotPool.Put(1)
+  slotPool.Put(2)
+  slotPool.Put(3)
+}
+
+func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.CompiledProgram, outerr **error) {
   response, err := runner.Compile(ctx,
     &runpb.CompileRequest{
       Program: s.ToRunnerProgram(),
@@ -36,12 +46,14 @@ func compile(ctx context.Context, s *submissions.Submission, output chan<- *runp
 }
 
 
-func judge(ctx context.Context, submission *submissions.Submission) error {
+func judge(ctx context.Context, submission *models.Submission) error {
+  slot := slotPool.Get()
+  defer slotPool.Put(slot)
   logger.Infof("Judging submission %d", submission.SubmissionId)
   var compileErr *error = nil
   compileOutput := make(chan *runpb.CompiledProgram)
   go compile(ctx, submission, compileOutput, &compileErr)
-  submission.Status = submissions.StatusCompiling
+  submission.Status = models.StatusCompiling
   if err := submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}}); err != nil {
     logger.Errorf("Could not set submission as compiling: %v", err)
   }
@@ -49,10 +61,10 @@ func judge(ctx context.Context, submission *submissions.Submission) error {
   if err != nil {
     return err
   }
-  if len(problems) != 1 {
+  if len(problems) == 0 {
     return fmt.Errorf("requested problem %d, got %d problems", submission.ProblemId, len(problems))
   }
-  problem := problems[0]
+  problem := problems.First()
   testHandles := problem.TestDataFiles().ToHandlerFiles()
   resp, err := filehandler.EnsureFile(ctx, &filepb.EnsureFileRequest{Handles: testHandles})
   if err != nil {
@@ -64,9 +76,13 @@ func judge(ctx context.Context, submission *submissions.Submission) error {
   }
   compiledProgram := <-compileOutput
   if compiledProgram == nil {
-    return *compileErr
+    submission.Status = models.StatusCompilationFailed
+    if err := submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}}); err != nil {
+      logger.Errorf("Could not set submission as failed compilation: %v", err)
+    }
+    return nil
   }
-  submission.Status = submissions.StatusRunning
+  submission.Status = models.StatusRunning
   if err := submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}}); err != nil {
     logger.Errorf("Could not set submission as running: %v", err)
   }
@@ -104,8 +120,8 @@ func judge(ctx context.Context, submission *submissions.Submission) error {
     case *runpb.EvaluateResponse_TestCase:
       // TODO report this
     case *runpb.EvaluateResponse_Submission:
-      submission.Verdict = submissions.Verdict(res.Submission.Verdict.String())
-      submission.Status = submissions.StatusSuccessful
+      submission.Verdict = models.Verdict(res.Submission.Verdict.String())
+      submission.Status = models.StatusSuccessful
       if err := submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldVerdict, submissions.FieldStatus}}); err != nil {
         return err
       }
@@ -126,7 +142,7 @@ func main() {
   runner = rclient.NewClient()
   filehandler = fhclient.NewClient()
 
-  judgeQueue := make(chan *submissions.Submission, 1000)
+  judgeQueue := make(chan *models.Submission, 1000)
   if err := queue.StartQueue(judgeQueue); err != nil {
     logger.Fatalf("Failed queue startup: %v", err)
   }

@@ -7,6 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//storage/db:go_default_library",
+        "//storage/models:go_default_library",
         "//storage/submissions:go_default_library",
         "@com_github_google_logger//:go_default_library",
     ],
