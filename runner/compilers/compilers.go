@@ -1,4 +1,3 @@
-// Utilities for program compilers.
 package compilers
 
 import (
@@ -23,7 +22,7 @@ func WriteProgramToDisc(req *runpb.Program, outputPath string) ([]string, error)
   compiledPaths := []string{}
 
   for _, file := range req.Sources {
-    err := writeFile(filepath.Join(outputPath, file.Path), file.Contents)
+    err := writeFile(filepath.Join(outputPath, file.Path), []byte(file.Contents))
     if err != nil {
       return nil, err
     }

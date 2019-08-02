@@ -1,0 +1,13 @@
+[Unit]
+Description=OmogenJudge Frontend
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+User=omogenjudge
+ExecStart=/usr/bin/omogenjudge-frontend
+WorkingDirectory=/var/lib/omogen-www
+
+[Install]
+WantedBy=multi-user.target

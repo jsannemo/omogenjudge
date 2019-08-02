@@ -7,5 +7,5 @@ filegroup(
         "**/*.svg",
         "**/*.png",
     ]),
-    visibility = ["//frontend/server:__subpackages__"],
+    visibility = ["//frontend:__subpackages__"],
 )

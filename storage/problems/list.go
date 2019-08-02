@@ -101,7 +101,6 @@ func includeTests(ctx context.Context, p *models.Problem, opt TestOpt) {
 	}
 	groupMap := groups.AsMap()
 	for _, t := range tests {
-    fmt.Printf("tc %v map %v\n", t.TestGroupId, groupMap)
 		g := groupMap[t.TestGroupId]
 		g.Tests = append(g.Tests, t)
 	}

@@ -35,6 +35,8 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
     s := &models.Submission{
       AccountId: r.Context.UserId,
       ProblemId: problem.ProblemId,
+      Status: models.StatusNew,
+      Language: "gpp17",
       Files: []*models.SubmissionFile{
         &models.SubmissionFile{
           Path: "main.cpp",

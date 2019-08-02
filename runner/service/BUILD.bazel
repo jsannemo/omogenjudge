@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["service.go"],
+    importpath = "github.com/jsannemo/omogenjudge/runner/service",
+    visibility = ["//localjudge:__subpackages__"],
+    deps = [
+        "//runner/api:go_default_library",
+        "//runner/eval:go_default_library",
+        "//runner/language:go_default_library",
+        "//sandbox/api:go_default_library",
+        "//sandbox/client:go_default_library",
+        "@com_github_google_logger//:go_default_library",
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//codes:go_default_library",
+        "@org_golang_google_grpc//status:go_default_library",
+    ],
+)

@@ -1,5 +1,5 @@
 cc_binary(
-    name = "omogensandbox_runner",
+    name = "omogenjudge-sandboxr",
     srcs = ["init.cc"],
     visibility = [
         "//sandbox/container:__subpackages__",

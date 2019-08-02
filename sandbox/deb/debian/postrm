@@ -1,6 +1,6 @@
 #!/bin/bash
 
 set +e
-userdel omogensandbox || true
+userdel omogenjudge || true
 set -e
 rm -rf /var/lib/omogen/sandbox

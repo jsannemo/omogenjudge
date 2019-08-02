@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/jsannemo/omogenjudge/masterjudge/server",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//filehandler/api:go_default_library",
+        "//filehandler/client:go_default_library",
+        "//masterjudge/queue:go_default_library",
+        "//runner/api:go_default_library",
+        "//runner/client:go_default_library",
+        "//storage/models:go_default_library",
+        "//storage/problems",
+        "//storage/submissions:go_default_library",
+        "@com_github_google_logger//:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "omogenjudge-master",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

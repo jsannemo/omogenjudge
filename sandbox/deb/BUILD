@@ -1,23 +1,13 @@
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
 
 pkg_tar(
-    name = "sandbox_server",
+    name = "server",
     srcs = [
-        "//sandbox/server:omogensandbox_server",
+        "//sandbox/server:omogenjudge-sandbox",
     ],
     mode = "0755",
     package_dir = "/usr/bin",
     strip_prefix = "/sandbox/server",
-)
-
-pkg_tar(
-    name = "sandbox_cli",
-    srcs = [
-        "//sandbox/cli:omogensandbox_cli",
-    ],
-    mode = "0755",
-    package_dir = "/usr/bin",
-    strip_prefix = "/sandbox/cli",
 )
 
 pkg_tar(
@@ -31,19 +21,19 @@ pkg_tar(
 )
 
 pkg_tar(
-    name = "initd",
+    name = "service",
     srcs = [
-        "//sandbox/deb:omogensandboxd",
+        "//sandbox/deb:omogenjudge-sandbox.service",
     ],
     mode = "0755",
-    package_dir = "/etc/init.d",
+    package_dir = "/etc/systemd/system",
     strip_prefix = "/sandbox/deb",
 )
 
 pkg_tar(
-    name = "sandbox_runner",
+    name = "runner",
     srcs = [
-        "//sandbox/container/inside:omogensandbox_runner",
+        "//sandbox/container/inside:omogenjudge-sandboxr",
     ],
     mode = "0755",
     package_dir = "/usr/bin",
@@ -55,21 +45,20 @@ pkg_tar(
     extension = "tar.gz",
     deps = [
         ":config",
-        ":initd",
-        ":sandbox_cli",
-        ":sandbox_runner",
-        ":sandbox_server",
+        ":service",
+        ":runner",
+        ":server",
     ],
 )
 
 pkg_deb(
-    name = "omogensandbox",
+    name = "omogenjudge-sandbox",
     architecture = "amd64",
     built_using = "bazel",
     data = ":debian-data",
     description = "Sandbox service for untrusted applications",
     maintainer = "Johan Sannemo <johan.sannemo@kodsport.se>",
-    package = "omogensandbox",
+    package = "omogenjudge-sandbox",
     postinst = "debian/postinst",
     postrm = "debian/postrm",
     prerm = "debian/prerm",

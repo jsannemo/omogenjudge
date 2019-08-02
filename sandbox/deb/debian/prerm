@@ -1,5 +1,3 @@
 #!/bin/bash
 
-set -e
-
-systemctl stop omogensandboxd
+systemctl stop omogenjudge-sandbox || true

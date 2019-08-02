@@ -9,8 +9,23 @@ type TemplateExecutor interface {
   Template() *template.Template
 }
 
+var tpls = []string{
+  "frontend/templates/*.tpl",
+  "frontend/templates/problems/*.tpl",
+  "frontend/templates/users/*.tpl",
+  "frontend/templates/submissions/*.tpl",
+}
+
 func templates() *template.Template {
-  return template.Must(template.Must(template.ParseGlob("frontend/templates/*.tpl")).ParseGlob("frontend/templates/**/*.tpl"))
+  var tpl *template.Template
+  for _, t := range tpls {
+    if tpl == nil {
+      tpl = template.Must(template.ParseGlob(t))
+    } else {
+      tpl = template.Must(tpl.ParseGlob(t))
+    }
+  }
+  return tpl
 }
 
 type refreshingExecutor struct {}

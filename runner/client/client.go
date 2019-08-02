@@ -1,4 +1,3 @@
-// A client to the RunService service.
 package client
 
 import (
@@ -16,7 +15,6 @@ var (
 
 var conn *grpc.ClientConn
 
-// TODO: return error when connection failed instead of crashing
 func getConn() *grpc.ClientConn {
   var err error
   if conn == nil {
@@ -30,7 +28,6 @@ func getConn() *grpc.ClientConn {
   return conn
 }
 
-// Returns a new client for the RunService.
 func NewClient() runpb.RunServiceClient {
   return runpb.NewRunServiceClient(getConn())
 }

@@ -37,7 +37,7 @@ func listQuery(args ListArgs, filter ListFilter) (string, []interface{}) {
   if len(filterSegs) != 0 {
     filterStr = fmt.Sprintf("WHERE %s", strings.Join(filterSegs, " AND "))
   }
-  return fmt.Sprintf("SELECT problem_id, account_id, submission_id, status, verdict FROM submission %s ORDER BY submission_id DESC", filterStr), params
+  return fmt.Sprintf("SELECT * FROM submission %s ORDER BY submission_id DESC", filterStr), params
 }
 
 func List(ctx context.Context, args ListArgs, filter ListFilter) models.SubmissionList {
@@ -49,7 +49,7 @@ func List(ctx context.Context, args ListArgs, filter ListFilter) models.Submissi
   }
   if args.WithFiles {
     for _, sub := range subs {
-      if err := conn.SelectContext(ctx, &sub.Files, "SELECT file_path, file_contents FROM submission_file WHERE submission_id = $1", sub.SubmissionId); err != nil {
+      if err := conn.SelectContext(ctx, &sub.Files, "SELECT * FROM submission_file WHERE submission_id = $1", sub.SubmissionId); err != nil {
         panic(err)
       }
     }

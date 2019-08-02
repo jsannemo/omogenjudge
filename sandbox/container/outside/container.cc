@@ -72,13 +72,13 @@ static int startSandbox [[noreturn]] (void* argp) {
   chroot.ApplyContainerSpec(args.containerSpec);
   chroot.SetRoot();
   string sandboxId = absl::StrCat(args.id);
-  char* const argv[] = {strdup("/usr/bin/omogensandbox_runner"),
+  char* const argv[] = {strdup("/usr/bin/omogenjudge-sandboxr"),
                         strdup("-logtostderr"),
                         strdup(sandboxId.c_str()),
                         strdup(absl::StrCat(args.stdinFd).c_str()),
                         strdup(absl::StrCat(args.stdoutFd).c_str()),
                         NULL};
-  PCHECK(execv("/usr/bin/omogensandbox_runner", argv) != -1)
+  PCHECK(execv("/usr/bin/omogenjudge-sandboxr", argv) != -1)
       << "Could not start sandbox";
   assert(false && "unreachable");
 }

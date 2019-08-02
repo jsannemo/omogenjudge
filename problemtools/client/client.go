@@ -1,17 +1,16 @@
-// A client to the ToolsService service
 package client
 
 import (
 	"flag"
-	"log"
 
+  "github.com/google/logger"
 	"google.golang.org/grpc"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
 )
 
 var (
-	serverAddr = flag.String("tools_server_addr", "127.0.0.1:61812", "The tools server address in the format of host:port")
+	serverAddr = flag.String("tools_server_addr", "127.0.0.1:61811", "The tools server address in the format of host:port")
 )
 
 var conn *grpc.ClientConn
@@ -23,7 +22,7 @@ func getConn() *grpc.ClientConn {
 		opts = append(opts, grpc.WithInsecure())
 		conn, err = grpc.Dial(*serverAddr, opts...)
 		if err != nil {
-			log.Fatalf("fail to dial: %v", err)
+			logger.Fatalf("fail to dial: %v", err)
 		}
 	}
 	return conn

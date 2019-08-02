@@ -54,6 +54,8 @@ func (s *Submission) StatusString() string {
 }
 
 type SubmissionFile struct {
+  SubmissionId int32 `db:"submission_id"`
+
   Path string `db:"file_path"`
 
   Contents string `db:"file_contents"`

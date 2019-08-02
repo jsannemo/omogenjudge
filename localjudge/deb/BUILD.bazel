@@ -1,0 +1,57 @@
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
+
+pkg_tar(
+    name = "server",
+    srcs = [
+        "//localjudge/server:omogenjudge-local",
+    ],
+    mode = "0755",
+    package_dir = "/usr/bin",
+    strip_prefix = "/localjudge/server/linux_amd64_stripped",
+)
+
+pkg_tar(
+    name = "passwd",
+    srcs = [
+        "//localjudge/deb/etc:passwd",
+    ],
+    mode = "0644",
+    package_dir = "/var/lib/omogen",
+    strip_prefix = "/localjudge/deb",
+)
+
+pkg_tar(
+    name = "initd",
+    srcs = [
+        "//localjudge/deb:omogenjudge-local.service",
+    ],
+    mode = "0755",
+    package_dir = "/etc/systemd/system",
+    strip_prefix = "/localjudge/deb",
+)
+
+pkg_tar(
+    name = "debian-data",
+    extension = "tar.gz",
+    deps = [
+        ":initd",
+        ":server",
+        ":passwd",
+    ],
+)
+
+pkg_deb(
+    name = "omogenjudge-local",
+    architecture = "amd64",
+    built_using = "bazel",
+    data = ":debian-data",
+    depends = [
+        "omogenjudge-sandbox",
+    ],
+    description = "Program execution service",
+    maintainer = "Johan Sannemo <johan.sannemo@kodsport.se>",
+    package = "omogenjudge-local",
+    postinst = "debian/postinst",
+    prerm = "debian/prerm",
+    version = "0.0.1",
+)

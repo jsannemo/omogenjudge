@@ -1,5 +1,5 @@
 cc_binary(
-    name = "omogensandbox_server",
+    name = "omogenjudge-sandbox",
     srcs = [
         "executor.cc",
         "executor.h",

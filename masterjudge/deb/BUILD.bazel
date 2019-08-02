@@ -1,0 +1,43 @@
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
+
+pkg_tar(
+    name = "server",
+    srcs = [
+        "//masterjudge/server:omogenjudge-master",
+    ],
+    mode = "0755",
+    package_dir = "/usr/bin",
+    strip_prefix = "/masterjudge/server/linux_amd64_stripped",
+)
+
+pkg_tar(
+    name = "initd",
+    srcs = [
+        "//masterjudge/deb:omogenjudge-master.service",
+    ],
+    mode = "0755",
+    package_dir = "/etc/systemd/system",
+    strip_prefix = "/masterjudge/deb",
+)
+
+pkg_tar(
+    name = "debian-data",
+    extension = "tar.gz",
+    deps = [
+        ":initd",
+        ":server",
+    ],
+)
+
+pkg_deb(
+    name = "omogenjudge-master",
+    architecture = "amd64",
+    built_using = "bazel",
+    data = ":debian-data",
+    description = "Program execution service",
+    maintainer = "Johan Sannemo <johan.sannemo@kodsport.se>",
+    package = "omogenjudge-master",
+    postinst = "debian/postinst",
+    prerm = "debian/prerm",
+    version = "0.0.1",
+)

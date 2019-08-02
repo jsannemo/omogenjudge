@@ -2,11 +2,11 @@
 
 set +e
 
-if ! id -u omogensandbox >/dev/null 2>&1; then
-  useradd -s /usr/bin/nologin -r omogensandbox
+if ! id -u omogenjudge >/dev/null 2>&1; then
+  useradd -s /usr/bin/nologin -r omogenjudge
 fi
 
 set -e
-systemctl start omogensandboxd
+systemctl start omogenjudge-sandbox
 mkdir -p /var/lib/omogen/sandbox
-chown omogensandbox:omogensandbox /var/lib/omogen/sandbox
+chown omogenjudge:omogenjudge /var/lib/omogen/sandbox

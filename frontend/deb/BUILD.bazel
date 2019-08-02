@@ -1,0 +1,55 @@
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_deb", "pkg_tar")
+
+pkg_tar(
+    name = "server",
+    srcs = [
+        "//frontend/server:omogenjudge-frontend",
+    ],
+    mode = "0755",
+    package_dir = "/usr/bin",
+    strip_prefix = "/frontend/server/linux_amd64_stripped",
+)
+
+pkg_tar(
+    name = "initd",
+    srcs = [
+        "//frontend/deb:omogenjudge-frontend.service",
+    ],
+    mode = "0755",
+    package_dir = "/etc/systemd/system",
+    strip_prefix = "/frontend/deb",
+)
+
+pkg_tar(
+    name = "resources",
+    srcs = [
+        "//frontend/resources",
+        "//frontend/templates",
+    ],
+    mode = "0755",
+    package_dir = "/var/lib/omogen-www",
+    strip_prefix = "/",
+)
+
+pkg_tar(
+    name = "debian-data",
+    extension = "tar.gz",
+    deps = [
+        ":initd",
+        ":server",
+        ":resources",
+    ],
+)
+
+pkg_deb(
+    name = "omogenjudge-frontend",
+    architecture = "amd64",
+    built_using = "bazel",
+    data = ":debian-data",
+    description = "Program execution service",
+    maintainer = "Johan Sannemo <johan.sannemo@kodsport.se>",
+    package = "omogenjudge-frontend",
+    postinst = "debian/postinst",
+    prerm = "debian/prerm",
+    version = "0.0.1",
+)

@@ -11,7 +11,7 @@ import (
 
 func Create(ctx context.Context, sub *models.Submission) error {
   err := db.InTransaction(ctx, func (tx *sqlx.Tx) error {
-    if err := tx.QueryRowContext(ctx, "INSERT INTO submission(account_id, problem_id, status) VALUES($1, $2, 'new') RETURNING submission_id", sub.AccountId, sub.ProblemId).Scan(&sub.SubmissionId); err != nil {
+    if err := tx.QueryRowContext(ctx, "INSERT INTO submission(account_id, problem_id, status, language) VALUES($1, $2, $3, $4) RETURNING submission_id", sub.AccountId, sub.ProblemId, sub.Status, sub.Language).Scan(&sub.SubmissionId); err != nil {
       return err
     }
     for _, file := range sub.Files {
