@@ -7,8 +7,8 @@ go_library(
     visibility = ["//localjudge:__subpackages__"],
     deps = [
         "//problemtools/api:go_default_library",
-        "//problemtools/parser:go_default_library",
-        "//problemtools/verifier:go_default_library",
+        "//problemtools/courses:go_default_library",
+        "//problemtools/problems:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

@@ -2,66 +2,73 @@
 package paths
 
 import (
-  "fmt"
-  "strconv"
+	"fmt"
+	"strconv"
 
-  "github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 )
 
 const (
-  Home           = "home"
-  Login          = "login"
-  Logout         = "logout"
-  Register       = "register"
-  ProblemList    = "problem_list"
-  Problem        = "problem"
-  ProblemNameArg = "problem_name"
-  SubmitProblem  = "submit_problem"
-  Submission        = "submission"
-  SubmissionIdArg        = "submission_id"
-  User = "user"
-  UserNameArg = "user_name"
+	Home                 = "home"
+	Login                = "login"
+	Logout               = "logout"
+	Register             = "register"
+	ProblemList          = "problem_list"
+	Problem              = "problem"
+	ProblemNameArg       = "problem_name"
+	SubmitProblem        = "submit_problem"
+	Submission           = "submission"
+	SubmissionIdArg      = "submission_id"
+	User                 = "user"
+	UserNameArg          = "user_name"
+	CourseList           = "course_list"
+	Course               = "course"
+	CourseNameArg        = "course_name"
+	CourseChapter        = "course_chapter"
+	CourseChapterNameArg = "course_chapter_name"
+	CourseSection        = "course_section"
+	CourseSectionNameArg = "course_section_name"
 )
 
 var router = mux.NewRouter()
 
 func GetRouter() *mux.Router {
-  return router
+	return router
 }
 
-func Route(name string, args... interface{}) string {
-  var stringified []string
-  for _, arg := range args{
-    switch a := arg.(type) {
-    case string:
-      stringified = append(stringified, a)
-    case int:
-      stringified = append(stringified, strconv.FormatInt(int64(a), 10))
-    case int8:
-      stringified = append(stringified, strconv.FormatInt(int64(a), 10))
-    case int16:
-      stringified = append(stringified, strconv.FormatInt(int64(a), 10))
-    case int32:
-      stringified = append(stringified, strconv.FormatInt(int64(a), 10))
-    case int64:
-      stringified = append(stringified, strconv.FormatInt(int64(a), 10))
-    case uint:
-      stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
-    case uint8:
-      stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
-    case uint16:
-      stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
-    case uint32:
-      stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
-    case uint64:
-      stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
-    default:
-      panic(fmt.Errorf("Used unknown type %T in route", a))
-    }
-  }
-  url, err := GetRouter().Get(name).URL(stringified...)
-  if err != nil {
-    panic(err)
-  }
-  return url.String()
+func Route(name string, args ...interface{}) string {
+	var stringified []string
+	for _, arg := range args {
+		switch a := arg.(type) {
+		case string:
+			stringified = append(stringified, a)
+		case int:
+			stringified = append(stringified, strconv.FormatInt(int64(a), 10))
+		case int8:
+			stringified = append(stringified, strconv.FormatInt(int64(a), 10))
+		case int16:
+			stringified = append(stringified, strconv.FormatInt(int64(a), 10))
+		case int32:
+			stringified = append(stringified, strconv.FormatInt(int64(a), 10))
+		case int64:
+			stringified = append(stringified, strconv.FormatInt(int64(a), 10))
+		case uint:
+			stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
+		case uint8:
+			stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
+		case uint16:
+			stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
+		case uint32:
+			stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
+		case uint64:
+			stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
+		default:
+			panic(fmt.Errorf("Used unknown type %T in route", a))
+		}
+	}
+	url, err := GetRouter().Get(name).URL(stringified...)
+	if err != nil {
+		panic(err)
+	}
+	return url.String()
 }

@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "create.go",
+        "list.go",
+    ],
+    importpath = "github.com/jsannemo/omogenjudge/storage/courses",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//storage/db:go_default_library",
+        "//storage/models:go_default_library",
+        "@com_github_jmoiron_sqlx//:go_default_library",
+    ],
+)

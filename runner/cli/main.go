@@ -4,28 +4,28 @@
 package main
 
 import (
-  "context"
-  "flag"
+	"context"
+	"flag"
 
-  "github.com/google/logger"
+	"github.com/google/logger"
 
-  rclient "github.com/jsannemo/omogenjudge/runner/client"
-  runpb "github.com/jsannemo/omogenjudge/runner/api"
+	runpb "github.com/jsannemo/omogenjudge/runner/api"
+	rclient "github.com/jsannemo/omogenjudge/runner/client"
 )
 
 func getLanguages(client runpb.RunServiceClient) {
-  response, err := client.GetLanguages(context.Background(), &runpb.GetLanguagesRequest{})
-  if err != nil {
-    logger.Fatalf("Could not fetch languages: %v", err)
-  }
-  logger.Infof("Languages: %v", response)
+	response, err := client.GetLanguages(context.Background(), &runpb.GetLanguagesRequest{})
+	if err != nil {
+		logger.Fatalf("Could not fetch languages: %v", err)
+	}
+	logger.Infof("Languages: %v", response)
 }
 
 func main() {
-  flag.Parse()
-  client := rclient.NewClient()
-  op := flag.Arg(0)
-  if op == "langs" {
-    getLanguages(client)
-  }
+	flag.Parse()
+	client := rclient.NewClient()
+	op := flag.Arg(0)
+	if op == "langs" {
+		getLanguages(client)
+	}
 }

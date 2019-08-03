@@ -61,5 +61,5 @@ service ToolService {
   rpc VerifyProblem(VerifyProblemRequest) returns (VerifyProblemResponse) {}
 
   // Parse a given problem into a structured representation of it.
-  // rpc ParseCourse(ParseCourseRequest) returns (ParseCourseResponse) {}
+  rpc ParseCourse(ParseCourseRequest) returns (ParseCourseResponse) {}
 }

@@ -1,63 +1,81 @@
 package templates
 
-import(
-  "html/template"
-  "net/http"
+import (
+	"fmt"
+	"html/template"
+	"net/http"
 )
 
 type TemplateExecutor interface {
-  Template() *template.Template
+	Template() *template.Template
 }
 
 var tpls = []string{
-  "frontend/templates/*.tpl",
-  "frontend/templates/problems/*.tpl",
-  "frontend/templates/users/*.tpl",
-  "frontend/templates/submissions/*.tpl",
+	"frontend/templates/*.tpl",
+	"frontend/templates/courses/*.tpl",
+	"frontend/templates/problems/*.tpl",
+	"frontend/templates/users/*.tpl",
+	"frontend/templates/submissions/*.tpl",
 }
 
 func templates() *template.Template {
-  var tpl *template.Template
-  for _, t := range tpls {
-    if tpl == nil {
-      tpl = template.Must(template.ParseGlob(t))
-    } else {
-      tpl = template.Must(tpl.ParseGlob(t))
-    }
-  }
-  return tpl
+	tpl := template.New("templates").Funcs(map[string]interface{}{
+		"dict": dict,
+	})
+	for _, t := range tpls {
+		tpl = template.Must(tpl.ParseGlob(t))
+	}
+	return tpl
 }
 
-type refreshingExecutor struct {}
+type refreshingExecutor struct{}
 
 func (re *refreshingExecutor) Template() *template.Template {
-  return templates()
+	return templates()
 }
 
 type cachingExecutor struct {
-  template *template.Template
+	template *template.Template
 }
 
 func (ce *cachingExecutor) Template() *template.Template {
-  return ce.template
+	return ce.template
 }
 
 // TODO: add some dev env setting to make this caching
 var executor = &refreshingExecutor{}
 
 func ExecuteTemplates(w http.ResponseWriter, name string, data interface{}) error {
-  tpl := executor.Template()
-  if err := tpl.ExecuteTemplate(w, "header", data); err != nil {
-    return err
-  }
-  if err := tpl.ExecuteTemplate(w, "nav", data); err != nil {
-    return err
-  }
-  if err := tpl.ExecuteTemplate(w, name, data); err != nil {
-    return err
-  }
-  if err := tpl.ExecuteTemplate(w, "footer", data); err != nil {
-    return err
-  }
-  return nil
+	tpl := executor.Template()
+	if err := tpl.ExecuteTemplate(w, "header", data); err != nil {
+		return err
+	}
+	if err := tpl.ExecuteTemplate(w, "nav", data); err != nil {
+		return err
+	}
+	if err := tpl.ExecuteTemplate(w, name, data); err != nil {
+		return err
+	}
+	if err := tpl.ExecuteTemplate(w, "footer", data); err != nil {
+		return err
+	}
+	return nil
+}
+
+func tostring(val interface{}) string {
+	switch val := val.(type) {
+	case string:
+		return val
+	default:
+		return fmt.Sprintf("%v", val)
+	}
+}
+
+func dict(vals ...interface{}) map[string]interface{} {
+	dict := map[string]interface{}{}
+	for i := 0; i < len(vals); i += 2 {
+		k := tostring(vals[i])
+		dict[k] = vals[i+1]
+	}
+	return dict
 }

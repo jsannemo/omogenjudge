@@ -1,14 +1,14 @@
 package db
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"strings"
-  "time"
+	"time"
 
 	"github.com/google/logger"
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-  "github.com/jmoiron/sqlx"
 )
 
 var (
@@ -23,7 +23,7 @@ var pool *sqlx.DB // Database connection pool.
 func connString() string {
 	hostPort := strings.Split(*dbHost, ":")
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-    hostPort[0], hostPort[1], *dbUser, *dbPassword, *dbName)
+		hostPort[0], hostPort[1], *dbUser, *dbPassword, *dbName)
 }
 
 func Init() {
@@ -31,21 +31,21 @@ func Init() {
 	logger.Infof("Connected to database: %v", *dbName)
 }
 
-func Conn() (*sqlx.DB) {
-  if pool == nil {
-    Init()
-  }
-  return pool
+func Conn() *sqlx.DB {
+	if pool == nil {
+		Init()
+	}
+	return pool
 }
 
 func NewListener() *pq.Listener {
 	reportProblem := func(ev pq.ListenerEventType, err error) {
 		if err != nil {
-      logger.Fatalf("Postgres listener failure: %v", err)
+			logger.Fatalf("Postgres listener failure: %v", err)
 		}
 	}
 
 	minReconn := 10 * time.Second
 	maxReconn := time.Minute
-  return pq.NewListener(connString(), minReconn, maxReconn, reportProblem)
+	return pq.NewListener(connString(), minReconn, maxReconn, reportProblem)
 }

@@ -12,6 +12,7 @@ go_library(
         "//storage/models:go_default_library",
         "//storage/problems",
         "//util/go/cli:go_default_library",
+        "//util/go/files:go_default_library",
         "//util/go/filestore:go_default_library",
         "@com_github_google_logger//:go_default_library",
     ],

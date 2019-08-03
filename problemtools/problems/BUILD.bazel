@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "metadata_parse.go",
+        "metadata_verify.go",
+        "parse.go",
+        "statement_markdown.go",
+        "statement_parse.go",
+        "statement_verify.go",
+        "testdata_parse.go",
+        "testdata_verify.go",
+        "verify.go",
+    ],
+    importpath = "github.com/jsannemo/omogenjudge/problemtools/problems",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//problemtools/api:go_default_library",
+        "//problemtools/util:go_default_library",
+        "@com_github_gomarkdown//:go_default_library",
+        "@com_github_gomarkdown//ast:go_default_library",
+        "@com_github_gomarkdown//html:go_default_library",
+        "@in_gopkg_yaml//:go_default_library",
+        "@org_golang_x_text//language:go_default_library",
+    ],
+)

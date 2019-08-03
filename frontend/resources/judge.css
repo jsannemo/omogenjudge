@@ -1,0 +1,61 @@
+.course * {
+  font-family: 'Crimson Text';
+}
+
+.course .row p, em, strong, a {
+  text-align: justify;
+  font-size: 15pt;
+  margin-top: 0.7em;
+}
+
+.course .chapter-box {
+  border-left: 4px solid #03a9f4;
+  padding-left: 20px;
+}
+
+.course .chapter-box:hover {
+  border-left-color: #3f51b5;
+}
+
+.course .chapter-box h2 {
+  color: #03a9f4;
+}
+
+.course .chapter-box:hover h2 {
+  color: #3f51b5;
+}
+
+.course h1.display {
+  font-size: 50px;
+}
+
+.course h2.display.subtext {
+  font-size: 24px;
+}
+
+.course .row {
+  width: 800px;
+}
+
+.course .course-box {
+  border: 1px solid black;
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+.course .course-box-header {
+  padding: 5px;
+  font-size: 17pt;
+  font-weight: 600;
+  background-color: lightgray;
+}
+
+.course .course-box-content {
+  border-top: 1px solid black;
+  padding: 5px;
+  font-size: 15pt;
+}
+  <div class="course-box">
+    <span class="course-box-header">%s</span>
+    <div class="course-box-content">%s</div>
+  </div>

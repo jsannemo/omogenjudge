@@ -3,14 +3,14 @@ package main
 import (
 	"flag"
 	"net"
-  "os"
+	"os"
 
 	"github.com/google/logger"
 	"google.golang.org/grpc"
 
+	fileservice "github.com/jsannemo/omogenjudge/filehandler/service"
 	toolservice "github.com/jsannemo/omogenjudge/problemtools/service"
 	runnerservice "github.com/jsannemo/omogenjudge/runner/service"
-	fileservice "github.com/jsannemo/omogenjudge/filehandler/service"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 
 func main() {
 	flag.Parse()
-  defer logger.Init("localjudge", false, true, os.Stderr).Close()
+	defer logger.Init("localjudge", false, true, os.Stderr).Close()
 	lis, err := net.Listen("tcp", *listenAddr)
 	if err != nil {
 		logger.Fatalf("failed to listen: %v", err)
@@ -28,9 +28,9 @@ func main() {
 	if err != nil {
 		logger.Fatalf("failed to create server: %v", err)
 	}
-  toolservice.Register(grpcServer)
-  runnerservice.Register(grpcServer)
-  fileservice.Register(grpcServer)
-  logger.Infof("serving on %v", *listenAddr)
+	toolservice.Register(grpcServer)
+	runnerservice.Register(grpcServer)
+	fileservice.Register(grpcServer)
+	logger.Infof("serving on %v", *listenAddr)
 	grpcServer.Serve(lis)
 }

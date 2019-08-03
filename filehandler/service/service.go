@@ -69,6 +69,6 @@ func (s *FileServer) EnsureFile(ctx context.Context, req *filepb.EnsureFileReque
 }
 
 func Register(grpcServer *grpc.Server) {
-  server := &FileServer{}
-  filepb.RegisterFileHandlerServiceServer(grpcServer, server)
+	server := &FileServer{}
+	filepb.RegisterFileHandlerServiceServer(grpcServer, server)
 }

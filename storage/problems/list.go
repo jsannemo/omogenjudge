@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/jsannemo/omogenjudge/storage/db"
 	"github.com/jsannemo/omogenjudge/storage/models"
-  "github.com/jmoiron/sqlx"
 )
 
 type ListFilter struct {
-	ShortName string
-	ProblemId int32
+	ShortName   string
+	ProblemId   int32
 	Submissions []*models.Submission
 }
 
@@ -32,7 +32,7 @@ const (
 
 type ListArgs struct {
 	WithStatements StmtOpt
-	WithTests TestOpt
+	WithTests      TestOpt
 }
 
 func problemQuery(args ListArgs, filter ListFilter) (string, []interface{}) {
@@ -107,23 +107,23 @@ func includeTests(ctx context.Context, p *models.Problem, opt TestOpt) {
 }
 
 func includeStatements(ctx context.Context, ps models.ProblemMap, arg StmtOpt) {
-  if len(ps) == 0 {
-    return
-  }
+	if len(ps) == 0 {
+		return
+	}
 	pids := ps.Ids()
-  var cols string
-  if arg == StmtAll {
-    cols = ", html"
-  }
+	var cols string
+	if arg == StmtAll {
+		cols = ", html"
+	}
 	query, args, err := sqlx.In(fmt.Sprintf("SELECT problem_id, title, language %s FROM problem_statement WHERE problem_id IN (?);", cols), pids)
-  if err != nil {
-    panic(err)
-  }
-  conn := db.Conn()
+	if err != nil {
+		panic(err)
+	}
+	conn := db.Conn()
 	query = conn.Rebind(query)
-  var statements models.StatementList
+	var statements models.StatementList
 	if err := conn.SelectContext(ctx, &statements, query, args...); err != nil {
-    panic(err)
-  }
-  statements.AddTo(ps)
+		panic(err)
+	}
+	statements.AddTo(ps)
 }

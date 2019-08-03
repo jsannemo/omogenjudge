@@ -40,6 +40,6 @@ func executeMiddlewares(req *request.Request, middlewares []middleware.Middlewar
 	if req.Response == nil {
 		req.Response = request.Error(errors.New("No response generated"))
 	}
-  logger.Infof("Generated response %v", req.Response)
+	logger.Infof("Generated response %v", req.Response)
 	req.Write(req.Writer)
 }

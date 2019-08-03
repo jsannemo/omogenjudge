@@ -21,6 +21,7 @@ go_library(
     importpath = "github.com/jsannemo/omogenjudge/frontend/server",
     visibility = ["//visibility:private"],
     deps = [
+        "//frontend/courses:go_default_library",
         "//frontend/middleware",
         "//frontend/paths",
         "//frontend/problems",

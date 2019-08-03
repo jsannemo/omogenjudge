@@ -3,7 +3,7 @@ package client
 import (
 	"flag"
 
-  "github.com/google/logger"
+	"github.com/google/logger"
 	"google.golang.org/grpc"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"

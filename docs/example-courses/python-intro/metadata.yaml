@@ -1,5 +1,3 @@
-name:
-  sv: Programmering i Python
-order:
+chapters:
   - intro
   - programming

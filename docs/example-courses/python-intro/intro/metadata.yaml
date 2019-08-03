@@ -1,5 +1,5 @@
 name:
   sv: Introduktion
-order:
+sections:
   - intro
   - hello-world

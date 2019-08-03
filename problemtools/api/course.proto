@@ -4,23 +4,38 @@ package omogen.problemtools;
 
 message Course {
   string course_id = 1;
-  map<string, string> name = 2;
+  repeated CourseLoc course_locs = 2;
   repeated Chapter chapters = 3;
+}
+
+message CourseLoc {
+  string language_code = 1;
+  string name = 2;
+  string summary = 3;
+  string description = 4;
 }
 
 message Chapter {
   string chapter_id = 1;
-  map<string, string> name = 2;
+  repeated ChapterLoc chapter_locs = 2;
   repeated Section sections = 3;
+}
+
+message ChapterLoc {
+  string language_code = 1;
+  string name = 2;
+  string summary = 3;
+  string description = 4;
 }
 
 message Section {
   string section_id = 1;
-  repeated LocalizedContent localized_content = 2;
+  repeated SectionLoc section_locs = 2;
 }
 
-message LocalizedContent {
+message SectionLoc {
   string language_code = 1;
   string title = 2;
-  string content_html = 3;
+  string summary = 3;
+  string contents = 4;
 }

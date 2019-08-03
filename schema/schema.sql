@@ -118,25 +118,28 @@ CREATE INDEX submission_file_submission ON submission_file(submission_id);
 -- Course tables
 CREATE TABLE course(
   course_id SERIAL PRIMARY KEY,
-  short_name TEXT NOT NULL
+  course_short_name TEXT NOT NULL,
+  UNIQUE(course_short_name)
 );
 
 GRANT ALL ON course TO omogenjudge;
 GRANT ALL ON course_course_id_seq TO omogenjudge;
 
 CREATE TABLE course_localization(
-  course_id INTEGER NOT NULL REFERENCES course,
-  language TEXT NOT NULL,
+  course_id INTEGER NOT NULL REFERENCES course ON DELETE CASCADE,
+  course_language TEXT NOT NULL,
   course_name TEXT NOT NULL,
-  UNIQUE(course_id, language)
+  course_summary TEXT NOT NULL,
+  course_description TEXT NOT NULL,
+  UNIQUE(course_id, course_language)
 );
 
 GRANT ALL ON course_localization TO omogenjudge;
 
 CREATE TABLE course_chapter(
-  course_id INTEGER REFERENCES course,
+  course_id INTEGER NOT NULL REFERENCES course ON DELETE CASCADE,
   course_chapter_id SERIAL PRIMARY KEY,
-  short_name TEXT NOT NULL,
+  chapter_short_name TEXT NOT NULL,
   UNIQUE(course_id, course_chapter_id)
 );
 
@@ -144,30 +147,33 @@ GRANT ALL ON course_chapter TO omogenjudge;
 GRANT ALL ON course_chapter_course_chapter_id_seq TO omogenjudge;
 
 CREATE TABLE course_chapter_localization(
-  course_chapter_id INTEGER NOT NULL REFERENCES course_chapter,
-  language TEXT NOT NULL,
+  course_chapter_id INTEGER NOT NULL REFERENCES course_chapter ON DELETE CASCADE,
+  chapter_language TEXT NOT NULL,
   chapter_name TEXT NOT NULL,
-  UNIQUE(course_chapter_id, language)
+  chapter_summary TEXT NOT NULL,
+  chapter_description TEXT NOT NULL,
+  UNIQUE(course_chapter_id, chapter_language)
 );
 
 GRANT ALL ON course_chapter_localization TO omogenjudge;
 
 CREATE TABLE course_section(
-  course_chapter_id INTEGER REFERENCES course_chapter,
+  course_chapter_id INTEGER NOT NULL REFERENCES course_chapter ON DELETE CASCADE,
   course_section_id SERIAL PRIMARY KEY,
-  short_name TEXT NOT NULL,
-  UNIQUE(course_chapter_id, short_name)
+  section_short_name TEXT NOT NULL,
+  UNIQUE(course_chapter_id, section_short_name)
 );
 
 GRANT ALL ON course_section TO omogenjudge;
 GRANT ALL ON course_section_course_section_id_seq TO omogenjudge;
 
 CREATE TABLE course_section_localization(
-  course_section_id INTEGER NOT NULL REFERENCES course_section,
-  language TEXT NOT NULL,
-  section_html TEXT NOT NULL,
+  course_section_id INTEGER NOT NULL REFERENCES course_section ON DELETE CASCADE,
+  section_language TEXT NOT NULL,
   section_name TEXT NOT NULL,
-  UNIQUE(course_section_id, language)
+  section_summary TEXT NOT NULL,
+  section_contents TEXT NOT NULL,
+  UNIQUE(course_section_id, section_language)
 );
 
 GRANT ALL ON course_section_localization TO omogenjudge;

@@ -70,8 +70,8 @@ message TestCase {
 // The judging limits of the problem.
 message Limits {
   // The time limit for executing a test case in milliseconds.
-  int32 time_limit_milliseconds = 1;
+  int32 time_limit_ms = 1;
 
   // The memory limit for executing a test case in megabytes.
-  int32 memory_limit_megabytes = 2;
+  int32 memory_limit_kb = 2;
 }

@@ -22,7 +22,7 @@ func LoginHandler(r *request.Request) (request.Response, error) {
 
 		user, err := users.Authenticate(r.Request.Context(), username, password)
 		if err == users.ErrInvalidLogin {
-      // TODO show an error message for this instead on the registration page
+			// TODO show an error message for this instead on the registration page
 			return request.Error(errors.New("Incorrect login details")), nil
 		} else if err != nil {
 			return nil, err

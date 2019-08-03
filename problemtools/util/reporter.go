@@ -8,7 +8,7 @@ type Reporter interface {
 	HasError() bool
 	Errors() []string
 	Warnings() []string
-	AddFailures([]string, []string) ([]string, []string)
+	AddFailures(*[]string, *[]string)
 }
 
 type reporter struct {
@@ -46,7 +46,7 @@ func NewReporter() Reporter {
 	return &reporter{}
 }
 
-// AddFailures append the reporters failures to the given slices.
-func (reporter *reporter) AddFailures(errors []string, warnings []string) ([]string, []string) {
-	return append(errors, reporter.Errors()...), append(warnings, reporter.Warnings()...)
+func (reporter *reporter) AddFailures(errors *[]string, warnings *[]string) {
+	*errors = append(*errors, reporter.Errors()...)
+	*warnings = append(*warnings, reporter.Warnings()...)
 }

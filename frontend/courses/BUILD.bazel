@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "chapter.go",
+        "course.go",
+        "list.go",
+        "section.go",
+    ],
+    importpath = "github.com/jsannemo/omogenjudge/frontend/courses",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//frontend/paths",
+        "//frontend/request",
+        "//storage/courses:go_default_library",
+        "//storage/models:go_default_library",
+        "//storage/problems",
+        "@com_github_gorilla_mux//:go_default_library",
+    ],
+)
