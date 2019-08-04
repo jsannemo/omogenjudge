@@ -2,14 +2,14 @@
   font-family: 'Crimson Text';
 }
 
-.course .row p, .course .row a {
+.course .statement p, .course .statement a{
   font-size: 15pt;
 }
-.course .row span.math * {
+.course .statement span.math * {
   font-size: 14pt;
 }
 
-.course code {
+.course code, .course pre {
   font-family: 'Roboto Mono';
   font-size: 11pt;
 }
@@ -45,8 +45,8 @@
 }
 
 .course .article-header {
-  padding-bottom: 10px;
-  padding-top: 5px;
+  padding-bottom: 0;
+  padding-top: 0;
 }
 
 .course h1.display {
@@ -105,3 +105,19 @@ i.material-icons {
   vertical-align: middle;
 }
 
+.course .statement .samplebox {
+	border: 1px solid black;
+  border-top: none;
+}
+
+.course .statement .samplebox .samplebox-header {
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
+  padding: 7px;
+  background: #efefef;
+}
+
+.course .statement .samplebox .samplebox-data {
+  margin: 0;
+  padding: 10px;
+}

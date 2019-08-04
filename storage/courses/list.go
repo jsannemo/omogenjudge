@@ -55,6 +55,9 @@ func List(ctx context.Context, args ListArgs, filter ListFilter) models.CourseLi
 }
 
 func includeCourseContent(ctx context.Context, courses models.CourseMap, opt ContentOpt) {
+	if len(courses) == 0 {
+		return
+	}
 	fields := "course_id, course_language, course_name, course_summary"
 	if opt == ContentCourse {
 		fields = fields + ", course_desc"
@@ -80,13 +83,13 @@ func includeCourseContent(ctx context.Context, courses models.CourseMap, opt Con
 func chapterMap(ctx context.Context, c *models.Course, opt ContentOpt, filter ListFilter) models.ChapterMap {
 	filterStr := "WHERE course_id = $1"
 	params := []interface{}{c.CourseId}
-  // TODO implement
-  /*
-	if filter.ChapterShortName != "" {
-		filterStr = filterStr + " AND chapter_short_name = $2"
-		params = append(params, filter.ChapterShortName)
-	}
-  */
+	// TODO implement
+	/*
+		if filter.ChapterShortName != "" {
+			filterStr = filterStr + " AND chapter_short_name = $2"
+			params = append(params, filter.ChapterShortName)
+		}
+	*/
 
 	query := "SELECT * FROM course_chapter " + filterStr + " ORDER BY course_chapter_id ASC"
 	if err := db.Conn().SelectContext(ctx, &c.Chapters, query, params...); err != nil {
@@ -122,16 +125,16 @@ func includeSubContent(ctx context.Context, c *models.Course, opt ContentOpt, fi
 
 	filterStr := "WHERE course_id = $1"
 	params := []interface{}{c.CourseId}
-  // implement in a good way
-  /*
-	if filter.ChapterShortName != "" {
-		filterStr = filterStr + " AND course_chapter_id = $2"
-		params = append(params, chs.First().ChapterId)
-    if filter.SectionShortName != "" {
-      filterStr = filterStr + " AND section_short_name = $3"
-      params = append(params, filter.SectionShortName)
-    }
-  }*/
+	// implement in a good way
+	/*
+		if filter.ChapterShortName != "" {
+			filterStr = filterStr + " AND course_chapter_id = $2"
+			params = append(params, chs.First().ChapterId)
+	    if filter.SectionShortName != "" {
+	      filterStr = filterStr + " AND section_short_name = $3"
+	      params = append(params, filter.SectionShortName)
+	    }
+	  }*/
 
 	var secs models.SectionList
 	query := "SELECT course_chapter_id, course_section_id, section_short_name FROM course_section INNER JOIN course_chapter USING (course_chapter_id) " + filterStr + " ORDER BY course_section_id"

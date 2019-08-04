@@ -25,6 +25,10 @@ message Metadata {
 
   // All the judging limits used for the problem.
   Limits limits = 2;
+
+  string author = 3;
+
+  License license = 4;
 }
 
 // A parsed problem statement, possibly in any language.
@@ -74,4 +78,11 @@ message Limits {
 
   // The memory limit for executing a test case in megabytes.
   int32 memory_limit_kb = 2;
+}
+
+enum License {
+  LICENSE_UNSPECIFIED = 0;
+  CC_BY_SA_3 = 1;
+  PUBLIC_DOMAIN = 2;
+  BY_PERMISSION = 3;
 }

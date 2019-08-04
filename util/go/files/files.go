@@ -27,9 +27,9 @@ func CopyDirectory(scrDir, dest string) error {
 	if err != nil {
 		return err
 	}
-  if err := CreateIfNotExists(dest, 0755); err != nil {
-    return err
-  }
+	if err := CreateIfNotExists(dest, 0755); err != nil {
+		return err
+	}
 	for _, entry := range entries {
 		sourcePath := filepath.Join(scrDir, entry.Name())
 		destPath := filepath.Join(dest, entry.Name())

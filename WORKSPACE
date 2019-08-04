@@ -172,6 +172,43 @@ go_repository(
     importpath = "github.com/jmoiron/sqlx",
 )
 
+# Go template helpers
+go_repository (
+    name = "com_github_masterminds_sprig",
+    commit = "7525b3376b8792ab24d07381324e4e2463e3356b",
+    importpath = "github.com/Masterminds/sprig",
+)
+
+go_repository (
+    name = "com_github_masterminds_goutils",
+    commit = "41ac8693c5c10a92ea1ff5ac3a7f95646f6123b0",
+    importpath = "github.com/Masterminds/goutils",
+)
+
+go_repository (
+    name = "com_github_masterminds_semver",
+    commit = "0fd41f6ff0825cf7efae00e706120bdd48914d93",
+    importpath = "github.com/Masterminds/semver",
+)
+
+go_repository(
+    name = "com_github_imdario_mergo",
+    commit = "4c317f2286be3bd0c4f1a0e622edc6398ec4656d",
+    importpath = "github.com/imdario/mergo",
+)
+
+go_repository(
+    name = "com_github_google_uuid",
+    commit = "c2e93f3ae59f2904160ceaab466009f965df46d6",
+    importpath = "github.com/google/uuid",
+)
+
+go_repository(
+    name = "com_github_huandu_xstrings",
+    commit = "8bbcf2f9ccb55755e748b7644164cd4bdce94c1d",
+    importpath = "github.com/huandu/xstrings",
+)
+
 # Gorilla utilities
 
 go_repository(

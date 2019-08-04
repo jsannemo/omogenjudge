@@ -10,7 +10,7 @@ import (
 )
 
 type LoginParams struct {
-  Error string
+	Error string
 }
 
 // LoginHandler handles login requests
@@ -25,7 +25,7 @@ func LoginHandler(r *request.Request) (request.Response, error) {
 
 		user, err := users.Authenticate(r.Request.Context(), username, password)
 		if err == users.ErrInvalidLogin {
-      return request.Template("users_login", &LoginParams{"Felaktiga kontouppgifter"}), nil
+			return request.Template("users_login", &LoginParams{"Felaktiga kontouppgifter"}), nil
 		} else if err != nil {
 			return nil, err
 		}

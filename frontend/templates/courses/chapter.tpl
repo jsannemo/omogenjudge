@@ -10,7 +10,9 @@
       <h1 class="display">{{ (.D.Chapter.Loc $.C.Locales).Name.HTML }}</h1>
     </header>
     <div class="row">
+      <div class="statement">
       {{ (.D.Chapter.Loc $.C.Locales).Desc.HTML }}
+      </div>
       {{ range .D.Chapter.Sections }}
         {{ template "course_chapter_box" dict "Chapter" . "C" $.C }}
       {{ end }}

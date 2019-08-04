@@ -5,9 +5,5 @@ go_library(
     srcs = ["home.go"],
     importpath = "github.com/jsannemo/omogenjudge/frontend/home",
     visibility = ["//visibility:public"],
-    deps = [
-        "//frontend/paths",
-        "//frontend/request",
-        "@com_github_gorilla_mux//:go_default_library",
-    ],
+    deps = ["//frontend/request"],
 )

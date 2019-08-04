@@ -33,7 +33,11 @@ GRANT ALL ON account_account_id_seq TO omogenjudge;
 -- Problem tables
 CREATE TABLE problem(
   problem_id SERIAL PRIMARY KEY,
-  short_name TEXT NOT NULL
+  short_name TEXT NOT NULL,
+  author TEXT NOT NULL,
+  license TEXT NOT NULL,
+  time_limit_ms INTEGER NOT NULL,
+  memory_limit_kb INTEGER NOT NULL
 );
 
 CREATE UNIQUE INDEX problem_shortname ON problem(short_name);

@@ -45,7 +45,11 @@ func insertStatement(ctx context.Context, s *models.ProblemStatement, tx *sqlx.T
 }
 
 func insertProblem(ctx context.Context, problem *models.Problem, tx *sqlx.Tx) error {
-	return tx.QueryRowContext(ctx, "INSERT INTO problem(short_name) VALUES($1) RETURNING problem_id", problem.ShortName).Scan(&problem.ProblemId)
+	return tx.QueryRowContext(ctx,
+		`INSERT INTO
+      problem(short_name, author, license, time_limit_ms, memory_limit_kb)
+     VALUES($1, $2, $3, $4, $5)
+    RETURNING problem_id`, problem.ShortName, problem.Author, problem.License, problem.TimeLimMs, problem.MemLimKb).Scan(&problem.ProblemId)
 }
 
 func Create(ctx context.Context, p *models.Problem) error {

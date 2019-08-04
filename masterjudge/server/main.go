@@ -92,8 +92,8 @@ func judge(ctx context.Context, submission *models.Submission) error {
 			SubmissionId: submission.SubmissionId,
 			Program:      compiledProgram,
 			Cases:        reqTests,
-			TimeLimitMs:  1000,
-			MemLimitKb:   1024 * 1000,
+			TimeLimitMs:  Problem.TimeLimMs,
+			MemLimitKb:   Problem.MemLimKb,
 		})
 	if err != nil {
 		return err

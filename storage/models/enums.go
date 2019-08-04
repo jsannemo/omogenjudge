@@ -55,3 +55,23 @@ func (v Verdict) String() string {
 	}
 	panic(fmt.Errorf("Unknown verdict: %v", v))
 }
+
+type License string
+
+const (
+	LicenseCcBySa3      License = "CC_BY_SA_3"
+	LicensePermission   License = "BY_PERMISSION"
+	LicensePublicDomain License = "PUBLIC_DOMAIN"
+)
+
+func (l License) String() string {
+	switch l {
+	case LicenseCcBySa3:
+		return "CC BY-SA 3.0"
+	case LicensePublicDomain:
+		return "Fri användning"
+	case LicensePermission:
+		return "Används med tillåtelse"
+	}
+	panic(fmt.Errorf("Unknown license: %v", l))
+}

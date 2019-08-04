@@ -10,7 +10,7 @@ import (
 )
 
 type RegisterParams struct {
-  Error string
+	Error string
 }
 
 func RegisterHandler(r *request.Request) (request.Response, error) {
@@ -28,7 +28,7 @@ func RegisterHandler(r *request.Request) (request.Response, error) {
 
 		err := users.Create(r.Request.Context(), user)
 		if err == users.ErrUserExists {
-      return request.Template("users_register", &RegisterParams{Error: "Användarnamnet är upptaget"}), nil
+			return request.Template("users_register", &RegisterParams{Error: "Användarnamnet är upptaget"}), nil
 		} else if err != nil {
 			return nil, err
 		}

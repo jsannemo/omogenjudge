@@ -14,7 +14,9 @@
       <h1 class="display">{{ (.D.Section.Loc $.C.Locales).Name }}</h1>
     </header>
     <div class="row">
+    <div class="statement">
     {{ .D.Output }}
+    </div>
 
     {{ template "course_next_section" dict "section" .D.Section "C" $.C }}
     </div>

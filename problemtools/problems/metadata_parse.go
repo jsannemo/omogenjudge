@@ -26,6 +26,19 @@ type problemMetadata struct {
 	Judging problemJudging
 }
 
+func toLicense(l string, reporter util.Reporter) toolspb.License {
+	switch l {
+	case "permission":
+		return toolspb.License_BY_PERMISSION
+	case "cc by-sa 3":
+		return toolspb.License_CC_BY_SA_3
+	case "public domain":
+		return toolspb.License_PUBLIC_DOMAIN
+	}
+	reporter.Err("Invalid license: %v", l)
+	return toolspb.License_LICENSE_UNSPECIFIED
+}
+
 func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, error) {
 	metadataPath := filepath.Join(path, "metadata.yaml")
 	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
@@ -50,11 +63,14 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 		memLimit = 1000
 		reporter.Warn("No explicit memory limit set: using default 1000 MB")
 	}
+	lic := toLicense(md.License, reporter)
 	return &toolspb.Metadata{
 		ProblemId: filepath.Base(path),
 		Limits: &toolspb.Limits{
 			TimeLimitMs:   int32(1000 * timeLimit),
 			MemoryLimitKb: int32(1000 * memLimit),
 		},
+		Author:  md.Author,
+		License: lic,
 	}, nil
 }

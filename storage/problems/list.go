@@ -52,7 +52,7 @@ func problemQuery(args ListArgs, filter ListFilter) (string, []interface{}) {
 	if len(filterSegs) != 0 {
 		filterStr = "WHERE " + strings.Join(filterSegs, " AND ")
 	}
-	return fmt.Sprintf("SELECT problem_id, short_name FROM problem %s ORDER BY short_name", filterStr), params
+	return fmt.Sprintf("SELECT problem_id, short_name, author, license, time_limit_ms, memory_limit_kb FROM problem %s ORDER BY short_name", filterStr), params
 }
 
 func List(ctx context.Context, args ListArgs, filter ListFilter) models.ProblemList {

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"html/template"
 
 	"golang.org/x/text/language"
@@ -70,6 +71,14 @@ type Problem struct {
 	Statements []*ProblemStatement
 
 	TestGroups []*TestGroup
+
+	Author string
+
+	License License
+
+	TimeLimMs int32 `db:"time_limit_ms"`
+
+	MemLimKb int32 `db:"memory_limit_kb"`
 }
 
 // localizedStatement returns the statement of a problem closest to the ones given in langs.
@@ -126,4 +135,12 @@ func (p *Problem) TestDataFiles() FileList {
 		files = append(files, tc.InputFile, tc.OutputFile)
 	}
 	return files
+}
+
+func (p *Problem) TimeLimString() string {
+	return fmt.Sprintf("%.1g s", float64(p.TimeLimMs)/1000)
+}
+
+func (p *Problem) MemLimString() string {
+	return fmt.Sprintf("%.1g GB", float64(p.MemLimKb)/1000/1000)
 }

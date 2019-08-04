@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+
+	"github.com/Masterminds/sprig"
 )
 
 type TemplateExecutor interface {
@@ -20,9 +22,7 @@ var tpls = []string{
 }
 
 func templates() *template.Template {
-	tpl := template.New("templates").Funcs(map[string]interface{}{
-		"dict": dict,
-	})
+	tpl := template.New("templates").Funcs(sprig.FuncMap())
 	for _, t := range tpls {
 		tpl = template.Must(tpl.ParseGlob(t))
 	}
