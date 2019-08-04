@@ -49,12 +49,19 @@ func (s *Submission) Link() string {
 	return paths.Route(paths.Submission, paths.SubmissionIdArg, s.SubmissionId)
 }
 
-func (s *Submission) StatusString() string {
+func (s *Submission) SubmissionStatus() SubmissionStatus {
 	if s.Status != StatusSuccessful {
-		return s.Status.String()
+		return s.Status
 	} else {
-		return s.Verdict.String()
+		return s.Verdict
 	}
+}
+
+type SubmissionStatus interface {
+  Accepted() bool
+  Rejected() bool
+  Waiting() bool
+  String() string
 }
 
 type SubmissionFile struct {

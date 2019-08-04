@@ -30,6 +30,18 @@ func (s Status) String() string {
 	panic(fmt.Errorf("Unknown status: %v", s))
 }
 
+func (s Status) Accepted() bool {
+  return false
+}
+
+func (s Status) Rejected() bool {
+  return s == StatusCompilationFailed
+}
+
+func (s Status) Waiting() bool {
+  return s == StatusNew || s == StatusCompiling || s == StatusRunning
+}
+
 type Verdict string
 
 const (
@@ -55,6 +67,19 @@ func (v Verdict) String() string {
 	}
 	panic(fmt.Errorf("Unknown verdict: %v", v))
 }
+
+func (v Verdict) Accepted() bool {
+  return v == VerdictAccepted
+}
+
+func (v Verdict) Rejected() bool {
+  return v != VerdictAccepted
+}
+
+func (v Verdict) Waiting() bool {
+  return false
+}
+
 
 type License string
 

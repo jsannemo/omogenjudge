@@ -1,8 +1,12 @@
 {{ define "submissions_view" }}
 <article>
+  <header class="article-header">
+    <div class="row">
+      <h1 class="display">Inskickning {{ .D.Submission.SubmissionId }}</h1>
+    </div>
+  </header>
   <div class="row">
-    <h1>Inskickning</h1>
-      {{ template "submission_list" dict "submissions" (list .D.Submission) "problems" .D.Problems "C" .C }}
+    {{ template "submission_list" dict "submissions" (list .D.Submission) "problems" .D.Problems "C" .C }}
     {{ range .D.Submission.Files }}
     <table class="bordered" style="width: 100%; margin-top: 15px;">
       <thead>
