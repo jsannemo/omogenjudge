@@ -44,15 +44,19 @@
   color: #3f51b5;
 }
 
+.course .article-header {
+  padding-bottom: 10px;
+  padding-top: 5px;
+}
+
 .course h1.display {
-  font-size: 50px;
   font-family: 'Crimson Text';
 }
 
 .course .display.subtext,
 .course .display.subtext a {
+  padding-top: 10px;
   font-size: 22px;
-  padding-bottom: 15px;
 }
 
 .course .row {
@@ -95,3 +99,9 @@
 
 .course .course-problem-exercise {
 }
+
+i.material-icons {
+  line-height: normal;
+  vertical-align: middle;
+}
+

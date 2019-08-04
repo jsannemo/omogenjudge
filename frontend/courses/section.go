@@ -20,8 +20,8 @@ type SectionParams struct {
 
 func SectionHandler(r *request.Request) (request.Response, error) {
 	vars := mux.Vars(r.Request)
-  shortName := vars[paths.CourseSectionNameArg]
-  chShortName := vars[paths.CourseChapterNameArg]
+	shortName := vars[paths.CourseSectionNameArg]
+	chShortName := vars[paths.CourseChapterNameArg]
 	courses := courses.List(r.Request.Context(), courses.ListArgs{Content: courses.ContentSection}, courses.ListFilter{
 		ShortName:        vars[paths.CourseNameArg],
 		ChapterShortName: chShortName,
@@ -35,13 +35,13 @@ func SectionHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	chapter, err := course.Chapters.ShortName(chShortName)
-  if err != nil {
+	if err != nil {
 		return request.NotFound(), nil
-  }
-	section,err := chapter.Sections.ShortName(shortName)
-  if err != nil {
+	}
+	section, err := chapter.Sections.ShortName(shortName)
+	if err != nil {
 		return request.NotFound(), nil
-  }
+	}
 
 	tpl := template.New("").Funcs(map[string]interface{}{
 		"loadProblem": func(shortName string) *models.Problem {

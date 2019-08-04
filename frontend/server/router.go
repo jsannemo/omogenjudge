@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jsannemo/omogenjudge/frontend/courses"
+	"github.com/jsannemo/omogenjudge/frontend/home"
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"github.com/jsannemo/omogenjudge/frontend/problems"
 	"github.com/jsannemo/omogenjudge/frontend/submissions"
@@ -17,7 +18,7 @@ func configureRouter() *mux.Router {
 	r := paths.GetRouter()
 	registerStaticHandler(r)
 	// TODO update when there is a home handler
-	r.HandleFunc("/", plain(problems.ListHandler)).Name(paths.Home)
+	r.HandleFunc("/", plain(home.HomeHandler)).Name(paths.Home)
 	r.HandleFunc("/register", plain(users.RegisterHandler)).Name(paths.Register)
 	r.HandleFunc("/login", plain(users.LoginHandler)).Name(paths.Login)
 	r.HandleFunc("/logout", plain(users.LogoutHandler)).Name(paths.Logout)

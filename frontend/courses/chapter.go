@@ -15,7 +15,7 @@ type ChapterParams struct {
 
 func ChapterHandler(r *request.Request) (request.Response, error) {
 	vars := mux.Vars(r.Request)
-  shortName := vars[paths.CourseChapterNameArg]
+	shortName := vars[paths.CourseChapterNameArg]
 	courses := courses.List(r.Request.Context(), courses.ListArgs{Content: courses.ContentChapter}, courses.ListFilter{
 		ShortName:        vars[paths.CourseNameArg],
 		ChapterShortName: vars[paths.CourseChapterNameArg],
@@ -28,8 +28,8 @@ func ChapterHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	chapter, err := course.Chapters.ShortName(shortName)
-  if err != nil {
-    return request.NotFound(), nil
-  }
+	if err != nil {
+		return request.NotFound(), nil
+	}
 	return request.Template("courses_chapter", &ChapterParams{chapter}), nil
 }

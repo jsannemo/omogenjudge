@@ -7,21 +7,34 @@
       </div>
     </header>
     <div class="row">
-      <form method="post">
-        <div class="form-group">
-          <label>
-            <input type="text" required name="username">
-            <span class="placeholder">Användarnamn</span>
-          </label>
+			<form style="width: 500px; margin: auto" method="post">
+				<div class="form-group">
+					<div class="input-field">
+						<label>Användarnamn</label>
+						<input type="text" required name="username" placeholder="Fyll i användarnamn">
+					</div>
+				</div>
 
-          <label>
-            <input type="password" required name="password">
-            <span class="placeholder">Lösenord</span>
-          </label>
+				<div class="form-group">
+					<div class="input-field">
+						<label>Email</label>
+						<input type="email" required name="email" placeholder="Fyll i din email-address">
+					</div>
+				</div>
 
-          <input type="submit" value="Skapa konto" class="btn-green outline">
-        </div>
-      </form>
+				<div class="form-group">
+					<div class="input-field">
+						<label>Lösenord</label>
+						<input type="password" required name="password" placeholder="Välj ett lösenord">
+					</div>
+				</div>
+
+				<div class="form-group">
+					<div class="submit-field">
+						<input type="submit" value="Skapa konto" class="raised">
+					</div>
+				</div>
+			</form>
     </div>
   </article>
 </section>

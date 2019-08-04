@@ -13,6 +13,7 @@ type TemplateExecutor interface {
 var tpls = []string{
 	"frontend/templates/*.tpl",
 	"frontend/templates/courses/*.tpl",
+	"frontend/templates/home/*.tpl",
 	"frontend/templates/problems/*.tpl",
 	"frontend/templates/users/*.tpl",
 	"frontend/templates/submissions/*.tpl",

@@ -30,7 +30,7 @@ func listQuery(args ListArgs, filter FilterArgs) (string, []interface{}) {
 	}
 	if filter.Username != "" {
 		params = append(params, filter.Username)
-		filterSegs = append(filterSegs, fmt.Sprintf("username = $%s", len(params)))
+		filterSegs = append(filterSegs, fmt.Sprintf("username = $%d", len(params)))
 	}
 
 	filterStr := ""
@@ -60,7 +60,7 @@ func Get(ctx context.Context, id int32) (*models.Account, error) {
 }
 
 func Authenticate(ctx context.Context, username, password string) (*models.Account, error) {
-	accs := List(ctx, ListArgs{}, FilterArgs{})
+	accs := List(ctx, ListArgs{}, FilterArgs{Username: username})
 	if len(accs) == 0 {
 		return nil, ErrInvalidLogin
 	}
