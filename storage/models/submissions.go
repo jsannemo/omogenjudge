@@ -2,6 +2,7 @@ package models
 
 import (
   "time"
+  "database/sql"
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
@@ -26,6 +27,8 @@ type Submission struct {
 	Verdict Verdict
 
   Created time.Time `db:"date_created"`
+
+  CompileError sql.NullString `db:"compile_error"`
 
 	Files []*SubmissionFile
 }

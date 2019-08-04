@@ -14,6 +14,7 @@ type Field string
 const (
 	FieldVerdict Field = "verdict"
 	FieldStatus  Field = "status"
+	FieldCompileError  Field = "compile_error"
 )
 
 type UpdateArgs struct {
@@ -31,6 +32,9 @@ func updateQuery(sub *models.Submission, args UpdateArgs) (string, []interface{}
 		case FieldStatus:
 			updates = append(updates, fmt.Sprintf("status = $%d", len(params)+1))
 			params = append(params, sub.Status)
+		case FieldCompileError:
+			updates = append(updates, fmt.Sprintf("compile_error = $%d", len(params)+1))
+			params = append(params, sub.CompileError)
 		default:
 		}
 	}

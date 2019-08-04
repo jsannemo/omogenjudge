@@ -91,7 +91,8 @@ CREATE TABLE submission(
   language TEXT NOT NULL,
   date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
   status status NOT NULL DEFAULT 'new',
-  verdict verdict DEFAULT 'UNJUDGED'
+  verdict verdict DEFAULT 'UNJUDGED',
+  compile_error TEXT
 );
 
 GRANT ALL ON submission TO omogenjudge;

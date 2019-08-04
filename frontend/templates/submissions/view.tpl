@@ -7,6 +7,14 @@
   </header>
   <div class="row">
     {{ template "submission_list" dict "submissions" (list .D.Submission) "problems" .D.Problems "C" .C }}
+    {{ if .D.Submission.CompileError.Valid }}
+    <table class="bordered" style="width: 100%; margin-top: 15px;">
+      <thead>
+        <tr><th>Felmeddelanden från kompilatorn</th></tr>
+      </thead>
+      <tr><td><pre>{{ .D.Submission.CompileError.Value }}</pre></td></tr>
+    </table>
+    {{ end }}
     {{ range .D.Submission.Files }}
     <table class="bordered" style="width: 100%; margin-top: 15px;">
       <thead>

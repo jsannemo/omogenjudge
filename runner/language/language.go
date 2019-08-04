@@ -5,6 +5,7 @@ import (
 	"github.com/google/logger"
 
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
+	"github.com/jsannemo/omogenjudge/runner/compilers"
 	"github.com/jsannemo/omogenjudge/runner/runners"
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 )
@@ -13,7 +14,7 @@ var languages = make(map[string]*Language)
 
 // CompileFunc is a function used to compile a program into the given path.
 // It may use calls to the execution service in order to perform the compilation.
-type CompileFunc func(program *runpb.Program, outputPath string, client execpb.ExecuteServiceClient) (*runpb.CompiledProgram, error)
+type CompileFunc func(program *runpb.Program, outputPath string, client execpb.ExecuteServiceClient) (*compilers.Compilation, error)
 
 // A programming language.
 type Language struct {

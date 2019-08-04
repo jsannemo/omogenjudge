@@ -9,6 +9,12 @@ import (
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 )
 
+type Compilation struct {
+  Program *runpb.CompiledProgram
+  Output string
+  Errors string
+}
+
 func writeFile(path string, contents []byte) error {
 	err := os.MkdirAll(filepath.Dir(path), 0755)
 	if err != nil {
@@ -32,19 +38,20 @@ func WriteProgramToDisc(req *runpb.Program, outputPath string) ([]string, error)
 }
 
 // Copy produces a compiled progam that is simply the input program but with all files copied into the output path.
-func Copy(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) (*runpb.CompiledProgram, error) {
+func Copy(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) (*Compilation, error) {
 	compiledPaths, err := WriteProgramToDisc(req, outputPath)
 	if err != nil {
 		return nil, err
 	}
-	return &runpb.CompiledProgram{
-		ProgramRoot:   outputPath,
-		CompiledPaths: compiledPaths,
-		LanguageId:    req.LanguageId,
-	}, nil
+	return &Compilation{
+    Program: &runpb.CompiledProgram{
+      ProgramRoot:   outputPath,
+      CompiledPaths: compiledPaths,
+      LanguageId:    req.LanguageId,
+    }}, nil
 }
 
-func Noop(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) (*runpb.CompiledProgram, error) {
+func Noop(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) (*Compilation, error) {
 	return nil, nil
 }
 

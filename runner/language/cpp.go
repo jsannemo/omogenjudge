@@ -3,9 +3,9 @@ package language
 
 import (
 	"context"
-	"errors"
 	"io/ioutil"
 	"os/exec"
+  "os"
 	"path/filepath"
 	"strings"
 
@@ -36,17 +36,19 @@ func tmp() string {
 }
 
 func cppCompile(executable, version string) CompileFunc {
-	return func(req *runpb.Program, outputPath string, exec execpb.ExecuteServiceClient) (*runpb.CompiledProgram, error) {
+	return func(req *runpb.Program, outputPath string, exec execpb.ExecuteServiceClient) (*compilers.Compilation, error) {
 		files, err := compilers.WriteProgramToDisc(req, outputPath)
 		stream, err := exec.Execute(context.TODO())
 		defer stream.CloseSend()
 		if err != nil {
 			return nil, err
 		}
-		// TODO clear files
 		inf := tmp()
+    defer os.Remove(inf)
 		outf := tmp()
+    defer os.Remove(outf)
 		errf := tmp()
+    defer os.Remove(errf)
 		termination, err := runners.Execute(stream, &runners.ExecArgs{
 			Command:          executable,
 			Args:             append(files, version, "-Ofast", "-static"),
@@ -63,14 +65,30 @@ func cppCompile(executable, version string) CompileFunc {
 		if err != nil {
 			return nil, err
 		}
-		if termination.ExitReason != runners.Exited || termination.ExitCode != 0 {
-			return nil, errors.New("Compiler crashed :(")
+
+    compileOut, err := ioutil.ReadFile(outf)
+    if err != nil {
+      return nil, err
+    }
+    compileErr, err := ioutil.ReadFile(errf)
+    if err != nil {
+      return nil, err
+    }
+    logger.Infof("out %v %v", string(compileOut), string(compileErr))
+
+    var program *runpb.CompiledProgram
+		if termination.ExitReason == runners.Exited && termination.ExitCode == 0 {
+      program = &runpb.CompiledProgram{
+        ProgramRoot:   outputPath,
+        CompiledPaths: []string{"a.out"},
+        LanguageId:    req.LanguageId,
+      }
 		}
-		return &runpb.CompiledProgram{
-			ProgramRoot:   outputPath,
-			CompiledPaths: []string{"a.out"},
-			LanguageId:    req.LanguageId,
-		}, nil
+		return &compilers.Compilation{
+      Program: program,
+      Output: string(compileOut),
+      Errors: string(compileErr),
+    }, nil
 	}
 }
 

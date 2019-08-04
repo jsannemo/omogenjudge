@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
+  "database/sql"
 	"sync"
 
 	"github.com/google/logger"
@@ -38,7 +39,7 @@ func init() {
 	slotPool.Put(3)
 }
 
-func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.CompiledProgram, outerr **error) {
+func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.CompileResponse, outerr **error) {
 	response, err := runner.Compile(ctx,
 		&runpb.CompileRequest{
 			Program:    s.ToRunnerProgram(),
@@ -47,7 +48,7 @@ func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.Com
 	if err != nil {
 		*outerr = &err
 	} else {
-		output <- response.Program
+		output <- response
 	}
 	close(output)
 }
@@ -57,7 +58,7 @@ func judge(ctx context.Context, submission *models.Submission) error {
 	defer slotPool.Put(slot)
 	logger.Infof("Judging submission %d", submission.SubmissionId)
 	var compileErr *error = nil
-	compileOutput := make(chan *runpb.CompiledProgram)
+	compileOutput := make(chan *runpb.CompileResponse)
 	go compile(ctx, submission, compileOutput, &compileErr)
 	submission.Status = models.StatusCompiling
 	submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}})
@@ -75,11 +76,14 @@ func judge(ctx context.Context, submission *models.Submission) error {
 	for i, handle := range testHandles {
 		testPathMap[handle.Sha256Hash] = resp.Paths[i]
 	}
-	compiledProgram := <-compileOutput
-	if compiledProgram == nil {
+	compileResponse := <-compileOutput
+	if compileResponse == nil {
+    return fmt.Errorf("Compilation crashed: %v", compileErr)
+  }
+  if compileResponse.Program == nil {
 		submission.Status = models.StatusCompilationFailed
-		submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}})
-		logger.Infof("Compilation failure: %v", *compileErr)
+    submission.CompileError = sql.NullString{compileResponse.CompilationError, true}
+		submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus, submissions.FieldCompileError}})
 		return nil
 	}
 	submission.Status = models.StatusRunning
@@ -97,7 +101,7 @@ func judge(ctx context.Context, submission *models.Submission) error {
 	stream, err := runner.Evaluate(ctx,
 		&runpb.EvaluateRequest{
 			SubmissionId: submission.SubmissionId,
-			Program:      compiledProgram,
+			Program:      compileResponse.Program,
 			Cases:        reqTests,
 			TimeLimitMs:  int64(problem.TimeLimMs),
 			MemLimitKb:   int64(problem.MemLimKb),

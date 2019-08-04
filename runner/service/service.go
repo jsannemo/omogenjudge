@@ -47,7 +47,9 @@ func (s *runServer) Compile(ctx context.Context, req *runpb.CompileRequest) (*ru
 		return nil, err
 	}
 	response := &runpb.CompileResponse{
-		Program: compiledProgram,
+		Program: compiledProgram.Program,
+    CompilationOutput: compiledProgram.Output,
+    CompilationError: compiledProgram.Errors,
 	}
 	return response, nil
 }
