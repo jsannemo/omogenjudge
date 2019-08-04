@@ -89,6 +89,7 @@ CREATE TABLE submission(
   account_id INTEGER NOT NULL REFERENCES account,
   problem_id INTEGER NOT NULL REFERENCES problem,
   language TEXT NOT NULL,
+  date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
   status status NOT NULL DEFAULT 'new',
   verdict verdict DEFAULT 'UNJUDGED'
 );

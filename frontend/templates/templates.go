@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/Masterminds/sprig"
+
+	"github.com/jsannemo/omogenjudge/frontend/util"
 )
 
 type TemplateExecutor interface {
@@ -22,7 +24,10 @@ var tpls = []string{
 }
 
 func templates() *template.Template {
-	tpl := template.New("templates").Funcs(sprig.FuncMap())
+	tpl := template.New("templates").Funcs(sprig.FuncMap()).Funcs(
+    map[string]interface{}{
+      "language": util.GetLanguage,
+    })
 	for _, t := range tpls {
 		tpl = template.Must(tpl.ParseGlob(t))
 	}

@@ -1,6 +1,8 @@
 package models
 
 import (
+  "time"
+
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 )
@@ -22,6 +24,8 @@ type Submission struct {
 	Status Status
 
 	Verdict Verdict
+
+  Created time.Time `db:"date_created"`
 
 	Files []*SubmissionFile
 }

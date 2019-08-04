@@ -12,5 +12,8 @@ go_library(
     data = [":templates"],
     importpath = "github.com/jsannemo/omogenjudge/frontend/templates",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_masterminds_sprig//:go_default_library"],
+    deps = [
+        "//frontend/util:go_default_library",
+        "@com_github_masterminds_sprig//:go_default_library",
+    ],
 )

@@ -3,15 +3,17 @@
   <article>
     <header class="article-header">
       <div class="row">
-        <h1 class="display">Problem</h1>
+        <h1 class="display">Problemarkiv</h1>
       </div>
     </header>
     <div class="row">
-      <table>
+      <table class="bordered" style="margin: auto">
+      <thead>
         <tr>
           <th>ID</th>
           <th>Title</th>
         </tr>
+      </thead>
 			 {{range .D.Problems}}
         <tr>
           <td>{{ .ShortName }}</td>
