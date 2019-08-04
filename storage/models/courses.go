@@ -1,6 +1,8 @@
 package models
 
 import (
+  "fmt"
+
 	"golang.org/x/text/language"
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
@@ -68,6 +70,7 @@ type Chapter struct {
 }
 
 func (c *Chapter) Loc(preferred []language.Tag) *ChapterLoc {
+  fmt.Printf("ch: %v\n", c)
 	var has []language.Tag
 	userPrefs := append(preferred, language.Make("en"), language.Make("sv"))
 	for _, loc := range c.Locs {
@@ -94,6 +97,15 @@ func (c *Chapter) NextChapter() *Chapter {
 }
 
 type ChapterList []*Chapter
+
+func (cl ChapterList) ShortName(s string) (*Chapter, error) {
+  for _, ch := range cl {
+    if ch.ShortName == s {
+      return ch, nil
+    }
+  }
+  return nil, fmt.Errorf("No such chapter: %v", s);
+}
 
 func (cl ChapterList) AsMap() ChapterMap {
 	cm := make(ChapterMap)
@@ -147,20 +159,27 @@ func (s *Section) Link() string {
 		paths.CourseSectionNameArg, s.ShortName)
 }
 
-func (s *Section) NextSection() *Section {
+func (s *Section) NextSection() interface{} {
 	for i, sec := range s.Chapter.Sections {
-		if s.SectionId == sec.SectionId && i+1 != len(s.Chapter.Sections) {
-			return s.Chapter.Sections[i+1]
+    fmt.Printf("secs %v %v", s.SectionId, sec.SectionId)
+		if s.SectionId == sec.SectionId && i + 1 != len(s.Chapter.Sections) {
+      fmt.Printf("%v", s.Chapter.Sections[i + 1].SectionId)
+			return s.Chapter.Sections[i + 1]
 		}
 	}
-	ch := s.Chapter.NextChapter()
-	if ch != nil {
-		return ch.Sections[0]
-	}
-	return nil
+	return s.Chapter.NextChapter()
 }
 
 type SectionList []*Section
+
+func (sl SectionList) ShortName(s string) (*Section, error) {
+  for _, sec := range sl {
+    if sec.ShortName == s {
+      return sec, nil
+    }
+  }
+  return nil, fmt.Errorf("No such section: %v", s);
+}
 
 func (cl SectionList) AsMap() SectionMap {
 	cm := make(SectionMap)

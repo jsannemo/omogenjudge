@@ -2,17 +2,15 @@
 <section class="course">
   <article>
     <header class="article-header">
-      <span class="display subtext">
+      <div class="display subtext">
         <a href="{{ .D.Section.Chapter.Course.Link }}">
           {{ (.D.Section.Chapter.Course.Loc $.C.Locales).Name }}
         </a>
-      </span>
-      <span class="display subtext">/</span>
-      <span class="display subtext">
+        /
         <a href="{{ .D.Section.Chapter.Link }}">
             {{ (.D.Section.Chapter.Loc $.C.Locales).Name }}
         </a>
-      </span>
+      </div>
       <h1 class="display">{{ (.D.Section.Loc $.C.Locales).Name }}</h1>
     </header>
     <div class="row">

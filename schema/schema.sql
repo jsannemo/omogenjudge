@@ -53,7 +53,7 @@ GRANT ALL ON problem_statement TO omogenjudge;
 
 CREATE TABLE problem_testgroup(
   problem_testgroup_id SERIAL PRIMARY KEY,
-  problem_id INTEGER NOT NULL REFERENCES problem,
+  problem_id INTEGER NOT NULL REFERENCES problem ON DELETE CASCADE,
   testgroup_name TEXT NOT NULL,
   public_visibility BOOLEAN NOT NULL
 );
@@ -65,7 +65,7 @@ GRANT ALL ON problem_testgroup_problem_testgroup_id_seq TO omogenjudge;
 
 CREATE TABLE problem_testcase(
   problem_testcase_id SERIAL PRIMARY KEY,
-  problem_testgroup_id INTEGER NOT NULL REFERENCES problem_testgroup,
+  problem_testgroup_id INTEGER NOT NULL REFERENCES problem_testgroup ON DELETE CASCADE,
   testcase_name TEXT NOT NULL,
   input_file_hash hash NOT NULL REFERENCES stored_file,
   output_file_hash hash NOT NULL REFERENCES stored_file
@@ -106,7 +106,7 @@ AFTER INSERT ON submission
 FOR EACH ROW EXECUTE PROCEDURE notify_submission();
 
 CREATE TABLE submission_file(
-  submission_id INTEGER NOT NULL REFERENCES submission,
+  submission_id INTEGER NOT NULL REFERENCES submission ON DELETE CASCADE,
   file_path TEXT NOT NULL,
   file_contents TEXT NOT NULL
 );

@@ -9,6 +9,10 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/html"
+  "github.com/alecthomas/chroma"
+  "github.com/alecthomas/chroma/lexers"
+  "github.com/alecthomas/chroma/styles"
+  chromahtml "github.com/alecthomas/chroma/formatters/html"
 
 	"github.com/jsannemo/omogenjudge/problemtools/util"
 )
@@ -26,14 +30,6 @@ func handleProblem(lines []string, w io.Writer) error {
 	tpl := fmt.Sprintf(`{{ template "course_helper_problem" "%s" }}`, lines[0])
 	_, err := w.Write([]byte(tpl))
 	return err
-}
-
-func handleSummary(lines []string, res *markdownResult) error {
-	if len(lines) == 0 {
-		return fmt.Errorf("missing summary")
-	}
-	res.summary = lines[0]
-	return nil
 }
 
 func handleBoxStart(heading string, w io.Writer) error {
@@ -68,6 +64,15 @@ func processInlineCommands(cmd string, w io.Writer) error {
 	return nil
 }
 
+func handleProblemExercise(lines []string, w io.Writer) error {
+	if len(lines) == 0 {
+		return fmt.Errorf("missing problem ID")
+	}
+	tpl := fmt.Sprintf(`{{ template "course_helper_pexercise" "%s" }}`, lines[0])
+	_, err := w.Write([]byte(tpl))
+	return err
+}
+
 func processCommands(res *markdownResult, cmd string, w io.Writer) error {
 	lines := strings.Split(strings.TrimSpace(cmd), "\n")
 	for i, line := range lines {
@@ -78,10 +83,10 @@ func processCommands(res *markdownResult, cmd string, w io.Writer) error {
 		if err := handleProblem(lines[1:], w); err != nil {
 			return err
 		}
-	case "summary":
-		if err := handleSummary(lines[1:], res); err != nil {
-			return err
-		}
+  case "pexercise":
+  if err := handleProblemExercise(lines[1:], w); err != nil {
+    return err
+  }
 	}
 	return nil
 }
@@ -93,6 +98,7 @@ func parseMarkdown(path string, rep util.Reporter) (*markdownResult, error) {
 	}
 
 	inTitle := false
+	inSummary := false
 	res := &markdownResult{}
 
 	opts := html.RendererOptions{
@@ -105,10 +111,39 @@ func parseMarkdown(path string, rep util.Reporter) (*markdownResult, error) {
 						return ast.Terminate, true
 					}
 					return ast.GoToNext, true
-				}
+				} else {
+          lang := string(code.Info)
+					lexer := chroma.Coalesce(lexers.Get(lang))
+					formatter := chromahtml.New(chromahtml.WithLineNumbers(), chromahtml.WithClasses())
+					iterator, err := lexer.Tokenise(nil, string(code.Literal))
+          if err != nil {
+						return ast.Terminate ,true
+					}
+          style := styles.Get("pygments")
+          w.Write([]byte("<style>"))
+					err = formatter.WriteCSS(w, style)
+          w.Write([]byte("</style>"))
+          if err != nil {
+            return ast.Terminate ,true
+          }
+					err = formatter.Format(w, style, iterator)
+          if err != nil {
+            return ast.Terminate ,true
+          }
+					return ast.GoToNext, true
+        }
 			}
 			if code, ok := node.(*ast.Code); ok && strings.HasPrefix(string(code.Literal), "omogen ") {
-				err = processInlineCommands(string(code.Literal), w)
+        cmd := string(code.Literal)
+        if cmd == "omogen summary" {
+          inSummary = true
+          return ast.GoToNext, true
+        } else if cmd == "omogen endsummary" {
+          inSummary = false
+          return ast.GoToNext, true
+        }
+
+				err = processInlineCommands(cmd, w)
 				if err != nil {
 					return ast.Terminate, true
 				}
@@ -123,6 +158,12 @@ func parseMarkdown(path string, rep util.Reporter) (*markdownResult, error) {
 					return ast.GoToNext, true
 				}
 			}
+      if inSummary {
+				if leaf := node.AsLeaf(); leaf != nil {
+					res.summary = res.summary + string(leaf.Literal)
+				}
+				return ast.GoToNext, true
+      }
 			if inTitle {
 				if leaf := node.AsLeaf(); leaf != nil {
 					res.title = res.title + string(leaf.Literal)

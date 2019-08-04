@@ -2,10 +2,29 @@
   font-family: 'Crimson Text';
 }
 
-.course .row p, em, strong, a {
-  text-align: justify;
+.course .row p, .course .row a {
   font-size: 15pt;
+}
+.course .row span.math * {
+  font-size: 14pt;
+}
+
+.course code {
+  font-family: 'Roboto Mono';
+  font-size: 11pt;
+}
+
+.course pre.chroma,
+.course pre.chroma * {
+  font-size: 13pt;
+  line-height: 18pt;
+  overflow: visible;
+  font-family: 'Roboto Mono';
+}
+
+.course .row p {
   margin-top: 0.7em;
+  text-align: justify;
 }
 
 .course .chapter-box {
@@ -27,10 +46,13 @@
 
 .course h1.display {
   font-size: 50px;
+  font-family: 'Crimson Text';
 }
 
-.course h2.display.subtext {
-  font-size: 24px;
+.course .display.subtext,
+.course .display.subtext a {
+  font-size: 22px;
+  padding-bottom: 15px;
 }
 
 .course .row {
@@ -44,7 +66,7 @@
 }
 
 .course .course-box-header {
-  padding: 5px;
+  padding: 10px;
   font-size: 17pt;
   font-weight: 600;
   background-color: lightgray;
@@ -52,10 +74,24 @@
 
 .course .course-box-content {
   border-top: 1px solid black;
-  padding: 5px;
-  font-size: 15pt;
+  padding: 10px;
+  font-size: 14pt;
 }
-  <div class="course-box">
-    <span class="course-box-header">%s</span>
-    <div class="course-box-content">%s</div>
-  </div>
+
+.course .course-problem-title {
+  text-align: center;
+}
+
+.course .course-problem h1 {
+  margin: 0;
+}
+
+.course .course-problem {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  padding: 10px 20px 20px 20px;
+  border: 1px solid black;
+}
+
+.course .course-problem-exercise {
+}

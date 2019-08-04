@@ -1,5 +1,5 @@
 {{ define "problems_view" }}
-<section>
+<section class="course">
   <article>
     <header class="article-header">
       <div class="row">

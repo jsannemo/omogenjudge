@@ -51,7 +51,6 @@ func List(ctx context.Context, args ListArgs, filter ListFilter) models.CourseLi
 		panic(err)
 	}
 	includeContent(ctx, courses.AsMap(), args.Content, filter)
-	fmt.Printf("courses: %v", courses)
 	return courses
 }
 
@@ -81,10 +80,13 @@ func includeCourseContent(ctx context.Context, courses models.CourseMap, opt Con
 func chapterMap(ctx context.Context, c *models.Course, opt ContentOpt, filter ListFilter) models.ChapterMap {
 	filterStr := "WHERE course_id = $1"
 	params := []interface{}{c.CourseId}
+  // TODO implement
+  /*
 	if filter.ChapterShortName != "" {
 		filterStr = filterStr + " AND chapter_short_name = $2"
 		params = append(params, filter.ChapterShortName)
 	}
+  */
 
 	query := "SELECT * FROM course_chapter " + filterStr + " ORDER BY course_chapter_id ASC"
 	if err := db.Conn().SelectContext(ctx, &c.Chapters, query, params...); err != nil {
@@ -120,10 +122,16 @@ func includeSubContent(ctx context.Context, c *models.Course, opt ContentOpt, fi
 
 	filterStr := "WHERE course_id = $1"
 	params := []interface{}{c.CourseId}
-	if filter.SectionShortName != "" {
-		filterStr = filterStr + " AND course_chapter_id = $2 AND section_short_name = $3"
-		params = append(params, chs.First().ChapterId, filter.SectionShortName)
-	}
+  // implement in a good way
+  /*
+	if filter.ChapterShortName != "" {
+		filterStr = filterStr + " AND course_chapter_id = $2"
+		params = append(params, chs.First().ChapterId)
+    if filter.SectionShortName != "" {
+      filterStr = filterStr + " AND section_short_name = $3"
+      params = append(params, filter.SectionShortName)
+    }
+  }*/
 
 	var secs models.SectionList
 	query := "SELECT course_chapter_id, course_section_id, section_short_name FROM course_section INNER JOIN course_chapter USING (course_chapter_id) " + filterStr + " ORDER BY course_section_id"
@@ -131,7 +139,6 @@ func includeSubContent(ctx context.Context, c *models.Course, opt ContentOpt, fi
 		panic(err)
 	}
 	for _, sec := range secs {
-		fmt.Printf("section: %v", sec)
 		ch := chs[sec.ChapterId]
 		ch.Sections = append(ch.Sections, sec)
 		sec.Chapter = ch

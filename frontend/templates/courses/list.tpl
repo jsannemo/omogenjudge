@@ -1,24 +1,14 @@
 {{ define "courses_list" }}
-<section>
+<section class="course">
   <article>
     <header class="article-header">
-      <div class="row">
-        <h1 class="display">Kurser</h1>
-      </div>
+      <h1 class="display">Kurser</h1>
     </header>
     <div class="row">
-      <table>
-        <tr>
-          <th>Namn</th>
-        </tr>
-			 {{range .D.Courses}}
-        <tr>
-          <td>
-            <a href="{{ .Link }}">{{ .LocalizedTitle $.C.Locales }}</a>
-          </td>
-        </tr>
-			 {{end}}
-      </table>
+      {{ range .D.Courses }}
+        {{ template "course_chapter_box" dict "Chapter" . "C" $.C }}
+      {{ end }}
+      </div>
     </div>
   </article>
 </section>

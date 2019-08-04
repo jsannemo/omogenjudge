@@ -100,11 +100,12 @@ func installProblem(path string) error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmp)
+  // defer os.RemoveAll(tmp)
 	if err := os.Chmod(tmp, 0755); err != nil {
 		return err
 	}
 	npath := filepath.Join(tmp, filepath.Base(path))
+  logger.Infof("from %s to %s", path, npath)
 	if err := futil.CopyDirectory(path, npath); err != nil {
 		return err
 	}

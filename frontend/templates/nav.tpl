@@ -11,14 +11,14 @@
     </div>
     <nav class="navbar-nav closed">
       <ul>
-        <li class="active"><a href="/">Hem</a></li>
-        <li class="active"><a href="/courses">Kurser</a></li>
-        <li class="active"><a href="/problems">Uppgiftsarkiv</a></li>
+        <li><a href="/">Hem</a></li>
+        <li><a href="/courses">Kurser</a></li>
+        <li><a href="/problems">Uppgiftsarkiv</a></li>
         {{ if .C.User }}
-          <li class="active"><a href="/users/{{ .C.User.Username}}">{{ .C.User.Username }}</a></li>
+          <li><a href="/users/{{ .C.User.Username}}">{{ .C.User.Username }}</a></li>
         {{ else }}
-          <li class="active"><a href="/login">Logga in</a></li>
-          <li class="active"><a href="/register">Skapa konto</a></li>
+          <li><a href="/login">Logga in</a></li>
+          <li><a href="/register">Skapa konto</a></li>
         {{ end }}
       </ul>
     </nav>

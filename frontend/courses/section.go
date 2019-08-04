@@ -2,7 +2,6 @@ package courses
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 
 	"github.com/gorilla/mux"
@@ -21,10 +20,12 @@ type SectionParams struct {
 
 func SectionHandler(r *request.Request) (request.Response, error) {
 	vars := mux.Vars(r.Request)
+  shortName := vars[paths.CourseSectionNameArg]
+  chShortName := vars[paths.CourseChapterNameArg]
 	courses := courses.List(r.Request.Context(), courses.ListArgs{Content: courses.ContentSection}, courses.ListFilter{
 		ShortName:        vars[paths.CourseNameArg],
-		ChapterShortName: vars[paths.CourseChapterNameArg],
-		SectionShortName: vars[paths.CourseSectionNameArg],
+		ChapterShortName: chShortName,
+		SectionShortName: shortName,
 	})
 	if len(courses) == 0 {
 		return request.NotFound(), nil
@@ -33,11 +34,14 @@ func SectionHandler(r *request.Request) (request.Response, error) {
 	if len(course.Chapters) == 0 {
 		return request.NotFound(), nil
 	}
-	chapter := course.Chapters[0]
-	if len(chapter.Sections) == 0 {
+	chapter, err := course.Chapters.ShortName(chShortName)
+  if err != nil {
 		return request.NotFound(), nil
-	}
-	section := chapter.Sections[0]
+  }
+	section,err := chapter.Sections.ShortName(shortName)
+  if err != nil {
+		return request.NotFound(), nil
+  }
 
 	tpl := template.New("").Funcs(map[string]interface{}{
 		"loadProblem": func(shortName string) *models.Problem {
@@ -47,7 +51,7 @@ func SectionHandler(r *request.Request) (request.Response, error) {
 			return r.Context
 		},
 	})
-	tpl, err := tpl.ParseFiles("frontend/templates/courses/content-helpers/helpers.tpl")
+	tpl, err = tpl.ParseFiles("frontend/templates/courses/content-helpers/helpers.tpl")
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +63,5 @@ func SectionHandler(r *request.Request) (request.Response, error) {
 	if err := tpl.Execute(&rendered, nil); err != nil {
 		return nil, err
 	}
-	fmt.Println(rendered.String())
 	return request.Template("courses_section", &SectionParams{section, template.HTML(rendered.String())}), nil
 }

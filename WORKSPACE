@@ -176,8 +176,9 @@ go_repository(
 
 go_repository(
     name = "com_github_gorilla_securecookie",
-    commit = "e59506cc896acb7f7bf732d4fdf5e25f7ccd8983",
     importpath = "github.com/gorilla/securecookie",
+    sum = "h1:miw7JPhV+b/lAHSXz4qd/nN9jRiAFV5FwjeKyCS8BvQ=",
+    version = "v1.1.1",
 )
 
 go_repository(
@@ -188,8 +189,9 @@ go_repository(
 
 go_repository(
     name = "com_github_gorilla_mux",
-    commit = "00bdffe0f3c77e27d2cf6f5c70232a2d3e4d9c15",
     importpath = "github.com/gorilla/mux",
+    sum = "h1:gnP5JzjVOuiZD07fKKToCAOjS0yOpj/qPETTXCCS6hw=",
+    version = "v1.7.3",
 )
 
 # Go logger
@@ -198,6 +200,28 @@ go_repository(
     name = "com_github_google_logger",
     commit = "7047ffcb7339f3f59be32de74a92217cb17cb40c",
     importpath = "github.com/google/logger",
+)
+
+# Go syntax highlighter
+
+go_repository(
+    name = "com_github_alecthomas_chroma",
+    commit = "f8432cf78f68e5adf203ad5cefaaf6244650b4d1",
+    importpath = "github.com/alecthomas/chroma",
+)
+
+go_repository(
+    name = "com_github_danwakefield_fnmatch",
+    importpath = "github.com/danwakefield/fnmatch",
+    sum = "h1:y5HC9v93H5EPKqaS1UYVg1uYah5Xf51mBfIoWehClUQ=",
+    version = "v0.0.0-20160403171240-cbb64ac3d964",
+)
+
+go_repository(
+    name = "com_github_dlclark_regexp2",
+    importpath = "github.com/dlclark/regexp2",
+    sum = "h1:CqB4MjHw0MFCDj+PHHjiESmHX+N7t0tJzKvC6M97BRg=",
+    version = "v1.1.6",
 )
 
 # Buildifier
