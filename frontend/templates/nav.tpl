@@ -31,4 +31,5 @@
   </div>
 </header>
 <section class="content">
+<div class="text-center alert alert-error">Kodsport Academy är just nu i en tidig utvecklingsfas - det kan finnas många fel, och konton kan regelbundet raderas!</div>
 {{ end }}

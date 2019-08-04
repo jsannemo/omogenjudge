@@ -1,7 +1,6 @@
 package users
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
@@ -9,6 +8,10 @@ import (
 	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/users"
 )
+
+type RegisterParams struct {
+  Error string
+}
 
 func RegisterHandler(r *request.Request) (request.Response, error) {
 	root := paths.Route(paths.Home)
@@ -25,13 +28,12 @@ func RegisterHandler(r *request.Request) (request.Response, error) {
 
 		err := users.Create(r.Request.Context(), user)
 		if err == users.ErrUserExists {
-			// TODO show an error message for this instead on the registration page
-			return request.Error(errors.New("Username in use")), nil
+      return request.Template("users_register", &RegisterParams{Error: "Användarnamnet är upptaget"}), nil
 		} else if err != nil {
 			return nil, err
 		}
 		r.Context.UserId = user.AccountId
 		return request.Redirect(root), nil
 	}
-	return request.Template("users_register", nil), nil
+	return request.Template("users_register", &RegisterParams{}), nil
 }

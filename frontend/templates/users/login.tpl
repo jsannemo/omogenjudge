@@ -8,6 +8,10 @@
     </header>
     <div class="row">
 			<form style="width: 500px; margin: auto" method="post">
+        {{ with .D.Error }}
+          <div class="alert alert-error">{{ . }}</div>
+        {{ end }}
+
 				<div class="form-group">
 					<div class="input-field">
 						<label>Användarnamn</label>
