@@ -24,4 +24,5 @@
     </nav>
   </div>
 </header>
+<section class="content">
 {{ end }}
