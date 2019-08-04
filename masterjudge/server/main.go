@@ -5,19 +5,26 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"sync"
 
 	"github.com/google/logger"
+	"google.golang.org/grpc"
 
 	filepb "github.com/jsannemo/omogenjudge/filehandler/api"
 	fhclient "github.com/jsannemo/omogenjudge/filehandler/client"
 	"github.com/jsannemo/omogenjudge/masterjudge/queue"
+	"github.com/jsannemo/omogenjudge/masterjudge/service"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	rclient "github.com/jsannemo/omogenjudge/runner/client"
 	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/problems"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
+)
+
+var (
+	listenAddr = flag.String("master_listen_addr", "127.0.0.1:61813", "The master server address to listen to in the format host:port")
 )
 
 var runner runpb.RunServiceClient
@@ -92,8 +99,8 @@ func judge(ctx context.Context, submission *models.Submission) error {
 			SubmissionId: submission.SubmissionId,
 			Program:      compiledProgram,
 			Cases:        reqTests,
-			TimeLimitMs:  Problem.TimeLimMs,
-			MemLimitKb:   Problem.MemLimKb,
+			TimeLimitMs:  int64(problem.TimeLimMs),
+			MemLimitKb:   int64(problem.MemLimKb),
 		})
 	if err != nil {
 		return err
@@ -144,5 +151,16 @@ func main() {
 			}
 		}()
 	}
-	select {}
+
+	lis, err := net.Listen("tcp", *listenAddr)
+	if err != nil {
+		logger.Fatalf("failed to listen: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+	if err != nil {
+		logger.Fatalf("failed to create server: %v", err)
+	}
+	service.Register(grpcServer)
+	logger.Infof("serving on %v", *listenAddr)
+	grpcServer.Serve(lis)
 }

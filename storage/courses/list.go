@@ -127,14 +127,14 @@ func includeSubContent(ctx context.Context, c *models.Course, opt ContentOpt, fi
 	params := []interface{}{c.CourseId}
 	// implement in a good way
 	/*
-		if filter.ChapterShortName != "" {
-			filterStr = filterStr + " AND course_chapter_id = $2"
-			params = append(params, chs.First().ChapterId)
-	    if filter.SectionShortName != "" {
-	      filterStr = filterStr + " AND section_short_name = $3"
-	      params = append(params, filter.SectionShortName)
-	    }
-	  }*/
+			if filter.ChapterShortName != "" {
+				filterStr = filterStr + " AND course_chapter_id = $2"
+				params = append(params, chs.First().ChapterId)
+		    if filter.SectionShortName != "" {
+		      filterStr = filterStr + " AND section_short_name = $3"
+		      params = append(params, filter.SectionShortName)
+		    }
+		  }*/
 
 	var secs models.SectionList
 	query := "SELECT course_chapter_id, course_section_id, section_short_name FROM course_section INNER JOIN course_chapter USING (course_chapter_id) " + filterStr + " ORDER BY course_section_id"

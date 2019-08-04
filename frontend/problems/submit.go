@@ -3,17 +3,19 @@ package problems
 import (
 	"net/http"
 
+	"github.com/gorilla/mux"
+
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"github.com/jsannemo/omogenjudge/frontend/request"
+	"github.com/jsannemo/omogenjudge/frontend/util"
 	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/problems"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
-
-	"github.com/gorilla/mux"
 )
 
 type SubmitParams struct {
-	Problem *models.Problem
+	Problem   *models.Problem
+	Languages []*util.Language
 }
 
 func SubmitHandler(r *request.Request) (request.Response, error) {
@@ -32,14 +34,19 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 
 	if r.Request.Method == http.MethodPost {
 		submit := r.Request.FormValue("submission")
+		language := r.Request.FormValue("language")
+		l := util.GetLanguage(language)
+		if l == nil {
+			return request.NotFound(), nil
+		}
 		s := &models.Submission{
 			AccountId: r.Context.UserId,
 			ProblemId: problem.ProblemId,
 			Status:    models.StatusNew,
-			Language:  "gpp17",
+			Language:  l.LanguageId,
 			Files: []*models.SubmissionFile{
 				&models.SubmissionFile{
-					Path:     "main.cpp",
+					Path:     l.DefaultFile(),
 					Contents: submit,
 				},
 			},
@@ -52,5 +59,5 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 		return request.Redirect(subUrl), nil
 	}
 
-	return request.Template("problems_submit", &SubmitParams{problem}), nil
+	return request.Template("problems_submit", &SubmitParams{problem, util.Languages()}), nil
 }

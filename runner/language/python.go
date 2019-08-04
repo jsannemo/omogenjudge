@@ -52,11 +52,11 @@ func initPython(executable, name, tag string, languageGroup runpb.LanguageGroup)
 }
 
 func initPypy2() {
-	initPython("pypy", "Python 2 (PyPy)", "pypy2", runpb.LanguageGroup_PYTHON_2)
+	initPython("pypy", "Python 2 (PyPy)", "pypy2", runpb.LanguageGroup_PYTHON_2_PYPY)
 }
 
 func initPypy3() {
-	initPython("pypy3", "Python 3 (PyPy)", "pypy3", runpb.LanguageGroup_PYTHON_3)
+	initPython("pypy3", "Python 3 (PyPy)", "pypy3", runpb.LanguageGroup_PYTHON_3_PYPY)
 }
 
 func initPython2() {

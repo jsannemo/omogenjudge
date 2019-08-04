@@ -8,9 +8,16 @@
     </header>
     <div class="row">
       <form method="POST" onsubmit="return onSubmit()">
-				<div id="submitfield" style="width:100%;height:600px;border:1px solid grey"></div>
+				<div id="submitfield" style="width:100%;height:600px;border:1px solid grey; margin-bottom: 15px;"></div>
 				<textarea style="display: none" id="submission" name="submission"></textarea>
-        <input type="submit" value="Skicka in">
+        <div class="float-right">
+					<select id="language-selector" name="language" style="display: inline-block">
+            {{ range .D.Languages }}
+						<option value="{{ .LanguageId }}" data-lang="{{ .VsName }}">{{ .Name }} ({{ .Version }})</option>
+            {{ end }}
+					</select>
+          <input type="submit" value="Skicka in" class="btn-green outlined">
+        </div>
       </form>
     </div>
   </article>
@@ -23,13 +30,18 @@
         editor = monaco.editor.create(document.getElementById('submitfield'), {
             value: [
             ].join('\n'),
-            language: 'python'
         });
+        updateEditor();
     });
 		function onSubmit() {
       var code = editor.getValue();
-      console.log(code);
       document.getElementById('submission').value = code;
+    }
+    function updateEditor() {
+			var model = editor.getModel(); // we'll create a model for you if the editor created from string value.
+			var lang = document.getElementById("language-selector").selectedOptions[0].dataset.lang
+      console.log(lang);
+			monaco.editor.setModelLanguage(model, lang);
     }
 </script>
 {{ end }}

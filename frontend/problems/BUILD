@@ -13,6 +13,8 @@ go_library(
     deps = [
         "//frontend/paths",
         "//frontend/request",
+        "//frontend/util:go_default_library",
+        "//runner/api:go_default_library",
         "//storage/models:go_default_library",
         "//storage/problems",
         "//storage/submissions:go_default_library",

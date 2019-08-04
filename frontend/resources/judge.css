@@ -108,6 +108,8 @@ i.material-icons {
 .course .statement .samplebox {
 	border: 1px solid black;
   border-top: none;
+  margin-bottom: 15px;
+  page-break-inside: avoid;
 }
 
 .course .statement .samplebox .samplebox-header {
@@ -120,4 +122,22 @@ i.material-icons {
 .course .statement .samplebox .samplebox-data {
   margin: 0;
   padding: 10px;
+}
+
+@media print {
+  .navbar {
+    display: none;
+  }
+  .footer {
+    display: none;
+  }
+  .problem-actions {
+    display: none;
+  }
+  .alert {
+    display: none;
+  }
+  .problem-authors {
+    display: none;
+  }
 }

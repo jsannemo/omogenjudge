@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package omogen.master;
+
+import "runner/api/language.proto";
+
+message GetLanguagesRequest {}
+
+message GetLanguagesResponse {
+  repeated omogen.runner.Language installed_languages = 1;
+}
+
+service MasterService {
+  // Fetch all supported languages of the local judges
+  rpc GetLanguages(GetLanguagesRequest) returns (GetLanguagesResponse) {}
+}
