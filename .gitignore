@@ -2,3 +2,4 @@ bazel-*
 *.swp
 compile_commands.json
 builds
+.ijwb
