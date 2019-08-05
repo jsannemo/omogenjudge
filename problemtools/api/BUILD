@@ -9,6 +9,7 @@ go_proto_library(
     compilers = ["@io_bazel_rules_go//proto:go_grpc"],
     importpath = "github.com/jsannemo/omogenjudge/problemtools/api",
     proto = ":omogen_problemtools_proto",
+    deps = ["//runner/api:go_default_library"],
 )
 
 go_library(
@@ -24,4 +25,5 @@ proto_library(
         "problem.proto",
         "tools.proto",
     ],
+    deps = ["//runner/api:omogen_runner_proto"],
 )

@@ -27,6 +27,8 @@ message ParseProblemResponse {
 message VerifyProblemRequest {
   // A problem that was parsed by ParseProblem
   Problem problem_to_verify = 1;
+
+  string problem_path = 2;
 }
 
 // A response to VerifyPRoblem.

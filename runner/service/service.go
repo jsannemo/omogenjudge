@@ -15,6 +15,7 @@ import (
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	"github.com/jsannemo/omogenjudge/runner/eval"
 	"github.com/jsannemo/omogenjudge/runner/language"
+	"github.com/jsannemo/omogenjudge/runner/runners"
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 	eclient "github.com/jsannemo/omogenjudge/sandbox/client"
 )
@@ -33,6 +34,25 @@ func (s *runServer) GetLanguages(ctx context.Context, _ *runpb.GetLanguagesReque
 	return &runpb.GetLanguagesResponse{InstalledLanguages: s.languages}, nil
 }
 
+var compileCache = make(map[string]*runpb.CompileResponse)
+var cacheLock sync.Mutex
+
+func (s *runServer) CompileCached(ctx context.Context, req *runpb.CompileCachedRequest) (*runpb.CompileCachedResponse, error) {
+	cacheLock.Lock()
+	defer cacheLock.Unlock()
+	res, has := compileCache[req.Identifier]
+	if has {
+		return &runpb.CompileCachedResponse{Response: res}, nil
+	} else {
+		res, err := s.Compile(ctx, req.Request)
+		if err != nil {
+			return nil, err
+		}
+		compileCache[req.Identifier] = res
+		return &runpb.CompileCachedResponse{Response: res}, nil
+	}
+}
+
 // Implementation of RunServer.Compile.
 func (s *runServer) Compile(ctx context.Context, req *runpb.CompileRequest) (*runpb.CompileResponse, error) {
 	logger.Infof("RunService.Compile: %v", req)
@@ -47,9 +67,9 @@ func (s *runServer) Compile(ctx context.Context, req *runpb.CompileRequest) (*ru
 		return nil, err
 	}
 	response := &runpb.CompileResponse{
-		Program: compiledProgram.Program,
-    CompilationOutput: compiledProgram.Output,
-    CompilationError: compiledProgram.Errors,
+		Program:           compiledProgram.Program,
+		CompilationOutput: compiledProgram.Output,
+		CompilationError:  compiledProgram.Errors,
 	}
 	return response, nil
 }
@@ -70,6 +90,18 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 	if err != nil {
 		return err
 	}
+	var validator runners.Program
+	if req.Validator != nil {
+		valExecStream, err := s.exec.Execute(context.Background())
+		defer valExecStream.CloseSend()
+		if err != nil {
+			return err
+		}
+		validator, err = lang.Program(req.Validator.Program, valExecStream)
+		if err != nil {
+			return err
+		}
+	}
 
 	root := fmt.Sprintf("/var/lib/omogen/submissions/%d", req.SubmissionId)
 	if err := os.Mkdir(root, 0755); err != nil {
@@ -77,7 +109,7 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 			return err
 		}
 	}
-	evaluator, err := eval.NewEvaluator(root, program)
+	evaluator, err := eval.NewEvaluator(root, program, validator)
 	if err != nil {
 		return fmt.Errorf("failed creating evaluator: %v", err)
 	}

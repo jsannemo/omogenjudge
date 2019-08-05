@@ -44,6 +44,19 @@ func insertStatement(ctx context.Context, s *models.ProblemStatement, tx *sqlx.T
 	return nil
 }
 
+func insertOutputValidator(ctx context.Context, problem *models.Problem, tx *sqlx.Tx) error {
+	if problem.OutputValidator == nil {
+		return nil
+	}
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO
+      problem_output_validator(problem_id, validator_language_id, validator_source_zip.hash)
+     VALUES($1, $2, $3)`, problem.ProblemId, problem.OutputValidator.ValidatorLanguageId, problem.OutputValidator.ValidatorSourceZip.Hash); err != nil {
+		return err
+	}
+	return nil
+}
+
 func insertProblem(ctx context.Context, problem *models.Problem, tx *sqlx.Tx) error {
 	return tx.QueryRowContext(ctx,
 		`INSERT INTO
@@ -60,6 +73,9 @@ func Create(ctx context.Context, p *models.Problem) error {
 			} else {
 				return err
 			}
+		}
+		if err := insertOutputValidator(ctx, p, tx); err != nil {
+			return err
 		}
 		for _, s := range p.Statements {
 			s.ProblemId = p.ProblemId

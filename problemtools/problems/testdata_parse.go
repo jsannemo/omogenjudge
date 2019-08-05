@@ -133,6 +133,10 @@ func parseGroup(path string, reporter util.Reporter) (*toolspb.TestGroup, error)
 	if err != nil {
 		return nil, err
 	}
+	// Ignore groups without test cases
+	if len(tests) == 0 {
+		return nil, nil
+	}
 	return &toolspb.TestGroup{
 		Name:          filepath.Base(path),
 		PublicSamples: config.Visibility == "public",

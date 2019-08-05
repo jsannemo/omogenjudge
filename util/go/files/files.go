@@ -22,12 +22,15 @@ func RemoveContents(dirPath string) error {
 	return nil
 }
 
-func CopyDirectory(scrDir, dest string) error {
+func CopyDirectory(scrDir, dest string, perm os.FileMode) error {
 	entries, err := ioutil.ReadDir(scrDir)
 	if err != nil {
 		return err
 	}
-	if err := CreateIfNotExists(dest, 0755); err != nil {
+	if err := CreateIfNotExists(dest, perm); err != nil {
+		return err
+	}
+	if err := os.Chmod(dest, perm); err != nil {
 		return err
 	}
 	for _, entry := range entries {
@@ -46,10 +49,10 @@ func CopyDirectory(scrDir, dest string) error {
 
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
-			if err := CreateIfNotExists(destPath, 0755); err != nil {
+			if err := CreateIfNotExists(destPath, perm); err != nil {
 				return err
 			}
-			if err := CopyDirectory(sourcePath, destPath); err != nil {
+			if err := CopyDirectory(sourcePath, destPath, perm); err != nil {
 				return err
 			}
 		default:
@@ -58,6 +61,9 @@ func CopyDirectory(scrDir, dest string) error {
 			}
 		}
 
+		if err := os.Chmod(destPath, perm); err != nil {
+			return err
+		}
 		if err := os.Lchown(destPath, int(stat.Uid), int(stat.Gid)); err != nil {
 			return err
 		}
@@ -100,6 +106,7 @@ func CreateIfNotExists(dir string, perm os.FileMode) error {
 	if Exists(dir) {
 		return nil
 	}
+	fmt.Printf("perm %v %v\n", perm, dir)
 	if err := os.MkdirAll(dir, perm); err != nil {
 		return fmt.Errorf("failed to create directory: '%s', error: '%s'", dir, err.Error())
 	}

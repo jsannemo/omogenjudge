@@ -9,6 +9,8 @@ go_library(
         "//problemtools/api:go_default_library",
         "//problemtools/courses:go_default_library",
         "//problemtools/problems:go_default_library",
+        "//runner/api:go_default_library",
+        "//runner/client:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

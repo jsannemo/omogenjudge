@@ -12,9 +12,9 @@ import (
 type Field string
 
 const (
-	FieldVerdict Field = "verdict"
-	FieldStatus  Field = "status"
-	FieldCompileError  Field = "compile_error"
+	FieldVerdict      Field = "verdict"
+	FieldStatus       Field = "status"
+	FieldCompileError Field = "compile_error"
 )
 
 type UpdateArgs struct {

@@ -52,7 +52,15 @@ func problemQuery(args ListArgs, filter ListFilter) (string, []interface{}) {
 	if len(filterSegs) != 0 {
 		filterStr = "WHERE " + strings.Join(filterSegs, " AND ")
 	}
-	return fmt.Sprintf("SELECT problem_id, short_name, author, license, time_limit_ms, memory_limit_kb FROM problem %s ORDER BY short_name", filterStr), params
+
+	fields := ""
+	joins := ""
+	if args.WithTests == TestsAll {
+		joins = "LEFT JOIN problem_output_validator USING(problem_id)"
+		fields = `, file_hash(validator_source_zip) "problem_output_validator.validator_source_zip.hash", file_url(validator_source_zip) "problem_output_validator.validator_source_zip.url",
+    validator_language_id "problem_output_validator.language_id"`
+	}
+	return fmt.Sprintf("SELECT problem_id, short_name, author, license, time_limit_ms, memory_limit_kb "+fields+" FROM problem %s %s ORDER BY short_name", joins, filterStr), params
 }
 
 func List(ctx context.Context, args ListArgs, filter ListFilter) models.ProblemList {

@@ -4,8 +4,8 @@ package language
 import (
 	"context"
 	"io/ioutil"
+	"os"
 	"os/exec"
-  "os"
 	"path/filepath"
 	"strings"
 
@@ -44,11 +44,11 @@ func cppCompile(executable, version string) CompileFunc {
 			return nil, err
 		}
 		inf := tmp()
-    defer os.Remove(inf)
+		defer os.Remove(inf)
 		outf := tmp()
-    defer os.Remove(outf)
+		defer os.Remove(outf)
 		errf := tmp()
-    defer os.Remove(errf)
+		defer os.Remove(errf)
 		termination, err := runners.Execute(stream, &runners.ExecArgs{
 			Command:          executable,
 			Args:             append(files, version, "-Ofast", "-static"),
@@ -66,29 +66,29 @@ func cppCompile(executable, version string) CompileFunc {
 			return nil, err
 		}
 
-    compileOut, err := ioutil.ReadFile(outf)
-    if err != nil {
-      return nil, err
-    }
-    compileErr, err := ioutil.ReadFile(errf)
-    if err != nil {
-      return nil, err
-    }
-    logger.Infof("out %v %v", string(compileOut), string(compileErr))
+		compileOut, err := ioutil.ReadFile(outf)
+		if err != nil {
+			return nil, err
+		}
+		compileErr, err := ioutil.ReadFile(errf)
+		if err != nil {
+			return nil, err
+		}
+		logger.Infof("out %v %v", string(compileOut), string(compileErr))
 
-    var program *runpb.CompiledProgram
+		var program *runpb.CompiledProgram
 		if termination.ExitReason == runners.Exited && termination.ExitCode == 0 {
-      program = &runpb.CompiledProgram{
-        ProgramRoot:   outputPath,
-        CompiledPaths: []string{"a.out"},
-        LanguageId:    req.LanguageId,
-      }
+			program = &runpb.CompiledProgram{
+				ProgramRoot:   outputPath,
+				CompiledPaths: []string{"a.out"},
+				LanguageId:    req.LanguageId,
+			}
 		}
 		return &compilers.Compilation{
-      Program: program,
-      Output: string(compileOut),
-      Errors: string(compileErr),
-    }, nil
+			Program: program,
+			Output:  string(compileOut),
+			Errors:  string(compileErr),
+		}, nil
 	}
 }
 

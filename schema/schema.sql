@@ -45,6 +45,15 @@ CREATE UNIQUE INDEX problem_shortname ON problem(short_name);
 GRANT ALL ON problem TO omogenjudge;
 GRANT ALL ON problem_problem_id_seq TO omogenjudge;
 
+CREATE TABLE problem_output_validator(
+  problem_id INTEGER NOT NULL REFERENCES problem ON DELETE CASCADE,
+  validator_language_id TEXT NOT NULL,
+  validator_source_zip hash NOT NULL,
+  UNIQUE(problem_id)
+);
+
+GRANT ALL ON problem_output_validator TO omogenjudge;
+
 CREATE TABLE problem_statement(
   problem_id INTEGER,
   language TEXT NOT NULL,

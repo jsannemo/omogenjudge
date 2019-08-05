@@ -92,7 +92,7 @@ func installCourse(path string) error {
 		return err
 	}
 	npath := filepath.Join(tmp, filepath.Base(path))
-	if err := futil.CopyDirectory(path, npath); err != nil {
+	if err := futil.CopyDirectory(path, npath, 0755); err != nil {
 		return err
 	}
 

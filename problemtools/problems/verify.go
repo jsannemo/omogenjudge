@@ -1,13 +1,19 @@
 package problems
 
 import (
+	"context"
+
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
 	"github.com/jsannemo/omogenjudge/problemtools/util"
+	runpb "github.com/jsannemo/omogenjudge/runner/api"
 )
 
-func VerifyProblem(problem *toolspb.Problem) (*toolspb.VerifyProblemResponse, error) {
+func VerifyProblem(ctx context.Context, req *toolspb.VerifyProblemRequest, runner runpb.RunServiceClient) (*toolspb.VerifyProblemResponse, error) {
 	var errors []string
 	var warnings []string
+
+	problem := req.ProblemToVerify
+	path := req.ProblemPath
 
 	statementReporter := util.NewReporter()
 	if err := verifyStatements(problem, statementReporter); err != nil {
@@ -26,6 +32,12 @@ func VerifyProblem(problem *toolspb.Problem) (*toolspb.VerifyProblemResponse, er
 		return nil, err
 	}
 	testgroupReporter.AddFailures(&errors, &warnings)
+
+	outputReporter := util.NewReporter()
+	if err := verifyOutputValidator(ctx, path, problem, runner, outputReporter); err != nil {
+		return nil, err
+	}
+	outputReporter.AddFailures(&errors, &warnings)
 
 	return &toolspb.VerifyProblemResponse{
 		VerifiedProblem: problem,

@@ -7,7 +7,7 @@
       </div>
     </header>
     <div class="row">
-      <table class="bordered" style="margin: auto">
+      <table class="bordered" style="margin: auto; width: 100%">
       <thead>
         <tr>
           <th>ID</th>

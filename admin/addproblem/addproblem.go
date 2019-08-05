@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -12,6 +14,7 @@ import (
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
 	ptclient "github.com/jsannemo/omogenjudge/problemtools/client"
+	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	"github.com/jsannemo/omogenjudge/storage/files"
 	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/problems"
@@ -19,6 +22,39 @@ import (
 	futil "github.com/jsannemo/omogenjudge/util/go/files"
 	"github.com/jsannemo/omogenjudge/util/go/filestore"
 )
+
+func toStorageOutputValidator(ctx context.Context, val *runpb.Program) (*models.OutputValidator, error) {
+	if val == nil {
+		return nil, nil
+	}
+	buf := new(bytes.Buffer)
+	w := zip.NewWriter(buf)
+
+	for _, file := range val.Sources {
+		f, err := w.Create(file.Path)
+		if err != nil {
+			return nil, err
+		}
+		if _, err = f.Write([]byte(file.Contents)); err != nil {
+			return nil, err
+		}
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	hash, url, err := filestore.StoreFile(buf.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	storedFile := &models.StoredFile{hash, url}
+	files.Create(ctx, storedFile)
+
+	return &models.OutputValidator{
+		ValidatorLanguageId: val.LanguageId,
+		ValidatorSourceZip:  storedFile,
+	}, nil
+}
 
 func toStorageStatements(statements []*toolspb.ProblemStatement) []*models.ProblemStatement {
 	var storage []*models.ProblemStatement
@@ -101,12 +137,11 @@ func installProblem(path string) error {
 		return err
 	}
 	// defer os.RemoveAll(tmp)
-	if err := os.Chmod(tmp, 0755); err != nil {
+	if err := os.Chmod(tmp, 0777); err != nil {
 		return err
 	}
 	npath := filepath.Join(tmp, filepath.Base(path))
-	logger.Infof("from %s to %s", path, npath)
-	if err := futil.CopyDirectory(path, npath); err != nil {
+	if err := futil.CopyDirectory(path, npath, 0777); err != nil {
 		return err
 	}
 
@@ -117,7 +152,7 @@ func installProblem(path string) error {
 		ProblemPath: npath,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("ParseProblem failed: %v", err)
 	}
 	for _, warnMsg := range parsed.Warnings {
 		logger.Warningln(warnMsg)
@@ -132,9 +167,10 @@ func installProblem(path string) error {
 	problem := parsed.ParsedProblem
 	verified, err := client.VerifyProblem(ctx, &toolspb.VerifyProblemRequest{
 		ProblemToVerify: problem,
+		ProblemPath:     npath,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("VerifyProblem failed: %v", err)
 	}
 	hasWarnings = hasWarnings || len(verified.Warnings) > 0
 	for _, warnMsg := range verified.Warnings {
@@ -156,14 +192,19 @@ func installProblem(path string) error {
 	if err != nil {
 		return err
 	}
+	outputValidator, err := toStorageOutputValidator(ctx, problem.OutputValidator)
+	if err != nil {
+		return err
+	}
 	if err := problems.Create(ctx, &models.Problem{
-		ShortName:  problem.Metadata.ProblemId,
-		Statements: toStorageStatements(problem.Statements),
-		TestGroups: storageTestGroups,
-		TimeLimMs:  problem.Metadata.Limits.TimeLimitMs,
-		MemLimKb:   problem.Metadata.Limits.MemoryLimitKb,
-		License:    models.License(problem.Metadata.License.String()),
-		Author:     problem.Metadata.Author,
+		ShortName:       problem.Metadata.ProblemId,
+		Statements:      toStorageStatements(problem.Statements),
+		TestGroups:      storageTestGroups,
+		TimeLimMs:       problem.Metadata.Limits.TimeLimitMs,
+		MemLimKb:        problem.Metadata.Limits.MemoryLimitKb,
+		License:         models.License(problem.Metadata.License.String()),
+		Author:          problem.Metadata.Author,
+		OutputValidator: outputValidator,
 	}); err != nil {
 		return err
 	}

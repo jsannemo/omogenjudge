@@ -45,7 +45,6 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 		reporter.Err("There was no metadata.yaml file")
 		return nil, nil
 	}
-
 	dat, err := ioutil.ReadFile(metadataPath)
 	if err != nil {
 		return nil, err

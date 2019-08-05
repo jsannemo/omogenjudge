@@ -1,8 +1,8 @@
 package models
 
 import (
-  "time"
-  "database/sql"
+	"database/sql"
+	"time"
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
@@ -26,9 +26,9 @@ type Submission struct {
 
 	Verdict Verdict
 
-  Created time.Time `db:"date_created"`
+	Created time.Time `db:"date_created"`
 
-  CompileError sql.NullString `db:"compile_error"`
+	CompileError sql.NullString `db:"compile_error"`
 
 	Files []*SubmissionFile
 }
@@ -61,10 +61,10 @@ func (s *Submission) SubmissionStatus() SubmissionStatus {
 }
 
 type SubmissionStatus interface {
-  Accepted() bool
-  Rejected() bool
-  Waiting() bool
-  String() string
+	Accepted() bool
+	Rejected() bool
+	Waiting() bool
+	String() string
 }
 
 type SubmissionFile struct {

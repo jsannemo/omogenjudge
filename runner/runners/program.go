@@ -13,6 +13,7 @@ type ProgramArgs struct {
 	ErrorPath     string
 	TimeLimitMs   int64
 	MemoryLimitKb int64
+	ExtraArgs     []string
 }
 
 type Program interface {
@@ -44,7 +45,7 @@ func (a *argProgram) Execute() (*ExecResult, error) {
 	res, err := Execute(a.client,
 		&ExecArgs{
 			Command:          a.args.Command,
-			Args:             a.args.Args,
+			Args:             append(a.args.Args, a.programArgs.ExtraArgs...),
 			WorkingDirectory: a.args.WorkingDirectory,
 			InputPath:        a.programArgs.InputPath,
 			OutputPath:       a.programArgs.OutputPath,

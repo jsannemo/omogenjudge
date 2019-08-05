@@ -79,6 +79,8 @@ type Problem struct {
 	TimeLimMs int32 `db:"time_limit_ms"`
 
 	MemLimKb int32 `db:"memory_limit_kb"`
+
+	OutputValidator *OutputValidator `db:"problem_output_validator"`
 }
 
 // localizedStatement returns the statement of a problem closest to the ones given in langs.
@@ -143,4 +145,9 @@ func (p *Problem) TimeLimString() string {
 
 func (p *Problem) MemLimString() string {
 	return fmt.Sprintf("%.1g GB", float64(p.MemLimKb)/1000/1000)
+}
+
+type OutputValidator struct {
+	ValidatorLanguageId string      `db:"language_id"`
+	ValidatorSourceZip  *StoredFile `db:"validator_source_zip"`
 }

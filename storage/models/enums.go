@@ -31,15 +31,15 @@ func (s Status) String() string {
 }
 
 func (s Status) Accepted() bool {
-  return false
+	return false
 }
 
 func (s Status) Rejected() bool {
-  return s == StatusCompilationFailed
+	return s == StatusCompilationFailed
 }
 
 func (s Status) Waiting() bool {
-  return s == StatusNew || s == StatusCompiling || s == StatusRunning
+	return s == StatusNew || s == StatusCompiling || s == StatusRunning
 }
 
 type Verdict string
@@ -69,17 +69,16 @@ func (v Verdict) String() string {
 }
 
 func (v Verdict) Accepted() bool {
-  return v == VerdictAccepted
+	return v == VerdictAccepted
 }
 
 func (v Verdict) Rejected() bool {
-  return v != VerdictAccepted
+	return v != VerdictAccepted
 }
 
 func (v Verdict) Waiting() bool {
-  return false
+	return false
 }
-
 
 type License string
 

@@ -1,8 +1,14 @@
 package problems
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
 	"github.com/jsannemo/omogenjudge/problemtools/util"
+	runpb "github.com/jsannemo/omogenjudge/runner/api"
+	"github.com/jsannemo/omogenjudge/runner/language"
 )
 
 // ParseProblem parses the problem at the given path into the API format.
@@ -31,14 +37,55 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 	}
 	testgroupReporter.AddFailures(&errors, &warnings)
 
+	outputValidatorReporter := util.NewReporter()
+	outputValidator, err := parseOutputValidator(path, outputValidatorReporter)
+	if err != nil {
+		return nil, err
+	}
+	outputValidatorReporter.AddFailures(&errors, &warnings)
+
 	problem := &toolspb.Problem{
-		Statements: statements,
-		Metadata:   metadata,
-		TestGroups: testgroups,
+		Statements:      statements,
+		Metadata:        metadata,
+		TestGroups:      testgroups,
+		OutputValidator: outputValidator,
 	}
 	return &toolspb.ParseProblemResponse{
 		ParsedProblem: problem,
 		Errors:        errors,
 		Warnings:      warnings,
 	}, nil
+}
+
+func parseProgram(mpath string) (*runpb.Program, error) {
+	program := &runpb.Program{}
+	err := filepath.Walk(mpath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		dat, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		p, err := filepath.Rel(mpath, path)
+		if err != nil {
+			return err
+		}
+		program.Sources = append(program.Sources, &runpb.SourceFile{
+			Path:     p,
+			Contents: string(dat),
+		})
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	err = language.GuessLanguage(program)
+	if err != nil {
+		return nil, err
+	}
+	return program, nil
 }

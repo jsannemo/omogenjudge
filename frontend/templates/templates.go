@@ -25,9 +25,9 @@ var tpls = []string{
 
 func templates() *template.Template {
 	tpl := template.New("templates").Funcs(sprig.FuncMap()).Funcs(
-    map[string]interface{}{
-      "language": util.GetLanguage,
-    })
+		map[string]interface{}{
+			"language": util.GetLanguage,
+		})
 	for _, t := range tpls {
 		tpl = template.Must(tpl.ParseGlob(t))
 	}

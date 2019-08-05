@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package omogen.problemtools;
 
+import "runner/api/program.proto";
+
 // A problem parsed from a folder.
 message Problem {
   // Metadata about the problem.
@@ -14,13 +16,16 @@ message Problem {
   // All test groups that were present in the problem.
   // They have no particular order.
   repeated TestGroup test_groups = 3;
+
+  repeated omogen.runner.Program input_validator = 4;
+
+  omogen.runner.Program output_validator = 5;
 }
 
 // Problem metadata is things relating to the problem, such as judging limits,
 // sources, etc.
 message Metadata {
   // The problem ID of the problem.
-  // TODO: add constraints for the problem ID
   string problem_id = 1;
 
   // All the judging limits used for the problem.
@@ -47,7 +52,6 @@ message ProblemStatement {
 // A test case group containing a set of testcases.
 message TestGroup {
   // The test group name of the group, for example "samples".
-  // TODO: add constraints for the name
   string name = 1;
 
   // Whether the cases of this group should be publically displayed in the
@@ -61,7 +65,6 @@ message TestGroup {
 // A single test case
 message TestCase {
   // The name of the test case, for example "001-random".
-  // TODO: add constraints for the name
   string name = 1;
 
   // An absolute path to the input file of the case.

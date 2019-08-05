@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//problemtools/api:go_default_library",
         "//problemtools/client:go_default_library",
+        "//runner/api:go_default_library",
         "//storage/files:go_default_library",
         "//storage/models:go_default_library",
         "//storage/problems",

@@ -5,6 +5,8 @@ go_library(
     srcs = [
         "metadata_parse.go",
         "metadata_verify.go",
+        "output_validator_parse.go",
+        "output_validator_verify.go",
         "parse.go",
         "statement_markdown.go",
         "statement_parse.go",
@@ -18,6 +20,8 @@ go_library(
     deps = [
         "//problemtools/api:go_default_library",
         "//problemtools/util:go_default_library",
+        "//runner/api:go_default_library",
+        "//runner/language:go_default_library",
         "@com_github_gomarkdown//:go_default_library",
         "@com_github_gomarkdown//ast:go_default_library",
         "@com_github_gomarkdown//html:go_default_library",

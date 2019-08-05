@@ -10,9 +10,9 @@ import (
 )
 
 type Compilation struct {
-  Program *runpb.CompiledProgram
-  Output string
-  Errors string
+	Program *runpb.CompiledProgram
+	Output  string
+	Errors  string
 }
 
 func writeFile(path string, contents []byte) error {
@@ -44,11 +44,11 @@ func Copy(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) 
 		return nil, err
 	}
 	return &Compilation{
-    Program: &runpb.CompiledProgram{
-      ProgramRoot:   outputPath,
-      CompiledPaths: compiledPaths,
-      LanguageId:    req.LanguageId,
-    }}, nil
+		Program: &runpb.CompiledProgram{
+			ProgramRoot:   outputPath,
+			CompiledPaths: compiledPaths,
+			LanguageId:    req.LanguageId,
+		}}, nil
 }
 
 func Noop(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) (*Compilation, error) {
