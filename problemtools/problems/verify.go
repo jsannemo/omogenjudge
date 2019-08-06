@@ -35,7 +35,8 @@ func VerifyProblem(ctx context.Context, req *toolspb.VerifyProblemRequest, runne
 	inputValidatorReporter.AddFailures(&errors, &warnings)
 
 	outputReporter := util.NewReporter()
-	if err := verifyOutputValidator(ctx, path, problem, runner, outputReporter); err != nil {
+	outputValidator, err := verifyOutputValidator(ctx, path, problem, runner, outputReporter)
+	if err != nil {
 		return nil, err
 	}
 	outputReporter.AddFailures(&errors, &warnings)
@@ -45,6 +46,12 @@ func VerifyProblem(ctx context.Context, req *toolspb.VerifyProblemRequest, runne
 		return nil, err
 	}
 	testgroupReporter.AddFailures(&errors, &warnings)
+
+	submissionReporter := util.NewReporter()
+	if err := verifySubmissions(ctx, path, problem, outputValidator, runner, submissionReporter); err != nil {
+		return nil, err
+	}
+	submissionReporter.AddFailures(&errors, &warnings)
 
 	return &toolspb.VerifyProblemResponse{
 		VerifiedProblem: problem,

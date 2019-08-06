@@ -13,5 +13,5 @@ func parseOutputValidator(path string, reporter util.Reporter) (*runpb.Program, 
 	if _, err := os.Stat(validatorPath); os.IsNotExist(err) {
 		return nil, nil
 	}
-	return parseProgram(validatorPath)
+	return parseProgram(validatorPath, true, reporter)
 }

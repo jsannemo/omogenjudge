@@ -1,2 +1,3 @@
 js.py:
-  expected_verdicts: wa
+  required_failures: 
+    - wa

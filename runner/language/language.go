@@ -94,7 +94,7 @@ func GuessLanguage(p *runpb.Program) error {
 		p.LanguageId = "gpp17"
 	} else if hasExt(p, ".py") {
 		if hasBang(p, "python3") {
-			p.LanguageId = "python3"
+			p.LanguageId = "cpython3"
 		} else {
 			p.LanguageId = "pypy2"
 		}

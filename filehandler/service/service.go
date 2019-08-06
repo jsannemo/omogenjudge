@@ -34,8 +34,9 @@ func ensureFile(handle *filepb.FileHandle) (string, error) {
 			if err != nil && !os.IsExist(err) {
 				return "", err
 			}
+		} else {
+			return "", err
 		}
-		return "", err
 	}
 	stat, err = os.Stat(storagePath)
 	if err == nil && stat.IsDir() {

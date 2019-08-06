@@ -12,11 +12,12 @@ import (
 )
 
 type Evaluator struct {
-	root      string
-	env       *runners.Env
-	program   runners.Program
-	valenv    *runners.Env
-	validator runners.Program
+	root        string
+	env         *runners.Env
+	program     runners.Program
+	valenv      *runners.Env
+	validator   runners.Program
+	EvaluateAll bool
 }
 
 func NewEvaluator(root string, program runners.Program, validator runners.Program) (*Evaluator, error) {
@@ -113,7 +114,6 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 		if exit.Crashed() {
 			results <- &Result{TestCaseVerdict: runpb.Verdict_RUN_TIME_ERROR}
 			verdict = runpb.Verdict_RUN_TIME_ERROR
-			break
 		} else if exit.TimedOut() {
 			results <- &Result{TestCaseVerdict: runpb.Verdict_TIME_LIMIT_EXCEEDED}
 			verdict = runpb.Verdict_TIME_LIMIT_EXCEEDED
@@ -140,7 +140,6 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 				} else if exit.CrashedWith(43) {
 					results <- &Result{TestCaseVerdict: runpb.Verdict_WRONG_ANSWER}
 					verdict = runpb.Verdict_WRONG_ANSWER
-					break
 				} else {
 					// TODO handle error
 					dat, _ := ioutil.ReadFile(e.valenv.PathFor("error", true))
@@ -154,7 +153,6 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 				if hasDiff {
 					results <- &Result{TestCaseVerdict: runpb.Verdict_WRONG_ANSWER}
 					verdict = runpb.Verdict_WRONG_ANSWER
-					break
 				} else {
 					results <- &Result{TestCaseVerdict: runpb.Verdict_ACCEPTED}
 				}
@@ -162,6 +160,12 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 		}
 
 		e.env.Clear()
+		if e.valenv != nil {
+			e.valenv.Clear()
+		}
+		if verdict != runpb.Verdict_ACCEPTED && !e.EvaluateAll {
+			break
+		}
 	}
 	results <- &Result{SubmissionVerdict: verdict}
 	return nil

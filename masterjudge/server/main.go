@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strconv"
 	"sync"
 
 	"github.com/google/logger"
@@ -155,7 +156,7 @@ func judge(ctx context.Context, submission *models.Submission) error {
 		})
 	}
 	evalReq := &runpb.EvaluateRequest{
-		SubmissionId: submission.SubmissionId,
+		SubmissionId: strconv.Itoa(int(submission.SubmissionId)),
 		Program:      compileResponse.Program,
 		Cases:        reqTests,
 		TimeLimitMs:  int64(problem.TimeLimMs),

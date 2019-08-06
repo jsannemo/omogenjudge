@@ -1,6 +1,7 @@
 package problems
 
 import (
+	"github.com/google/logger"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -51,12 +52,22 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 	}
 	inputValidatorReporter.AddFailures(&errors, &warnings)
 
+	submissionReporter := util.NewReporter()
+	submissions, err := parseSubmissions(path, submissionReporter)
+	if err != nil {
+		return nil, err
+	}
+	submissionReporter.AddFailures(&errors, &warnings)
+
+	logger.Infof("submissions: %v", submissions)
+
 	problem := &toolspb.Problem{
 		Statements:      statements,
 		Metadata:        metadata,
 		TestGroups:      testgroups,
 		OutputValidator: outputValidator,
 		InputValidators: inputValidators,
+		Submissions:     submissions,
 	}
 	return &toolspb.ParseProblemResponse{
 		ParsedProblem: problem,
@@ -65,35 +76,47 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 	}, nil
 }
 
-func parseProgram(mpath string) (*runpb.Program, error) {
+func parseProgram(mpath string, dir bool, reporter util.Reporter) (*runpb.Program, error) {
 	program := &runpb.Program{}
-	err := filepath.Walk(mpath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
+	if dir {
+		err := filepath.Walk(mpath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+			dat, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			p, err := filepath.Rel(mpath, path)
+			if err != nil {
+				return err
+			}
+			program.Sources = append(program.Sources, &runpb.SourceFile{
+				Path:     p,
+				Contents: string(dat),
+			})
 			return nil
-		}
-		dat, err := ioutil.ReadFile(path)
+		})
 		if err != nil {
-			return err
+			return nil, err
 		}
-		p, err := filepath.Rel(mpath, path)
+	} else {
+		dat, err := ioutil.ReadFile(mpath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		program.Sources = append(program.Sources, &runpb.SourceFile{
-			Path:     p,
+			Path:     filepath.Base(mpath),
 			Contents: string(dat),
 		})
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
-	err = language.GuessLanguage(program)
+	err := language.GuessLanguage(program)
 	if err != nil {
-		return nil, err
+		reporter.Err("Failed guessing language of program %v: %v", program, err)
+		return nil, nil
 	}
 	return program, nil
 }

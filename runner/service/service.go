@@ -52,14 +52,6 @@ func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) 
 	}
 	defer os.RemoveAll(dir)
 
-	outPath := filepath.Join(dir, "output")
-	if _, err := os.Create(outPath); err != nil {
-		return nil, err
-	}
-	errPath := filepath.Join(dir, "error")
-	if _, err := os.Create(errPath); err != nil {
-		return nil, err
-	}
 	env, err := runners.NewEnv(filepath.Join(dir, "env"))
 	if err != nil {
 		return nil, err
@@ -68,11 +60,22 @@ func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) 
 		InputPath:     env.PathFor("input", false),
 		OutputPath:    env.PathFor("output", true),
 		ErrorPath:     env.PathFor("error", true),
-		TimeLimitMs:   5,
+		TimeLimitMs:   5000,
 		MemoryLimitKb: 1000 * 1000,
 	})
 	var results []*runpb.SimpleRunResult
-	for _, input := range req.InputFiles {
+	for i, input := range req.InputFiles {
+		outName := fmt.Sprintf("output-%d", i)
+		errName := fmt.Sprintf("error-%d", i)
+
+		outPath := filepath.Join(dir, outName)
+		if _, err := os.Create(outPath); err != nil {
+			return nil, err
+		}
+		errPath := filepath.Join(dir, errName)
+		if _, err := os.Create(errPath); err != nil {
+			return nil, err
+		}
 		if err := env.LinkFile(input, "input", false); err != nil {
 			return nil, err
 		}
@@ -176,7 +179,7 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 		}
 	}
 
-	root := fmt.Sprintf("/var/lib/omogen/submissions/%d", req.SubmissionId)
+	root := fmt.Sprintf("/var/lib/omogen/submissions/%s", req.SubmissionId)
 	if err := os.Mkdir(root, 0755); err != nil {
 		if !os.IsExist(err) {
 			return err
@@ -186,6 +189,7 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 	if err != nil {
 		return fmt.Errorf("failed creating evaluator: %v", err)
 	}
+	evaluator.EvaluateAll = req.EvaluateAll
 
 	var tcs []*eval.TestCase
 	for _, tc := range req.Cases {

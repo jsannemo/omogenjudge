@@ -46,7 +46,7 @@ message GetLanguagesResponse {
 
 // A request to evaluate an already compiled program on testdata.
 message EvaluateRequest {
-  int32 submission_id = 1;
+  string submission_id = 1;
 
   // The compiled program.
   CompiledProgram program = 2;
@@ -59,6 +59,8 @@ message EvaluateRequest {
   int64 mem_limit_kb = 5;
 
   CustomValidator validator = 6;
+
+  bool evaluate_all = 7;
 }
 
 message CustomValidator {

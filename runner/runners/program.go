@@ -55,6 +55,10 @@ func (a *argProgram) Execute() (*ExecResult, error) {
 			ReuseContainer:   !a.first,
 		})
 	a.first = false
+	// TODO: this should include any resource exceeded!
+	if res.TimedOut() {
+		a.first = true
+	}
 	return res, err
 }
 

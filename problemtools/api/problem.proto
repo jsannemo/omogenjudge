@@ -3,6 +3,7 @@ syntax = "proto3";
 package omogen.problemtools;
 
 import "runner/api/program.proto";
+import "runner/api/eval.proto";
 
 // A problem parsed from a folder.
 message Problem {
@@ -20,6 +21,8 @@ message Problem {
   repeated omogen.runner.Program input_validators = 4;
 
   omogen.runner.Program output_validator = 5;
+
+  repeated Submission submissions = 6;
 }
 
 // Problem metadata is things relating to the problem, such as judging limits,
@@ -84,6 +87,22 @@ message Limits {
 
   // The memory limit for executing a test case in megabytes.
   int32 memory_limit_kb = 2;
+}
+
+message SubmissionConstraint {
+    repeated omogen.runner.Verdict required_failures = 2;
+
+    repeated omogen.runner.Verdict allowed_failures = 3;
+}
+
+message Submission {
+  omogen.runner.Program submission = 1;
+
+  SubmissionConstraint constraint = 2;
+
+  bool use_for_timing = 3;
+
+  string name = 4;
 }
 
 enum License {

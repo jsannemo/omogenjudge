@@ -1,6 +1,7 @@
 package problems
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,15 +17,17 @@ func parseInputValidators(path string, reporter util.Reporter) ([]*runpb.Program
 	}
 	files, err := ioutil.ReadDir(validatorPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed opening input validator path: %v", err)
 	}
 	var programs []*runpb.Program
 	for _, f := range files {
-		program, err := parseProgram(filepath.Join(validatorPath, f.Name()))
+		program, err := parseProgram(filepath.Join(validatorPath, f.Name()), f.IsDir(), reporter)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed parsing input validator: %v", err)
 		}
-		programs = append(programs, program)
+		if program != nil {
+			programs = append(programs, program)
+		}
 	}
 	return programs, nil
 }
