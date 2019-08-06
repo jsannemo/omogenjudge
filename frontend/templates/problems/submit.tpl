@@ -12,7 +12,7 @@
 				<textarea style="display: none" id="submission" name="submission"></textarea>
           <div class="form-group">
             <span class="select-field" style="width: auto; margin-right: 10px;">
-              <select id="language-selector" name="language">
+              <select id="language-selector" name="language" onchange="updateEditor();">
                 {{ range .D.Languages }}
                 <option value="{{ .LanguageId }}" data-lang="{{ .VsName }}">{{ .Name }} ({{ .Version }})</option>
                 {{ end }}
