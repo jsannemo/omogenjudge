@@ -9,4 +9,6 @@ fi
 set -e
 systemctl start omogenjudge-sandbox
 mkdir -p /var/lib/omogen/sandbox
+mkdir -p /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
+chown omogenjudge:omogenjudge /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
 chown omogenjudge:omogenjudge /var/lib/omogen/sandbox
