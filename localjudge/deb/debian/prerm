@@ -2,4 +2,4 @@
 
 systemctl stop omogenjudge-local || true
 
-rm -rf /var/lib/omogen/{filecache,submissions}
+rm -rf /var/lib/omogen/{filecache,submissions,tmps}

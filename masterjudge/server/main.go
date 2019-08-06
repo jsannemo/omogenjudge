@@ -120,7 +120,7 @@ func judge(ctx context.Context, submission *models.Submission) error {
 				Identifier: problem.OutputValidator.ValidatorSourceZip.Hash.String,
 				Request: &runpb.CompileRequest{
 					Program:    outputValidator,
-					OutputPath: fmt.Sprintf("/var/lib/omogen/tmps/val-%s", problem.OutputValidator.ValidatorSourceZip.Hash),
+					OutputPath: fmt.Sprintf("/var/lib/omogen/tmps/val-%s", problem.OutputValidator.ValidatorSourceZip.Hash.String),
 				},
 			})
 		if err != nil {

@@ -2,20 +2,20 @@ package models
 
 import (
 	"database/sql"
-
 	filepb "github.com/jsannemo/omogenjudge/filehandler/api"
 	"github.com/jsannemo/omogenjudge/util/go/filestore"
 )
 
-type NullableStoredFile struct {
+type NilableStoredFile struct {
 	Hash sql.NullString
 
 	Url []byte
 }
 
-func (s *NullableStoredFile) NotNil() bool {
+func (s *NilableStoredFile) NotNil() bool {
 	return s.Hash.Valid
 }
+
 
 type StoredFile struct {
 	Hash string
@@ -43,4 +43,11 @@ func (s FileList) ToHandlerFiles() []*filepb.FileHandle {
 		handlerFiles = append(handlerFiles, &filepb.FileHandle{Sha256Hash: file.Hash, Url: file.Url})
 	}
 	return handlerFiles
+}
+
+func (s *StoredFile) ToNilable() *NilableStoredFile {
+	return &NilableStoredFile{
+		sql.NullString{String: s.Hash, Valid: true},
+		s.Url,
+	}
 }

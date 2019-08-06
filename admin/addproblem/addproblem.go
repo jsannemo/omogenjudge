@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -47,12 +48,12 @@ func toStorageOutputValidator(ctx context.Context, val *runpb.Program) (*models.
 	if err != nil {
 		return nil, err
 	}
-	storedFile := &models.StoredFile{hash, url}
+	storedFile := &models.StoredFile{Hash: hash, Url: url}
 	files.Create(ctx, storedFile)
 
 	return &models.OutputValidator{
-		ValidatorLanguageId: val.LanguageId,
-		ValidatorSourceZip:  storedFile,
+		ValidatorLanguageId: sql.NullString{String: val.LanguageId, Valid: true},
+		ValidatorSourceZip:  storedFile.ToNilable(),
 	}, nil
 }
 

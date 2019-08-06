@@ -149,8 +149,8 @@ func (p *Problem) MemLimString() string {
 }
 
 type OutputValidator struct {
-	ValidatorLanguageId sql.NullString      `db:"language_id"`
-	ValidatorSourceZip  *NullableStoredFile `db:"validator_source_zip"`
+	ValidatorLanguageId sql.NullString     `db:"language_id"`
+	ValidatorSourceZip  *NilableStoredFile `db:"validator_source_zip"`
 }
 
 func (ov *OutputValidator) Nil() bool {
