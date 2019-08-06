@@ -34,12 +34,29 @@ const (
 
 type ExecResult struct {
 	ExitReason    ExitReason
-	ExitCode      int
-	Signal        int
+	ExitCode      int32
+	Signal        int32
 	TimeUsageMs   int
 	MemoryUsageKb int
 }
 
+func (res ExecResult) Abnormal() bool {
+	return !res.CrashedWith(0)
+}
+
+func (res ExecResult) CrashedWith(code int32) bool {
+	return res.ExitReason == Exited && res.ExitCode == code
+}
+
+func (res ExecResult) Crashed() bool {
+	return (res.ExitReason == Exited && res.ExitCode != 0) || res.ExitReason == Signaled
+}
+
+func (res ExecResult) TimedOut() bool {
+	return res.ExitReason == TimedOut
+}
+
+// TODO error handlign
 func ensureFolder(path string) {
 	os.MkdirAll(path, 0755)
 }
@@ -135,7 +152,7 @@ func toResult(termination *execpb.Termination) (*ExecResult, error) {
 	case *execpb.Termination_Exit_:
 		return &ExecResult{
 			ExitReason: Exited,
-			ExitCode:   int(termination.GetExit().Code),
+			ExitCode:   termination.GetExit().Code,
 		}, nil
 	case *execpb.Termination_ResourceExceeded:
 		if termination.GetResourceExceeded() == execpb.ResourceType_CPU_TIME {

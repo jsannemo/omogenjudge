@@ -116,6 +116,7 @@ func parseTests(path string, reporter util.Reporter) ([]*toolspb.TestCase, error
 			tcName := filepath.Base(baseName)
 			cases = append(cases, &toolspb.TestCase{
 				Name:       tcName,
+				FullName:   filepath.Base(path) + "/" + tcName,
 				InputPath:  baseName + ".in",
 				OutputPath: baseName + ".ans",
 			})

@@ -1,16 +1,20 @@
 package problems
 
 import (
+	"context"
 	"regexp"
+	"strings"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
 	"github.com/jsannemo/omogenjudge/problemtools/util"
+	runpb "github.com/jsannemo/omogenjudge/runner/api"
 )
 
 var isTestGroupName = regexp.MustCompile(`^[a-z0-9]+$`).MatchString
 var isTestCaseName = regexp.MustCompile(`^[a-z0-9\-_]+$`).MatchString
 
-func verifyTestdata(problem *toolspb.Problem, reporter util.Reporter) error {
+func verifyTestdata(ctx context.Context, problem *toolspb.Problem, validators []*runpb.CompiledProgram, runner runpb.RunServiceClient, reporter util.Reporter) error {
+	var tests []*toolspb.TestCase
 	for _, g := range problem.TestGroups {
 		if len(g.Tests) == 0 {
 			reporter.Err("Empty test group %v", g.Name)
@@ -20,9 +24,47 @@ func verifyTestdata(problem *toolspb.Problem, reporter util.Reporter) error {
 		}
 		for _, tc := range g.Tests {
 			if !isTestCaseName(tc.Name) {
-				reporter.Err("Invalid test cas ename: %v [a-z0-9\\-_]", tc.Name)
+				reporter.Err("Invalid test case name: %v [a-z0-9\\-_]", tc.Name)
+			}
+			tests = append(tests, tc)
+		}
+	}
+	if err := verifyTestCaseFormats(ctx, tests, validators, runner, reporter); err != nil {
+		return err
+	}
+	return nil
+}
+
+func verifyTestCaseFormats(ctx context.Context, tests []*toolspb.TestCase, validators []*runpb.CompiledProgram, runner runpb.RunServiceClient, reporter util.Reporter) error {
+	var inputFiles []string
+	var names []string
+	for _, tc := range tests {
+		inputFiles = append(inputFiles, tc.InputPath)
+		names = append(names, tc.FullName)
+	}
+	for _, validator := range validators {
+		resp, err := runner.SimpleRun(ctx, &runpb.SimpleRunRequest{
+			Program:    validator,
+			InputFiles: inputFiles,
+		})
+		if err != nil {
+			return err
+		}
+		for i, res := range resp.Results {
+			if res.Timeout {
+				reporter.Err("test case %s caused validator to time out")
+			} else if res.ExitCode != 42 {
+				msg := ""
+				if res.Stdout != "" {
+					msg = msg + strings.TrimSpace(res.Stdout)
+				}
+				if res.Stderr != "" {
+					msg = msg + strings.TrimSpace(res.Stderr)
+				}
+				reporter.Err("test case %s failed validation: '%s'", names[i], msg)
 			}
 		}
 	}
+
 	return nil
 }

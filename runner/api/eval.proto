@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package omogen.runner;
 
-import "filehandler/api/filehandler.proto";
-
 enum Verdict {
   VERDICT_UNSPECIFIED = 0;
 

@@ -16,7 +16,6 @@ func (s *NilableStoredFile) NotNil() bool {
 	return s.Hash.Valid
 }
 
-
 type StoredFile struct {
 	Hash string
 

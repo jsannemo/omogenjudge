@@ -106,7 +106,6 @@ func CreateIfNotExists(dir string, perm os.FileMode) error {
 	if Exists(dir) {
 		return nil
 	}
-	fmt.Printf("perm %v %v\n", perm, dir)
 	if err := os.MkdirAll(dir, perm); err != nil {
 		return fmt.Errorf("failed to create directory: '%s', error: '%s'", dir, err.Error())
 	}

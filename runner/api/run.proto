@@ -77,6 +77,24 @@ message EvaluateResponse {
   }
 }
 
+message SimpleRunRequest {
+  CompiledProgram program = 1;
+
+  repeated string input_files = 2;
+}
+
+message SimpleRunResult {
+  string stdout = 1;
+  string stderr = 2;
+  int32 exit_code = 3;
+  int32 signal = 4;
+  bool timeout = 5;
+}
+
+message SimpleRunResponse {
+  repeated SimpleRunResult results = 1;
+}
+
 // Runservice is capable of evaluating submissions. It also provides a list of
 // installed languages together with their current versions.
 service RunService {
@@ -87,6 +105,8 @@ service RunService {
 
   // Evaluate a compiled submission.
   rpc Evaluate(EvaluateRequest) returns (stream EvaluateResponse) {}
+
+  rpc SimpleRun(SimpleRunRequest) returns (SimpleRunResponse) {}
 
   // Fetch all supported languages of the machine hosting this service.
   rpc GetLanguages(GetLanguagesRequest) returns (GetLanguagesResponse) {}

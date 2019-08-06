@@ -22,14 +22,14 @@ func (r *reporter) HasError() bool {
 
 func (r *reporter) Err(msg string, args ...interface{}) {
 	if len(args) != 0 {
-		msg = fmt.Sprintf(msg, args)
+		msg = fmt.Sprintf(msg, args...)
 	}
 	r.errors = append(r.errors, msg)
 }
 
 func (r *reporter) Warn(msg string, args ...interface{}) {
 	if len(args) != 0 {
-		msg = fmt.Sprintf(msg, args)
+		msg = fmt.Sprintf(msg, args...)
 	}
 	r.warnings = append(r.warnings, fmt.Sprintf(msg, args))
 }

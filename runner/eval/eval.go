@@ -110,11 +110,11 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 			return err
 		}
 
-		if crashed(exit) {
+		if exit.Crashed() {
 			results <- &Result{TestCaseVerdict: runpb.Verdict_RUN_TIME_ERROR}
 			verdict = runpb.Verdict_RUN_TIME_ERROR
 			break
-		} else if timedOut(exit) {
+		} else if exit.TimedOut() {
 			results <- &Result{TestCaseVerdict: runpb.Verdict_TIME_LIMIT_EXCEEDED}
 			verdict = runpb.Verdict_TIME_LIMIT_EXCEEDED
 		} else {
@@ -132,16 +132,17 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 				if err != nil {
 					return err
 				}
-				if timedOut(exit) {
+				if exit.TimedOut() {
 					return fmt.Errorf("output validator timed out")
 				}
-				if crashedWith(exit, 42) {
+				if exit.CrashedWith(42) {
 					results <- &Result{TestCaseVerdict: runpb.Verdict_ACCEPTED}
-				} else if crashedWith(exit, 43) {
+				} else if exit.CrashedWith(43) {
 					results <- &Result{TestCaseVerdict: runpb.Verdict_WRONG_ANSWER}
 					verdict = runpb.Verdict_WRONG_ANSWER
 					break
 				} else {
+					// TODO handle error
 					dat, _ := ioutil.ReadFile(e.valenv.PathFor("error", true))
 					return fmt.Errorf("output validator crashed: %v", string(dat))
 				}
@@ -177,16 +178,4 @@ func diffOutput(refPath, outPath string) (bool, error) {
 	}
 	res, err := diff.Diff(refFile, outFile)
 	return !res.Match, err
-}
-
-func crashedWith(res *runners.ExecResult, code int) bool {
-	return res.ExitReason == runners.Exited && res.ExitCode == code
-}
-
-func crashed(res *runners.ExecResult) bool {
-	return (res.ExitReason == runners.Exited && res.ExitCode != 0) || res.ExitReason == runners.Signaled
-}
-
-func timedOut(res *runners.ExecResult) bool {
-	return res.ExitReason == runners.TimedOut
 }

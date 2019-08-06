@@ -4,7 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/google/logger"
@@ -27,6 +29,77 @@ var (
 type runServer struct {
 	languages []*runpb.Language
 	exec      execpb.ExecuteServiceClient
+}
+
+func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) (*runpb.SimpleRunResponse, error) {
+	execStream, err := s.exec.Execute(context.Background())
+	defer execStream.CloseSend()
+	if err != nil {
+		return nil, err
+	}
+
+	lang, exists := language.GetLanguage(req.Program.LanguageId)
+	if !exists {
+		return nil, status.Errorf(codes.InvalidArgument, "Language %v does not exist", req.Program.LanguageId)
+	}
+	program, err := lang.Program(req.Program, execStream)
+	if err != nil {
+		return nil, err
+	}
+	dir, err := ioutil.TempDir("/var/lib/omogen/tmps", "simplerun")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+
+	outPath := filepath.Join(dir, "output")
+	if _, err := os.Create(outPath); err != nil {
+		return nil, err
+	}
+	errPath := filepath.Join(dir, "error")
+	if _, err := os.Create(errPath); err != nil {
+		return nil, err
+	}
+	env, err := runners.NewEnv(filepath.Join(dir, "env"))
+	if err != nil {
+		return nil, err
+	}
+	program.SetArgs(&runners.ProgramArgs{
+		InputPath:     env.PathFor("input", false),
+		OutputPath:    env.PathFor("output", true),
+		ErrorPath:     env.PathFor("error", true),
+		TimeLimitMs:   5,
+		MemoryLimitKb: 1000 * 1000,
+	})
+	var results []*runpb.SimpleRunResult
+	for _, input := range req.InputFiles {
+		if err := env.LinkFile(input, "input", false); err != nil {
+			return nil, err
+		}
+		if err := env.LinkFile(outPath, "output", true); err != nil {
+			return nil, err
+		}
+		if err := env.LinkFile(errPath, "error", true); err != nil {
+			return nil, err
+		}
+		res, err := program.Execute()
+		if err != nil {
+			return nil, err
+		}
+		errData, _ := ioutil.ReadFile(errPath)
+		outData, _ := ioutil.ReadFile(outPath)
+		results = append(results, &runpb.SimpleRunResult{
+			ExitCode: res.ExitCode,
+			Signal:   res.Signal,
+			Timeout:  res.TimedOut(),
+			Stderr:   string(errData),
+			Stdout:   string(outData),
+		})
+		if err := env.Clear(); err != nil {
+			return nil, err
+		}
+	}
+	return &runpb.SimpleRunResponse{Results: results}, nil
 }
 
 // Implementation of RunServer.GetLanguages.
@@ -127,6 +200,7 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
+		// TODO handle these errors
 		for res := range results {
 			if res.TestCaseVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
 				stream.Send(&runpb.EvaluateResponse{

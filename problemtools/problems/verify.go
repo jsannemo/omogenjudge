@@ -27,17 +27,24 @@ func VerifyProblem(ctx context.Context, req *toolspb.VerifyProblemRequest, runne
 	}
 	metadataReporter.AddFailures(&errors, &warnings)
 
-	testgroupReporter := util.NewReporter()
-	if err := verifyTestdata(problem, testgroupReporter); err != nil {
+	inputValidatorReporter := util.NewReporter()
+	inputValidators, err := verifyInputValidators(ctx, path, problem, runner, inputValidatorReporter)
+	if err != nil {
 		return nil, err
 	}
-	testgroupReporter.AddFailures(&errors, &warnings)
+	inputValidatorReporter.AddFailures(&errors, &warnings)
 
 	outputReporter := util.NewReporter()
 	if err := verifyOutputValidator(ctx, path, problem, runner, outputReporter); err != nil {
 		return nil, err
 	}
 	outputReporter.AddFailures(&errors, &warnings)
+
+	testgroupReporter := util.NewReporter()
+	if err := verifyTestdata(ctx, problem, inputValidators, runner, testgroupReporter); err != nil {
+		return nil, err
+	}
+	testgroupReporter.AddFailures(&errors, &warnings)
 
 	return &toolspb.VerifyProblemResponse{
 		VerifiedProblem: problem,

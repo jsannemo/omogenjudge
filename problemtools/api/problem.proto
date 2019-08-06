@@ -17,7 +17,7 @@ message Problem {
   // They have no particular order.
   repeated TestGroup test_groups = 3;
 
-  repeated omogen.runner.Program input_validator = 4;
+  repeated omogen.runner.Program input_validators = 4;
 
   omogen.runner.Program output_validator = 5;
 }
@@ -66,6 +66,9 @@ message TestGroup {
 message TestCase {
   // The name of the test case, for example "001-random".
   string name = 1;
+
+  // The full name of the test case, for example "samples/001-random"
+  string full_name = 4;
 
   // An absolute path to the input file of the case.
   string input_path = 2;

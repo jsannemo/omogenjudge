@@ -214,6 +214,7 @@ func installProblem(path string) error {
 
 func main() {
 	flag.Parse()
+	defer logger.Init("addproblem", false, true, ioutil.Discard).Close()
 	path := flag.Arg(0)
 	path, err := filepath.Abs(path)
 	if err != nil {

@@ -44,11 +44,19 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 	}
 	outputValidatorReporter.AddFailures(&errors, &warnings)
 
+	inputValidatorReporter := util.NewReporter()
+	inputValidators, err := parseInputValidators(path, inputValidatorReporter)
+	if err != nil {
+		return nil, err
+	}
+	inputValidatorReporter.AddFailures(&errors, &warnings)
+
 	problem := &toolspb.Problem{
 		Statements:      statements,
 		Metadata:        metadata,
 		TestGroups:      testgroups,
 		OutputValidator: outputValidator,
+		InputValidators: inputValidators,
 	}
 	return &toolspb.ParseProblemResponse{
 		ParsedProblem: problem,
