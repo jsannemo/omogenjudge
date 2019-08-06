@@ -1,9 +1,21 @@
 package models
 
 import (
+	"database/sql"
+
 	filepb "github.com/jsannemo/omogenjudge/filehandler/api"
 	"github.com/jsannemo/omogenjudge/util/go/filestore"
 )
+
+type NullableStoredFile struct {
+	Hash sql.NullString
+
+	Url []byte
+}
+
+func (s *NullableStoredFile) NotNil() bool {
+	return s.Hash.Valid
+}
 
 type StoredFile struct {
 	Hash string

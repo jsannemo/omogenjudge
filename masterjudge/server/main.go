@@ -58,7 +58,7 @@ func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.Com
 }
 
 func toProgram(val *models.OutputValidator) (*runpb.Program, error) {
-	program := &runpb.Program{LanguageId: val.ValidatorLanguageId}
+	program := &runpb.Program{LanguageId: val.ValidatorLanguageId.String}
 	contents, err := filestore.GetFile(val.ValidatorSourceZip.Url)
 	r, err := zip.NewReader(bytes.NewReader(contents), int64(len(contents)))
 	if err != nil {
@@ -110,14 +110,14 @@ func judge(ctx context.Context, submission *models.Submission) error {
 	}
 
 	var validatorProgram *runpb.CompiledProgram
-	if problem.OutputValidator != nil {
+	if problem.OutputValidator.Nil() {
 		outputValidator, err := toProgram(problem.OutputValidator)
 		if err != nil {
 			return err
 		}
 		resp, err := runner.CompileCached(ctx,
 			&runpb.CompileCachedRequest{
-				Identifier: problem.OutputValidator.ValidatorSourceZip.Hash,
+				Identifier: problem.OutputValidator.ValidatorSourceZip.Hash.String,
 				Request: &runpb.CompileRequest{
 					Program:    outputValidator,
 					OutputPath: fmt.Sprintf("/var/lib/omogen/tmps/val-%s", problem.OutputValidator.ValidatorSourceZip.Hash),
@@ -134,7 +134,7 @@ func judge(ctx context.Context, submission *models.Submission) error {
 
 	compileResponse := <-compileOutput
 	if compileResponse == nil {
-		return fmt.Errorf("Compilation crashed: %v", compileErr)
+		return fmt.Errorf("Compilation crashed: %v", *compileErr)
 	}
 	if compileResponse.Program == nil {
 		submission.Status = models.StatusCompilationFailed

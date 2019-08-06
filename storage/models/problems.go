@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 
@@ -148,6 +149,10 @@ func (p *Problem) MemLimString() string {
 }
 
 type OutputValidator struct {
-	ValidatorLanguageId string      `db:"language_id"`
-	ValidatorSourceZip  *StoredFile `db:"validator_source_zip"`
+	ValidatorLanguageId sql.NullString      `db:"language_id"`
+	ValidatorSourceZip  *NullableStoredFile `db:"validator_source_zip"`
+}
+
+func (ov *OutputValidator) Nil() bool {
+	return ov.ValidatorSourceZip.NotNil()
 }

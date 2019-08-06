@@ -2,4 +2,8 @@
 
 set -e
 
+mkdir -p /var/lib/omogen/{filecache,submissions}
+
+chown omogenjudge:omogenjudge /var/lib/omogen/{filecache,submissions}
+
 systemctl start omogenjudge-local
