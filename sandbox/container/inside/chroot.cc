@@ -48,9 +48,9 @@ void Chroot::addDefaultRules() {
   // data, so we mount a new one.
   string procPath = rootfs + "/proc";
   MakeDirParents(procPath);
-  PCHECK(mount("/proc", procPath.c_str(), "proc",
-               MS_NODEV | MS_NOEXEC | MS_NOSUID, nullptr) != -1)
-      << "Could not mount new proc namespace";
+  RAW_CHECK(mount("/proc", procPath.c_str(), "proc",
+                  MS_NODEV | MS_NOEXEC | MS_NOSUID, nullptr) != -1,
+            "Could not mount new proc namespace");
 
   DirectoryMount rule;
   rule.set_path_outside_container("/bin");
@@ -102,8 +102,8 @@ void Chroot::ApplyContainerSpec(const ContainerSpec& spec) {
 Chroot::Chroot(const string& path) : rootfs(path) {
   RAW_VLOG(2, "Chroot path %s", path.c_str());
   RAW_CHECK(DirectoryExists(path), "Path does not exist");
-  PCHECK(mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr) != -1)
-      << "Could not update mounts to be private";
+  RAW_CHECK(mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr) != -1,
+            "Could not update mounts to be private");
   addDefaultRules();
 }
 

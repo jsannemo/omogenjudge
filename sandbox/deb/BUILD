@@ -41,6 +41,16 @@ pkg_tar(
 )
 
 pkg_tar(
+    name = "uidmapper",
+    srcs = [
+        "//sandbox/container/uidmapper:omogenjudge-sandboxuid",
+    ],
+    mode = "0755",
+    package_dir = "/usr/bin",
+    strip_prefix = "/sandbox/container/uidmapper",
+)
+
+pkg_tar(
     name = "debian-data",
     extension = "tar.gz",
     deps = [
@@ -48,6 +58,7 @@ pkg_tar(
         ":service",
         ":runner",
         ":server",
+        ":uidmapper",
     ],
 )
 

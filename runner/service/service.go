@@ -173,6 +173,10 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 		if err != nil {
 			return err
 		}
+    lang, exists := language.GetLanguage(req.Validator.Program.LanguageId)
+    if !exists {
+      return status.Errorf(codes.InvalidArgument, "Language %v does not exist", req.Program.LanguageId)
+    }
 		validator, err = lang.Program(req.Validator.Program, valExecStream)
 		if err != nil {
 			return err

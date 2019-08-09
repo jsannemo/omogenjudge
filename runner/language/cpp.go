@@ -32,6 +32,9 @@ func tmp() string {
 	if err != nil {
 		logger.Fatal(err)
 	}
+  if err := os.Chmod(file.Name(), 0775); err != nil {
+    logger.Fatal(err)
+  }
 	return file.Name()
 }
 

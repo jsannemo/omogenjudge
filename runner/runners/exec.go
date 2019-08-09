@@ -114,6 +114,7 @@ func Execute(exec execpb.ExecuteService_ExecuteClient, args *ExecArgs) (*ExecRes
 			},
 		},
 		ContainerSpec: &execpb.ContainerSpec{
+      MaxDiskKb: 1000 * 1000, // 1 GB
 			Mounts: makeMounts(
 				append(args.ExtraReadPaths,
 					filepath.Dir(args.InputPath),

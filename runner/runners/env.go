@@ -46,9 +46,13 @@ func NewEnv(envRoot string) (*Env, error) {
 	if err := os.MkdirAll(filepath.Join(envRoot, "read"), 0755); err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Join(envRoot, "write"), 0755); err != nil {
+  writePath := filepath.Join(envRoot, "write")
+	if err := os.MkdirAll(writePath, 0755); err != nil {
 		return nil, err
 	}
+  if err := os.Chmod(writePath, 0775); err != nil {
+    return nil, err
+  }
 	return &Env{
 		ReadRoot:  filepath.Join(envRoot, "read"),
 		WriteRoot: filepath.Join(envRoot, "write"),

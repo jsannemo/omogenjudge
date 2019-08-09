@@ -7,3 +7,5 @@ mkdir -p /var/lib/omogen/{filecache,submissions,tmps}
 chown omogenjudge:omogenjudge /var/lib/omogen/{filecache,submissions,tmps}
 
 systemctl start omogenjudge-local
+
+chmod u+s /usr/bin/omogenjudge-permissionfixer

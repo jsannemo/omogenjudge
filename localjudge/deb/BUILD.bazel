@@ -31,12 +31,23 @@ pkg_tar(
 )
 
 pkg_tar(
+    name = "permissionfixer",
+    srcs = [
+        "//runner/permissionfixer:omogenjudge-permissionfixer",
+    ],
+    mode = "0755",
+    package_dir = "/usr/bin",
+    strip_prefix = "/runner/permissionfixer",
+)
+
+pkg_tar(
     name = "debian-data",
     extension = "tar.gz",
     deps = [
         ":initd",
         ":server",
         ":passwd",
+        ":permissionfixer",
     ],
 )
 

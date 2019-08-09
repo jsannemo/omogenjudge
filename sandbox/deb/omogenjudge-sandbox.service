@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 Restart=always
 User=omogenjudge
-ExecStart=/usr/bin/omogenjudge-sandbox
+ExecStart=/usr/bin/omogenjudge-sandbox --logtostderr
 
 [Install]
 WantedBy=multi-user.target

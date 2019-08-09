@@ -6,9 +6,18 @@ if ! id -u omogenjudge >/dev/null 2>&1; then
   useradd -s /usr/bin/nologin -r omogenjudge
 fi
 
+for i in {0..200}; do 
+  usr="omogenjudge-client$i"
+  if ! id -u $usr >/dev/null 2>&1; then
+    useradd -s /usr/bin/nologin -r $usr -G omogenjudge
+  fi
+done
+
 set -e
 systemctl start omogenjudge-sandbox
 mkdir -p /var/lib/omogen/sandbox
 mkdir -p /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
 chown omogenjudge:omogenjudge /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
 chown omogenjudge:omogenjudge /var/lib/omogen/sandbox
+
+chmod u+s /usr/bin/omogenjudge-sandboxuid

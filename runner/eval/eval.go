@@ -1,10 +1,13 @@
 package eval
 
 import (
+  "os/exec"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+  _ "github.com/google/logger"
 
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	"github.com/jsannemo/omogenjudge/runner/diff"
@@ -51,15 +54,24 @@ type Result struct {
 	SubmissionVerdict runpb.Verdict
 }
 
+func (e *Evaluator) resetPermissions() error {
+	cmd := exec.Command("/usr/bin/omogenjudge-permissionfixer", filepath.Base(e.root))
+  return cmd.Run()
+}
+
 func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64, results chan<- *Result) error {
+  if err := e.resetPermissions(); err != nil {
+    return err
+  }
 	defer close(results)
 	defer e.env.Clear()
 	if e.valenv != nil {
 		defer e.valenv.Clear()
 	}
+  outPath := e.env.PathFor("output", true)
 	e.program.SetArgs(&runners.ProgramArgs{
 		InputPath:     e.env.PathFor("input", false),
-		OutputPath:    e.env.PathFor("output", true),
+		OutputPath:    outPath,
 		ErrorPath:     e.env.PathFor("error", true),
 		TimeLimitMs:   timeLimMs,
 		MemoryLimitKb: memLimitKb,
@@ -74,7 +86,6 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 			MemoryLimitKb: 1000 * 1000,
 			ExtraArgs: []string{
 				e.valenv.PathFor("input", false),
-				e.valenv.PathFor("team_output", false),
 				e.valenv.PathFor("judge_answer", false),
 				filepath.Join(e.valenv.WriteRoot, "feedback"),
 			},
@@ -87,22 +98,8 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 		if err := os.MkdirAll(tcPath, 0755); err != nil {
 			return err
 		}
-		outPath := filepath.Join(tcPath, "output")
-		if _, err := os.Create(outPath); err != nil {
-			return err
-		}
-		errPath := filepath.Join(tcPath, "error")
-		if _, err := os.Create(errPath); err != nil {
-			return err
-		}
 
 		if err := e.env.LinkFile(tc.InputPath, "input", false); err != nil {
-			return err
-		}
-		if err := e.env.LinkFile(outPath, "output", true); err != nil {
-			return err
-		}
-		if err := e.env.LinkFile(errPath, "error", true); err != nil {
 			return err
 		}
 
@@ -110,6 +107,9 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 		if err != nil {
 			return err
 		}
+    if err := e.resetPermissions(); err != nil {
+      return err
+    }
 
 		if exit.Crashed() {
 			results <- &Result{TestCaseVerdict: runpb.Verdict_RUN_TIME_ERROR}
@@ -132,6 +132,10 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 				if err != nil {
 					return err
 				}
+        if err := e.resetPermissions(); err != nil {
+          return err
+        }
+
 				if exit.TimedOut() {
 					return fmt.Errorf("output validator timed out")
 				}
@@ -142,8 +146,15 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 					verdict = runpb.Verdict_WRONG_ANSWER
 				} else {
 					// TODO handle error
-					dat, _ := ioutil.ReadFile(e.valenv.PathFor("error", true))
-					return fmt.Errorf("output validator crashed: %v", string(dat))
+					dat, err := ioutil.ReadFile(e.valenv.PathFor("error", true))
+          if err != nil {
+            return fmt.Errorf("could not read output validator errors: %v", err)
+          }
+					dat2, err := ioutil.ReadFile(e.valenv.PathFor("output", true))
+          if err != nil {
+            return fmt.Errorf("could not read output validator output: %v", err)
+          }
+					return fmt.Errorf("output validator crashed: %v", string(dat) + " " + string(dat2))
 				}
 			} else {
 				hasDiff, err := diffOutput(tc.OutputPath, outPath)

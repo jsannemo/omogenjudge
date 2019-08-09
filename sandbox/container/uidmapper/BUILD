@@ -1,0 +1,11 @@
+cc_binary(
+    name = "omogenjudge-sandboxuid",
+    srcs = ["main.cc"],
+    visibility = [
+        "//sandbox:__subpackages__",
+    ],
+    deps = [
+        "//util/cpp",
+        "@com_google_absl//absl/strings",
+    ],
+)

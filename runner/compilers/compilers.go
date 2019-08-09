@@ -20,7 +20,10 @@ func writeFile(path string, contents []byte) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, contents, 0700)
+  if err := os.Chmod(filepath.Dir(path), 0775); err != nil {
+    return err
+  }
+	return ioutil.WriteFile(path, contents, 0755)
 }
 
 func WriteProgramToDisc(req *runpb.Program, outputPath string) ([]string, error) {

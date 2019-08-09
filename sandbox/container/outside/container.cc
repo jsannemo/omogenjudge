@@ -10,6 +10,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <csignal>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -45,6 +46,8 @@ DEFINE_string(
 
 static const int CHILD_STACK_SIZE = 100 * 1000;  // 100 KB
 
+static const int INODE_LIMIT = 1000;
+
 struct SandboxArgs {
   int id;
 
@@ -71,9 +74,14 @@ static int startSandbox [[noreturn]] (void* argp) {
   Chroot chroot = Chroot::ForNewRoot(args.rootfs);
   chroot.ApplyContainerSpec(args.containerSpec);
   chroot.SetRoot();
+
   string sandboxId = absl::StrCat(args.id);
+  ReadFromFd(1, args.stdinFd);
+  PCHECK(setuid(65123) != -1) << "Could not set uid";
+  PCHECK(setgid(65123) != -1) << "Could not set gid";
   char* const argv[] = {strdup("/usr/bin/omogenjudge-sandboxr"),
                         strdup("-logtostderr"),
+                        strdup("-v=4"),
                         strdup(sandboxId.c_str()),
                         strdup(absl::StrCat(args.stdinFd).c_str()),
                         strdup(absl::StrCat(args.stdoutFd).c_str()),
@@ -108,7 +116,18 @@ Container::Container(std::unique_ptr<ContainerId> containerId_,
       << "Failed closing read end of command pipe";
   PCHECK(close(returnPipe[1]) != -1)
       << "Failed closing write end of return pipe";
+  unsigned long long maxDiskBlocks =
+      (unsigned long long)spec.max_disk_kb() * 1000 / 1024;
   cgroup = std::make_unique<Cgroup>(initPid);
+  string s =
+      absl::StrCat("/usr/bin/omogenjudge-sandboxuid ", initPid, " ",
+                   containerId->Get(), " ", maxDiskBlocks, " ", INODE_LIMIT);
+  LOG(INFO) << "Executing " << s;
+  if (system(s.c_str())) {
+    LOG(FATAL) << "Failed uid change";
+  }
+  std::string str = "1";
+  WriteToFd(commandPipe[1], str);
 }
 
 Container::~Container() {
