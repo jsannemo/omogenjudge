@@ -34,4 +34,4 @@ The first config is in `/etc/omogen/master/local.conf`, and the second in `/etc/
 TODO: once the servers use authentication, this step will include copying encryption keys between hosts.
 
 ## Starting the judge
-Now, the 
+Now, the judging services can be started using 
