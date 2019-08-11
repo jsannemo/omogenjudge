@@ -234,9 +234,13 @@ func newServer() (*runServer, error) {
 	for _, language := range language.GetLanguages() {
 		apiLanguages = append(apiLanguages, language.ToApiLanguage())
 	}
+  execClient, err := eclient.NewClient()
+  if err != nil {
+    return nil, fmt.Errorf("failed creating ExecuteService client: %v", err)
+  }
 	s := &runServer{
 		languages: apiLanguages,
-		exec:      eclient.NewClient(),
+		exec:      execClient,
 	}
 	return s, nil
 }

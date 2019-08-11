@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SANDBOX_CONTAINER_INSIDE_SETUP_H
+#define SANDBOX_CONTAINER_INSIDE_SETUP_H
 
 #include "sandbox/proto/container.pb.h"
 
@@ -12,3 +13,4 @@ namespace sandbox {
 
 }  // namespace sandbox
 }  // namespace omogen
+#endif

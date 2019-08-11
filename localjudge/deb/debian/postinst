@@ -2,9 +2,13 @@
 
 set -e
 
+if ! id -u omogenjudge-local >/dev/null 2>&1; then
+  useradd -s /usr/bin/nologin -r omogenjudge-local -G omogenjudge-clients
+fi
+
 mkdir -p /var/lib/omogen/{filecache,submissions,tmps}
 
-chown omogenjudge:omogenjudge /var/lib/omogen/{filecache,submissions,tmps}
+chown omogenjudge-local:omogenjudge-local /var/lib/omogen/{filecache,submissions,tmps}
 
 systemctl start omogenjudge-local
 

@@ -1,10 +1,11 @@
-#pragma once
+#ifndef SANDBOX_CONTAINER_OUTSIDE_CGROUPS_H
+#define SANDBOX_CONTAINER_OUTSIDE_CGROUPS_H
 
 #include <sys/types.h>
 
 #include <string>
 
-#include "sandbox/api/exec.pb.h"
+#include "sandbox/api/execute_service.pb.h"
 
 using std::string;
 
@@ -15,7 +16,7 @@ namespace sandbox {
 //
 // Note: if adding a new subsystem, its name needs to be added to the list of
 // names subsystemName in cgroups.cc
-enum class CgroupSubsystem { CPU_ACCT = 0, MEMORY, PIDS, INVALID };
+enum class CgroupSubsystem { CPU_ACCT = 0, MEMORY, INVALID };
 
 // A cgroup enables tracking of a process' resource usage.
 // It also allows limiting the amount of memory the process can use.
@@ -39,14 +40,10 @@ class Cgroup {
   long long CpuUsed();
   // The total memory usage of the process and its children, in kilobytes.
   long long MemoryUsed();
-  // Sets the maximum amount of memory that the process can be used.
+  // Sets the maximum amount of memory that the process can use.
   // Note that cgroup swap accounting must be enabled for this to work
   // properly (or swap disabled).
   void SetMemoryLimit(long long memLimitKb);
-  // The maximum number of concurrent processes used.
-  long long ProcessesUsed();
-  // Sets the maximum concurrent amount of processes that can be used.
-  void SetProcessLimit(int maxProcesses);
   // Reset the resource usage statistics.
   void Reset();
 
@@ -55,3 +52,4 @@ class Cgroup {
 
 }  // namespace sandbox
 }  // namespace omogen
+#endif

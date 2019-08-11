@@ -19,8 +19,10 @@ message Termination {
   oneof termination {
     // If the process terminated by a signal, it is set here.
     Signal signal = 1;
+
     // If the process terminated normally, the exit code is set here.
     Exit exit = 2;
+
     // If the process was terminated by the sandbox because it exceeded a
     // resource, it is set here.
     // Note that neither signal nor exit is set in case of an exceeded
@@ -47,27 +49,23 @@ message Command {
 message Streams {
   // The mapping of a file descriptor to a stream
   message Mapping {
-    // A mapping to an empty file.
-    message Empty {}
-
     // A mapping to a file inside the container.
     message File {
       // The path of the file that should be mapped to the stream.
       string path_inside_container = 1;
     }
-
-    // The stream mapping
     oneof mapping {
-      Empty empty = 1;
-      File file = 2;
+      // A mapping to a file.
+      File file = 1;
     }
 
     // Whether this is a read or a write stream.
-    bool write = 3;
+    bool write = 2;
   }
 
   // The mappings of the file descriptors. Mappings are given for each file
-  // descriptor in order.
+  // descriptor in order (meaning that hte . Mappings for stdin, stdout and
+  // stderr must be given.
   repeated Mapping mappings = 1;
 }
 
@@ -77,7 +75,7 @@ message Environment {
   map<string, string> env = 1;
 
   // The working directory of the program, specified as a path inside the
-  // container
+  // container.
   string working_directory = 2;
 
   // A list of streams that should be opened for the process.

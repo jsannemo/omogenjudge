@@ -9,11 +9,11 @@ message ContainerSpec {
   repeated DirectoryMount mounts = 1;
 
   // The maximum disk usage that is allowed, measured in kilobytes.
-  uint32 max_disk_kb = 2;
+  int32 max_disk_kb = 2;
 }
 
 // Directory mounts control what parts of the file system outside the
-// container that should appear within the containre for the contained process
+// container that should appear within the container for the contained process
 // to read from and write to. Some default directories are mounted automatically
 // as read-only before starting the contained process, such as:
 // - /usr

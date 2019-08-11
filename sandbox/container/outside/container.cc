@@ -81,7 +81,6 @@ static int startSandbox [[noreturn]] (void* argp) {
   PCHECK(setgid(65123) != -1) << "Could not set gid";
   char* const argv[] = {strdup("/usr/bin/omogenjudge-sandboxr"),
                         strdup("-logtostderr"),
-                        strdup("-v=4"),
                         strdup(sandboxId.c_str()),
                         strdup(absl::StrCat(args.stdinFd).c_str()),
                         strdup(absl::StrCat(args.stdoutFd).c_str()),
@@ -120,7 +119,7 @@ Container::Container(std::unique_ptr<ContainerId> containerId_,
       (unsigned long long)spec.max_disk_kb() * 1000 / 1024;
   cgroup = std::make_unique<Cgroup>(initPid);
   string s =
-      absl::StrCat("/usr/bin/omogenjudge-sandboxuid ", initPid, " ",
+      absl::StrCat("/usr/bin/omogenjudge-setquota ", initPid, " ",
                    containerId->Get(), " ", maxDiskBlocks, " ", INODE_LIMIT);
   LOG(INFO) << "Executing " << s;
   if (system(s.c_str())) {
@@ -341,6 +340,8 @@ StatusOr<Termination> Container::monitorInit(const ResourceAmounts& limits) {
   if (cpuUsedMs > cpuTimeLimit) {
     response.set_resource_exceeded(ResourceType::CPU_TIME);
   } else if (memoryUsedKb > memoryLimit) {
+    // Check if cgroup OOM-killed the program to see if it should have gotten
+    // memory limit exceeded
     response.set_resource_exceeded(ResourceType::MEMORY);
   } else if (elapsedMs > wallTimeLimit) {
     response.set_resource_exceeded(ResourceType::WALL_TIME);
@@ -357,18 +358,19 @@ StatusOr<Termination> Container::monitorInit(const ResourceAmounts& limits) {
 }
 
 StatusOr<Termination> Container::Execute(const Execution& request) {
-  VLOG(3) << "Parsing limits for container";
+  if (IsDead()) {
+    return grpc::Status(grpc::StatusCode::INTERNAL,
+                        "Tried to execute on a dead container");
+  }
+
   long long memoryLimit =
       getLimit(request.resource_limits(), ResourceType::MEMORY);
-  VLOG(3) << "Setting limits for container";
   cgroup->SetMemoryLimit(memoryLimit);
-  // The sandbox uses one extra process, so increase the limit with this.
   proto::ContainerExecution containerRequest;
   *containerRequest.mutable_command() = request.command();
   *containerRequest.mutable_environment() = request.environment();
-  // Allow one extra process for the init process.
   containerRequest.set_process_limit(
-      1 + getLimit(request.resource_limits(), ResourceType::PROCESSES));
+      getLimit(request.resource_limits(), ResourceType::PROCESSES));
   LOG(INFO) << "Sending execution request " << containerRequest.DebugString()
             << " to init";
   string requestBytes;

@@ -1,11 +1,12 @@
 [Unit]
 Description=OmogenJudge Local Judge
 After=omogenjudge-sandbox.service
+Requires=omogenjudge-sandbox.service
 
 [Service]
 Type=simple
 Restart=always
-User=omogenjudge
+User=omogenjudge-local
 ExecStart=/usr/bin/omogenjudge-local
 
 [Install]

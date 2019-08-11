@@ -1,10 +1,11 @@
-#include <grpc/grpc.h>
-
+#ifndef SANDBOX_SERVER_EXECUTOR_H
+#define SANDBOX_SERVER_EXECUTOR_H
 #include <thread>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
-#include "sandbox/api/exec.grpc.pb.h"
+#include "grpc/grpc.h"
+#include "sandbox/api/execute_service.grpc.pb.h"
 #include "sandbox/container/outside/container.h"
 
 using grpc::ServerContext;
@@ -14,6 +15,8 @@ using grpc::Status;
 namespace omogen {
 namespace sandbox {
 
+// Implementation of the ExecuteService. This server is stateful - it keeps a
+// list of use containers that have not yet been cleanedup.
 class ExecuteServiceImpl final : public ExecuteService::Service {
   // The cleanup thread for this service, continously cleaning up old
   // containers.
@@ -28,6 +31,7 @@ class ExecuteServiceImpl final : public ExecuteService::Service {
   void cleanup();
 
  public:
+  // Handler for the Execute requests.
   Status Execute(ServerContext* context,
                  ServerReaderWriter<ExecuteResponse, ExecuteRequest>* stream);
 
@@ -36,3 +40,4 @@ class ExecuteServiceImpl final : public ExecuteService::Service {
 
 }  // namespace sandbox
 }  // namespace omogen
+#endif

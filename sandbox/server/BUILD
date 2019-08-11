@@ -3,6 +3,8 @@ cc_binary(
     srcs = [
         "executor.cc",
         "executor.h",
+        "request_validator.h",
+        "request_validator.cc",
         "main.cc",
     ],
     visibility = ["//visibility:public"],

@@ -9,10 +9,10 @@ import "sandbox/api/execspec.proto";
 // executed commands themselves) crashed, the RPC fails with an INTERNAL error.
 //
 // Executions are made within a container, specified by a ContainerSpec. In the
-// reuqest to the service, a ContainerSpec needs to be specified. Otherwise, the
-// RPC will fail.  If several execution requests are sent in a stream, they will
-// be executed within the same containre unless a new ContainerSpec is set (even
-// if it has the same value).
+// first reuqest to the service, a ContainerSpec needs to be specified.
+// Otherwise, the RPC will fail.  If several execution requests are sent in a
+// stream, they will be executed within the same container unless a new
+// ContainerSpec is set (even if it has the same value).
 message ExecuteRequest {
   // The command to execute.
   Execution execution = 1;

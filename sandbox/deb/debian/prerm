@@ -1,3 +1,4 @@
 #!/bin/bash
 
+# TODO: here it would be nice if we had some kind of lame-duck mode before shutting down to let requests finish but not accept new ones.
 systemctl stop omogenjudge-sandbox || true

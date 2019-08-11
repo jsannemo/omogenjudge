@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SANDBOX_CONTAINER_INSIDE_CHROOT_H
+#define SANDBOX_CONTAINER_INSIDE_CHROOT_H
 
 #include <string>
 
@@ -12,7 +13,7 @@ namespace sandbox {
 // A chroot jail, where certain directories from outside the jail can be mounted
 // at a given path inside the jail.
 class Chroot {
-  // The path of the new root
+  // The path of the new root.
   string rootfs;
 
   // Adds a set of default rules to ensure that the new environment is a
@@ -44,3 +45,4 @@ class Chroot {
 
 }  // namespace sandbox
 }  // namespace omogen
+#endif

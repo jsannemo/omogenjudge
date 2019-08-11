@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SANDBOX_CONTAINER_OUTSIDE_CONTAINER_H
+#define SANDBOX_CONTAINER_OUTSIDE_CONTAINER_H
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -36,12 +37,20 @@ class Container {
   unique_ptr<ContainerId> containerId;
 
   StatusOr<Termination> monitorInit(const ResourceAmounts& limits);
+
+  // Forcibly kill()'s the init process.
   void killInit();
+
+  // wait()'s the init process after it has been killed.
   int waitInit();
 
  public:
+  // Performs an execution in the sandbox. Assumes the given execution
+  // has been validated.
   StatusOr<Termination> Execute(const Execution& request);
 
+  // Whether the container process has died. A dead container
+  // may not be used for anything.
   bool IsDead();
 
   void Reset();
@@ -55,3 +64,4 @@ class Container {
 
 }  // namespace sandbox
 }  // namespace omogen
+#endif

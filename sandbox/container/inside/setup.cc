@@ -1,3 +1,5 @@
+// Setup performs the main setup of a process that is to run an execution
+// request, such as rlimits and stream redirections.
 #include "sandbox/container/inside/setup.h"
 
 #include <fcntl.h>
@@ -11,7 +13,7 @@
 #include "absl/strings/str_cat.h"
 #include "glog/logging.h"
 #include "glog/raw_logging.h"
-#include "sandbox/api/exec.pb.h"
+#include "sandbox/api/execute_service.pb.h"
 #include "sandbox/proto/container.pb.h"
 #include "util/cpp/files.h"
 
@@ -24,9 +26,6 @@ using std::vector;
 
 namespace omogen {
 namespace sandbox {
-
-// Setup performs the main setup of a process that is to run an execution
-// request, such as rlimits and stream redirections.
 
 class InitException : public std::runtime_error {
   string msg;
@@ -48,7 +47,6 @@ static void setResourceLimits() {
   setResourceLimit(RLIMIT_STACK, RLIM_INFINITY);
   setResourceLimit(RLIMIT_MEMLOCK, 0);
   setResourceLimit(RLIMIT_CORE, 0);
-  setResourceLimit(RLIMIT_NOFILE, 100);
 }
 
 static int openFileWithFd(const string& path, bool writable) {
@@ -56,7 +54,7 @@ static int openFileWithFd(const string& path, bool writable) {
   int fd = writable ? open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666)
                     : open(path.c_str(), O_RDONLY);
   if (fd == -1) {
-    throw InitException("open failed");
+    throw InitException(absl::StrCat("opening ", path, " failed"));
   }
   return fd;
 }
@@ -66,9 +64,6 @@ static map<int, int> openStreams(const Streams& streams) {
   for (int fd = 0; fd < streams.mappings_size(); fd++) {
     const Streams::Mapping& mapping = streams.mappings(fd);
     switch (mapping.mapping_case()) {
-      case Streams::Mapping::kEmpty:
-        newFds[fd] = openFileWithFd("/dev/null", mapping.write());
-        break;
       case Streams::Mapping::kFile:
         newFds[fd] = openFileWithFd(mapping.file().path_inside_container(),
                                     mapping.write());

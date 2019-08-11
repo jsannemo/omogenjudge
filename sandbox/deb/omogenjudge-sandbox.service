@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 Restart=always
-User=omogenjudge
+User=omogenjudge-sandbox
 ExecStart=/usr/bin/omogenjudge-sandbox --logtostderr
 
 [Install]

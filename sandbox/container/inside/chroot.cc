@@ -37,7 +37,7 @@ void Chroot::addDirectoryMount(const DirectoryMount& rule) {
             "Could not mount rule");
   // When BIND:ing using mount, read-only (and possible other flags) may
   // require a remount to take effect (see e.g.
-  // https://lwn.net/Articles/281157/)
+  // https://lwn.net/Articles/281157/).
   RAW_CHECK(mount(rule.path_outside_container().c_str(), target.c_str(),
                   nullptr, MS_REMOUNT | mountFlags, nullptr) != -1,
             "Could not remount rule");

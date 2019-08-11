@@ -13,7 +13,7 @@ pkg_tar(
 pkg_tar(
     name = "config",
     srcs = [
-        "//sandbox/config:users.conf",
+        "//sandbox/config:sandbox.conf",
     ],
     mode = "0644",
     package_dir = "/etc/omogen/sandbox",
@@ -41,13 +41,13 @@ pkg_tar(
 )
 
 pkg_tar(
-    name = "uidmapper",
+    name = "setquota",
     srcs = [
-        "//sandbox/container/uidmapper:omogenjudge-sandboxuid",
+        "//sandbox/container/setquota:omogenjudge-setquota",
     ],
     mode = "0755",
     package_dir = "/usr/bin",
-    strip_prefix = "/sandbox/container/uidmapper",
+    strip_prefix = "/sandbox/container/setquota",
 )
 
 pkg_tar(
@@ -58,7 +58,7 @@ pkg_tar(
         ":service",
         ":runner",
         ":server",
-        ":uidmapper",
+        ":setquota",
     ],
 )
 

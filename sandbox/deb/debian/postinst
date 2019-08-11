@@ -2,14 +2,14 @@
 
 set +e
 
-if ! id -u omogenjudge >/dev/null 2>&1; then
-  useradd -s /usr/bin/nologin -r omogenjudge
+if ! id -u omogenjudge-sandbox >/dev/null 2>&1; then
+  useradd -s /usr/bin/nologin -r omogenjudge-sandbox -G omogenjudge-clients
 fi
 
 for i in {0..200}; do 
   usr="omogenjudge-client$i"
   if ! id -u $usr >/dev/null 2>&1; then
-    useradd -s /usr/bin/nologin -r $usr -G omogenjudge
+    useradd -s /usr/bin/nologin -r $usr -G omogenjudge-clients
   fi
 done
 
@@ -17,7 +17,7 @@ set -e
 systemctl start omogenjudge-sandbox
 mkdir -p /var/lib/omogen/sandbox
 mkdir -p /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
-chown omogenjudge:omogenjudge /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
-chown omogenjudge:omogenjudge /var/lib/omogen/sandbox
+chown omogenjudge-sandbox:omogenjudge-sandbox /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
+chown omogenjudge-sandbox:omogenjudge-sandbox /var/lib/omogen/sandbox
 
-chmod u+s /usr/bin/omogenjudge-sandboxuid
+chmod u+s /usr/bin/omogenjudge-setquota

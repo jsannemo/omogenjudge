@@ -1,5 +1,5 @@
 cc_binary(
-    name = "omogenjudge-sandboxuid",
+    name = "omogenjudge-setquota",
     srcs = ["main.cc"],
     visibility = [
         "//sandbox:__subpackages__",

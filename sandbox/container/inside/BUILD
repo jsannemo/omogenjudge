@@ -7,7 +7,7 @@ cc_binary(
     ],
     deps = [
         ":inside",
-        "//external:glog",
+        "@com_github_google_glog//:glog",
         "//sandbox/proto:omogen_sandbox_proto_cc_proto",
         "@com_google_absl//absl/strings",
     ],
@@ -27,7 +27,7 @@ cc_library(
         "//sandbox/container/outside:__subpackages__",
     ],
     deps = [
-        "//external:glog",
+        "@com_github_google_glog//:glog",
         "//sandbox/api:omogen_sandbox_cpp_proto",
         "//sandbox/proto:omogen_sandbox_proto_cc_proto",
         "//util/cpp",

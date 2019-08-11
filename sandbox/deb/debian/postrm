@@ -5,7 +5,7 @@ for i in {0..200}; do
   usr="omogenjudge-client$i"
   userdel $usr || true
 done
-userdel omogenjudge || true
+userdel omogenjudge-sandbox || true
 set -e
 rm -rf /var/lib/omogen/sandbox
 rmdir /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain || true

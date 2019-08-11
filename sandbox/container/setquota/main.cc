@@ -20,7 +20,7 @@ using std::cerr;
 using std::cout;
 using std::endl;
 
-const std::string SUBMISSION_PATH = "/var/lib/omogen/submissions";
+const std::string kContainerPath = "/var/lib/omogen/containers";
 
 int main(int argc, char** argv) {
   if (argc != 5) {
@@ -43,7 +43,8 @@ int main(int argc, char** argv) {
     cerr << "Could not fetch uid" << endl;
     return 1;
   }
-  cerr << "Setting for " << user << " uid " << pw->pw_uid << endl;
+  cout << "Setting quota for for " << user << " with uid " << pw->pw_uid
+       << endl;
 
   std::string uidpath = absl::StrCat("/proc/", pidId, "/uid_map");
   WriteToFile(uidpath, absl::StrCat("65123 ", pw->pw_uid, " 1"));
@@ -51,7 +52,7 @@ int main(int argc, char** argv) {
   WriteToFile(gidpath, absl::StrCat("65123 ", pw->pw_gid, " 1"));
 
   struct stat st;
-  if (stat(SUBMISSION_PATH.c_str(), &st) != 0) {
+  if (stat(kContainerPath.c_str(), &st) != 0) {
     cerr << "Could not stat submission folder" << endl;
     return 1;
   }
@@ -61,7 +62,7 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i + 5 < toks.size(); i += 6) {
     std::string dev = toks[i];
     std::string mountPoint = toks[i + 1];
-    if (absl::StartsWith(SUBMISSION_PATH, mountPoint) &&
+    if (absl::StartsWith(kContainerPath, mountPoint) &&
         dev.size() > device.size()) {
       device = dev;
     }

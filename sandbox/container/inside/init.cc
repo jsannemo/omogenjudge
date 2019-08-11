@@ -1,3 +1,6 @@
+// Init is the init process (PID 1) of a container. Its purpose is to recieve
+// execution requests from the outside container and fork of a process to
+// execute it.
 #include <sys/fcntl.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -28,10 +31,6 @@ using std::string;
 namespace omogen {
 namespace sandbox {
 
-// Init is the main process inside a container. Its purpose is to recieve
-// execution requests fron the outside container and fork of a process to
-// execute it.
-//
 // Returns a termination cause based on the given status, which should
 // be given in the waitpid format.
 static ContainerTermination terminationForStatus(int waitStatus) {
@@ -56,10 +55,10 @@ static ContainerTermination terminationForError(const string& errorMessage) {
 static ContainerTermination execute(const ContainerExecution& request) {
   // We need to set this here rather than in setup since we lose privilege to
   // change this to a potentially higher number after the fork.
-  // rlim_t processLimit = request.process_limit() + 2;  // +1 for init
-  // rlimit rlim = {.rlim_cur = processLimit, .rlim_max = processLimit};
-  // PCHECK(setrlimit(RLIMIT_NPROC, &rlim) != -1)
-  //<< "Could not set the process limit";
+  rlim_t processLimit = request.process_limit() + 2;  // +1 for this process
+  rlimit rlim = {.rlim_cur = processLimit, .rlim_max = processLimit};
+  PCHECK(setrlimit(RLIMIT_NPROC, &rlim) != -1)
+      << "Could not set the process limit";
 
   // Start a fork to set up the execution environment for the request.
   // In the parent, we will wait for the request to finish. Since an error
@@ -122,6 +121,7 @@ static ContainerTermination execute(const ContainerExecution& request) {
       // now become a child of us since we are init. Therefore, we make sure to
       // SIGKILL all of them before we return, in case we want to reuse our
       // sandbox.
+      // TODO: is kill(-pid) a race against a fork bomb?
       PCHECK(kill(-1, SIGKILL) != -1 || errno == ESRCH)
           << "Did not manage to kill all remaining processes in the container";
       while (true) {
@@ -141,7 +141,6 @@ static ContainerTermination execute(const ContainerExecution& request) {
 }  // namespace omogen
 
 int main(int argc, char** argv) {
-  LOG(INFO) << "argc " << argc;
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
   google::InstallFailureSignalHandler();
@@ -149,13 +148,18 @@ int main(int argc, char** argv) {
   CHECK(argc == 4) << "Incorrect number of arguments";
   int sandboxId;
   CHECK(absl::SimpleAtoi(string(argv[1]), &sandboxId))
-      << "First argument was not int";
+      << "Can not convert sandbox ID to integer";
+  CHECK(sandboxId >= 0) << "Sandbox ID was negative";
   int inId, outId;
-  CHECK(absl::SimpleAtoi(string(argv[2]), &inId)) << "Can not convert in FD";
-  CHECK(absl::SimpleAtoi(string(argv[3]), &outId)) << "Can not convert out FD";
+  CHECK(absl::SimpleAtoi(string(argv[2]), &inId))
+      << "Can not convert input FD to integer";
+  CHECK(absl::SimpleAtoi(string(argv[3]), &outId))
+      << "Can not convert output FD to integer";
+  CHECK(inId >= 0) << "Input FD was negative";
+  CHECK(outId >= 0) << "Ouptut FD was negative";
 
   // Kill us if the main sandbox is killed, to prevent our child from possibly
-  // keeping running. This is not a race with the parent death, since the read
+  // keep running. This is not a race with the parent death, since the read
   // later will crash us in case our parent dies after the prctl call.
   // Furthermore, as a result of our death we will take with us any processes
   // running in the sandbox since we are PID 1 in a PID namespace.
@@ -164,7 +168,7 @@ int main(int argc, char** argv) {
   LOG(INFO) << "Started up container";
   // Keep reading execution requests in a loop in case we want to run more
   // commands in the same sandbox. Requests are written in the format
-  // <number of bytes><request bytes>
+  // <number of bytes><request bytes>.
   while (true) {
     // Read execution request from the parent.
     ContainerExecution request;
@@ -172,9 +176,9 @@ int main(int argc, char** argv) {
     if (!ReadIntFromFd(&length, inId)) {
       break;
     }
-    LOG(INFO) << "Read length " << length;
+    LOG(INFO) << "Request length: " << length;
     string requestBytes = ReadFromFd(length, inId);
-    LOG(INFO) << "Read string " << requestBytes.length();
+    LOG(INFO) << "Read request size: " << requestBytes.length();
     if (!request.ParseFromString(requestBytes)) {
       LOG(ERROR) << "Could not read complete request";
       break;

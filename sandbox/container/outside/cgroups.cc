@@ -23,7 +23,7 @@ using std::vector;
 
 // This names of the cgroup sybsystems needs to be kept in sync with the
 // enum in cgroups.h
-static const string subsystemName[] = {"cpuacct", "memory", "pids", "invalid"};
+static const string subsystemName[] = {"cpuacct", "memory", "invalid"};
 
 static bool validateCgroupPath(const char* flagname, const string& value) {
   if (value.empty() || value[0] != '/' || !DirectoryExists(value)) {
@@ -60,7 +60,6 @@ DEFINE_string(cgroup_prefix, "omogen_",
 const string CPU_USAGE = "cpuacct.usage";
 const string MEM_LIMIT = "memory.limit_in_bytes";
 const string MEM_USAGE = "memory.max_usage_in_bytes";
-const string PID_LIMIT = "pids.max";
 const string TASKS = "tasks";
 
 static int indexForSubsystem(CgroupSubsystem subsystem) {
@@ -120,13 +119,6 @@ long long Cgroup::MemoryUsed() {
   return bytes / 1000;
 }
 
-void Cgroup::SetProcessLimit(int maxProcesses) {
-  VLOG(2) << "Setting process limit to " << maxProcesses;
-  CHECK(maxProcesses >= 0) << "Process limit was negative: " << maxProcesses;
-  WriteToFile(getSubsystemOp(CgroupSubsystem::PIDS, PID_LIMIT),
-              absl::StrCat(maxProcesses));
-}
-
 void Cgroup::Reset() {
   WriteToFile(getSubsystemOp(CgroupSubsystem::CPU_ACCT, CPU_USAGE), "0");
   WriteToFile(getSubsystemOp(CgroupSubsystem::MEMORY, MEM_USAGE), "0");
@@ -135,7 +127,6 @@ void Cgroup::Reset() {
 Cgroup::Cgroup(pid_t pid) : name(getCgroupName(pid)), pid(pid) {
   enableSubsystem(CgroupSubsystem::CPU_ACCT);
   enableSubsystem(CgroupSubsystem::MEMORY);
-  enableSubsystem(CgroupSubsystem::PIDS);
   Reset();
 }
 
@@ -143,7 +134,6 @@ Cgroup::~Cgroup() {
   VLOG(3) << "Removing cgroups for " << pid;
   disableSubsystem(CgroupSubsystem::CPU_ACCT);
   disableSubsystem(CgroupSubsystem::MEMORY);
-  disableSubsystem(CgroupSubsystem::PIDS);
 }
 
 }  // namespace sandbox
