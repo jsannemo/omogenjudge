@@ -20,15 +20,16 @@ namespace sandbox {
 class ExecuteServiceImpl final : public ExecuteService::Service {
   // The cleanup thread for this service, continously cleaning up old
   // containers.
-  std::thread* cleanupThread;
+  std::thread* cleanup_thread;
 
-  absl::Mutex deleteQueueMutex;
+  absl::Mutex delete_queue_mutex;
 
   // A vector with containers that should be cleaned up.
-  std::vector<unique_ptr<Container>> deleteQueue GUARDED_BY(deleteQueueMutex);
+  std::vector<unique_ptr<Container>> delete_queue
+      GUARDED_BY(delete_queue_mutex);
 
   // Runs the cleanup loop the remove old containers.
-  void cleanup();
+  void Cleanup();
 
  public:
   // Handler for the Execute requests.

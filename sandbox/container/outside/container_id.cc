@@ -13,43 +13,43 @@ namespace sandbox {
 ContainerIds CONTAINER_IDS(
     omogen::util::ReadConfigInt("/etc/omogen/sandbox/sandbox.conf", "range"));
 
-ContainerIds::ContainerIds(int limit) : containerIds(limit) {
-  std::iota(containerIds.begin(), containerIds.end(), 0);
+ContainerIds::ContainerIds(int limit) : container_ids(limit) {
+  std::iota(container_ids.begin(), container_ids.end(), 0);
 }
 
-static bool hasIds(std::vector<int>* v) { return !v->empty(); }
+static bool HasIds(std::vector<int>* v) { return !v->empty(); }
 
 std::unique_ptr<ContainerId> ContainerIds::Get() {
-  mutex.LockWhen(absl::Condition(hasIds, &containerIds));
+  mutex.LockWhen(absl::Condition(HasIds, &container_ids));
   std::unique_ptr<ContainerId> ret =
-      std::make_unique<ContainerId>(containerIds.back(), this);
+      std::make_unique<ContainerId>(container_ids.back(), this);
   LOG(INFO) << "Claiming container ID " << ret->Get();
-  containerIds.pop_back();
+  container_ids.pop_back();
   mutex.Unlock();
   return std::move(ret);
 }
 
 ContainerId& ContainerId::operator=(ContainerId&& other) {
   if (this != &other) {
-    if (containerIds != nullptr) {
-      containerIds->Put(id);
+    if (container_ids != nullptr) {
+      container_ids->Put(id);
     }
     id = other.id;
-    containerIds = other.containerIds;
-    other.containerIds = nullptr;
+    container_ids = other.container_ids;
+    other.container_ids = nullptr;
   }
   return *this;
 }
 
 void ContainerIds::Put(int id) {
   absl::MutexLock lock(&mutex);
-  containerIds.push_back(id);
+  container_ids.push_back(id);
 }
 
 ContainerId::~ContainerId() {
-  if (containerIds != nullptr) {
+  if (container_ids != nullptr) {
     LOG(INFO) << "Returning container ID " << id;
-    containerIds->Put(id);
+    container_ids->Put(id);
   }
 }
 

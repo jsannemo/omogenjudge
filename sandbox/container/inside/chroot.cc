@@ -18,7 +18,7 @@ using std::string;
 namespace omogen {
 namespace sandbox {
 
-void Chroot::addDirectoryMount(const DirectoryMount& rule) {
+void Chroot::AddDirectoryMount(const DirectoryMount& rule) {
   if (rule.path_inside_container().empty() ||
       rule.path_inside_container()[0] != '/') {
     RAW_LOG(FATAL, "Directory rule target is not an absolute path");
@@ -43,48 +43,48 @@ void Chroot::addDirectoryMount(const DirectoryMount& rule) {
             "Could not remount rule");
 }
 
-void Chroot::addDefaultRules() {
+void Chroot::AddDefaultRules() {
   // Since we are in a new PID namespace, the old procfs will have incorrect
   // data, so we mount a new one.
-  string procPath = rootfs + "/proc";
-  MakeDirParents(procPath);
-  RAW_CHECK(mount("/proc", procPath.c_str(), "proc",
+  string proc_path = rootfs + "/proc";
+  MakeDirParents(proc_path);
+  RAW_CHECK(mount("/proc", proc_path.c_str(), "proc",
                   MS_NODEV | MS_NOEXEC | MS_NOSUID, nullptr) != -1,
             "Could not mount new proc namespace");
 
   DirectoryMount rule;
   rule.set_path_outside_container("/bin");
   rule.set_path_inside_container("/bin");
-  addDirectoryMount(rule);
+  AddDirectoryMount(rule);
 
   rule.set_path_outside_container("/usr/bin");
   rule.set_path_inside_container("/usr/bin");
-  addDirectoryMount(rule);
+  AddDirectoryMount(rule);
 
   rule.set_path_outside_container("/usr/lib");
   rule.set_path_inside_container("/usr/lib");
-  addDirectoryMount(rule);
+  AddDirectoryMount(rule);
 
   rule.set_path_outside_container("/lib");
   rule.set_path_inside_container("/lib");
-  addDirectoryMount(rule);
+  AddDirectoryMount(rule);
 
   if (DirectoryExists("/usr/lib32")) {
     rule.set_path_outside_container("/usr/lib32");
     rule.set_path_inside_container("/usr/lib32");
-    addDirectoryMount(rule);
+    AddDirectoryMount(rule);
   }
 
   if (DirectoryExists("/lib64")) {
     rule.set_path_outside_container("/lib64");
     rule.set_path_inside_container("/lib64");
-    addDirectoryMount(rule);
+    AddDirectoryMount(rule);
   }
 
   if (DirectoryExists("/lib32")) {
     rule.set_path_outside_container("/lib32");
     rule.set_path_inside_container("/lib32");
-    addDirectoryMount(rule);
+    AddDirectoryMount(rule);
   }
 }
 
@@ -95,7 +95,7 @@ void Chroot::SetRoot() {
 
 void Chroot::ApplyContainerSpec(const ContainerSpec& spec) {
   for (const auto& mount : spec.mounts()) {
-    addDirectoryMount(mount);
+    AddDirectoryMount(mount);
   }
 }
 
@@ -104,10 +104,10 @@ Chroot::Chroot(const string& path) : rootfs(path) {
   RAW_CHECK(DirectoryExists(path), "Path does not exist");
   RAW_CHECK(mount(nullptr, "/", nullptr, MS_REC | MS_PRIVATE, nullptr) != -1,
             "Could not update mounts to be private");
-  addDefaultRules();
+  AddDefaultRules();
 }
 
-Chroot Chroot::ForNewRoot(const string& newRoot) { return Chroot(newRoot); }
+Chroot Chroot::ForNewRoot(const string& new_root) { return Chroot(new_root); }
 
 }  // namespace sandbox
 }  // namespace omogen

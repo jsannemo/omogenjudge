@@ -20,24 +20,24 @@ using std::cerr;
 using std::cout;
 using std::endl;
 
-const std::string kContainerPath = "/var/lib/omogen/containers";
+const std::string kContainerPath = "/var/lib/omogen/sandbox";
 
 int main(int argc, char** argv) {
   if (argc != 5) {
     cerr << "Incorrect number of arguments" << endl;
     return 1;
   }
-  int pidId;
-  if (!absl::SimpleAtoi(std::string(argv[1]), &pidId) || pidId < 0) {
+  int pid_id;
+  if (!absl::SimpleAtoi(std::string(argv[1]), &pid_id) || pid_id < 0) {
     cerr << "Invalid first argument" << endl;
     return 1;
   }
-  int sandboxId;
-  if (!absl::SimpleAtoi(std::string(argv[2]), &sandboxId) || sandboxId < 0) {
+  int sandbox_id;
+  if (!absl::SimpleAtoi(std::string(argv[2]), &sandbox_id) || sandbox_id < 0) {
     cerr << "Invalid second argument" << endl;
     return 1;
   }
-  std::string user = absl::StrCat("omogenjudge-client", sandboxId);
+  std::string user = absl::StrCat("omogenjudge-client", sandbox_id);
   struct passwd* pw = getpwnam(user.c_str());
   if (pw == NULL) {
     cerr << "Could not fetch uid" << endl;
@@ -46,9 +46,9 @@ int main(int argc, char** argv) {
   cout << "Setting quota for for " << user << " with uid " << pw->pw_uid
        << endl;
 
-  std::string uidpath = absl::StrCat("/proc/", pidId, "/uid_map");
+  std::string uidpath = absl::StrCat("/proc/", pid_id, "/uid_map");
   WriteToFile(uidpath, absl::StrCat("65123 ", pw->pw_uid, " 1"));
-  std::string gidpath = absl::StrCat("/proc/", pidId, "/gid_map");
+  std::string gidpath = absl::StrCat("/proc/", pid_id, "/gid_map");
   WriteToFile(gidpath, absl::StrCat("65123 ", pw->pw_gid, " 1"));
 
   struct stat st;
@@ -71,33 +71,35 @@ int main(int argc, char** argv) {
     cerr << "Could not find device with the correct mount point" << endl;
     return 1;
   }
-  struct stat devSt;
-  if (stat(device.c_str(), &devSt) != 0) {
+  struct stat dev_st;
+  if (stat(device.c_str(), &dev_st) != 0) {
     cerr << "Could not stat device" << endl;
     return 1;
   }
-  if (st.st_dev != devSt.st_rdev) {
+  if (st.st_dev != dev_st.st_rdev) {
     cerr << "Device numbers inconsistent with mount point" << endl;
     return 1;
   }
 
-  int blockQuota;
-  if (!absl::SimpleAtoi(std::string(argv[3]), &blockQuota) || blockQuota < 0) {
+  int block_quota;
+  if (!absl::SimpleAtoi(std::string(argv[3]), &block_quota) ||
+      block_quota < 0) {
     cerr << "Invalid third argument" << endl;
     return 1;
   }
 
-  int inodeQuota;
-  if (!absl::SimpleAtoi(std::string(argv[4]), &inodeQuota) || inodeQuota < 0) {
+  int inode_quota;
+  if (!absl::SimpleAtoi(std::string(argv[4]), &inode_quota) ||
+      inode_quota < 0) {
     cerr << "Invalid fourth argument" << endl;
     return 1;
   }
 
   struct dqblk quota;
-  quota.dqb_bhardlimit = uint64_t(blockQuota);
-  quota.dqb_bsoftlimit = uint64_t(blockQuota);
-  quota.dqb_ihardlimit = uint64_t(inodeQuota);
-  quota.dqb_isoftlimit = uint64_t(inodeQuota);
+  quota.dqb_bhardlimit = uint64_t(block_quota);
+  quota.dqb_bsoftlimit = uint64_t(block_quota);
+  quota.dqb_ihardlimit = uint64_t(inode_quota);
+  quota.dqb_isoftlimit = uint64_t(inode_quota);
   quota.dqb_valid = QIF_LIMITS;
   if (quotactl(QCMD(Q_SETQUOTA, USRQUOTA), device.c_str(), pw->pw_uid,
                (caddr_t)&quota) != 0) {

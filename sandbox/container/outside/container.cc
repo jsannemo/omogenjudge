@@ -44,113 +44,118 @@ DEFINE_string(
     container_root, "/var/lib/omogen/sandbox",
     "A non-world writable directory to store the container root systems in");
 
-static const int CHILD_STACK_SIZE = 100 * 1000;  // 100 KB
+static const int kChildStackSize = 100 * 1000;  // 100 KB
 
-static const int INODE_LIMIT = 1000;
+static const int kInodeLimit = 1000;
 
 struct SandboxArgs {
   int id;
 
-  int stdinFd;
-  int stdoutFd;
+  int stdin_fd;
+  int stdout_fd;
 
-  int closeFd;
-  int closeFd2;
+  int close_fd;
+  int close_fd2;
 
   string rootfs;
-  ContainerSpec containerSpec;
+  ContainerSpec container_spec;
 };
 
-static int startSandbox [[noreturn]] (void* argp) {
+static int StartSandbox [[noreturn]] (void* argp) {
   setpgid(getpid(), getpid());
   SandboxArgs args = *static_cast<SandboxArgs*>(argp);
   PCHECK(prctl(PR_SET_KEEPCAPS, 1) != -1) << "Could not keep capabilities";
   // Close the other ends of the pipes we use for stdin/stdout to avoid keeping
   // them open on our side.
-  PCHECK(close(args.closeFd) != -1)
+  PCHECK(close(args.close_fd) != -1)
       << "Could not close other end of stdin pipe";
-  PCHECK(close(args.closeFd2) != -1)
+  PCHECK(close(args.close_fd2) != -1)
       << "Could not close other end of stdout pipe";
   Chroot chroot = Chroot::ForNewRoot(args.rootfs);
-  chroot.ApplyContainerSpec(args.containerSpec);
+  chroot.ApplyContainerSpec(args.container_spec);
   chroot.SetRoot();
 
-  string sandboxId = absl::StrCat(args.id);
-  ReadFromFd(1, args.stdinFd);
+  string sandbox_id = absl::StrCat(args.id);
+  ReadFromFd(1, args.stdin_fd);
+  // TODO make constants of a bunch of things
   PCHECK(setuid(65123) != -1) << "Could not set uid";
   PCHECK(setgid(65123) != -1) << "Could not set gid";
   char* const argv[] = {strdup("/usr/bin/omogenjudge-sandboxr"),
                         strdup("-logtostderr"),
-                        strdup(sandboxId.c_str()),
-                        strdup(absl::StrCat(args.stdinFd).c_str()),
-                        strdup(absl::StrCat(args.stdoutFd).c_str()),
+                        strdup(sandbox_id.c_str()),
+                        strdup(absl::StrCat(args.stdin_fd).c_str()),
+                        strdup(absl::StrCat(args.stdout_fd).c_str()),
                         NULL};
   PCHECK(execv("/usr/bin/omogenjudge-sandboxr", argv) != -1)
       << "Could not start sandbox";
   assert(false && "unreachable");
 }
 
-Container::Container(std::unique_ptr<ContainerId> containerId_,
+Container::Container(std::unique_ptr<ContainerId> container_id_,
                      const ContainerSpec& spec)
-    : containerId(std::move(containerId_)) {
-  PCHECK(pipe(commandPipe) != -1) << "Failed creating command pipe";
-  PCHECK(pipe(returnPipe) != -1) << "Failed creating return pipe";
+    : container_id(std::move(container_id_)) {
+  PCHECK(pipe(command_pipe) != -1) << "Failed creating command pipe";
+  PCHECK(pipe(return_pipe) != -1) << "Failed creating return pipe";
   // The container will get a new root with chroot; we store this in a temporary
   // directory
-  containerRoot = absl::StrCat(FLAGS_container_root, "/", containerId->Get());
-  MakeDir(containerRoot);
+  container_root = absl::StrCat(FLAGS_container_root, "/", container_id->Get());
+  MakeDir(container_root);
   // Clone requires us to provide a new stack for the child process
-  std::vector<char> stack(CHILD_STACK_SIZE);
+  std::vector<char> stack(kChildStackSize);
   // Clone and create new namespaces for the contained process
-  SandboxArgs args{
-      containerId->Get(), commandPipe[0], returnPipe[1], commandPipe[1],
-      returnPipe[0],      containerRoot,  spec};
-  PCHECK((initPid = clone(startSandbox, stack.data() + stack.size(),
-                          SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS |
-                              CLONE_NEWPID | CLONE_NEWUSER | CLONE_NEWUTS,
-                          &args)) != -1)
+  SandboxArgs args{container_id->Get(),
+                   command_pipe[0],
+                   return_pipe[1],
+                   command_pipe[1],
+                   return_pipe[0],
+                   container_root,
+                   spec};
+  PCHECK((init_pid = clone(StartSandbox, stack.data() + stack.size(),
+                           SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS |
+                               CLONE_NEWPID | CLONE_NEWUSER | CLONE_NEWUTS,
+                           &args)) != -1)
       << "Failed cloning new contained process";
-  LOG(INFO) << "Created new container with process ID is " << initPid;
-  PCHECK(close(commandPipe[0]) != -1)
+  LOG(INFO) << "Created new container with process ID is " << init_pid;
+  PCHECK(close(command_pipe[0]) != -1)
       << "Failed closing read end of command pipe";
-  PCHECK(close(returnPipe[1]) != -1)
+  PCHECK(close(return_pipe[1]) != -1)
       << "Failed closing write end of return pipe";
   unsigned long long maxDiskBlocks =
       (unsigned long long)spec.max_disk_kb() * 1000 / 1024;
-  cgroup = std::make_unique<Cgroup>(initPid);
+  cgroup = std::make_unique<Cgroup>(init_pid);
   string s =
-      absl::StrCat("/usr/bin/omogenjudge-setquota ", initPid, " ",
-                   containerId->Get(), " ", maxDiskBlocks, " ", INODE_LIMIT);
+      absl::StrCat("/usr/bin/omogenjudge-setquota ", init_pid, " ",
+                   container_id->Get(), " ", maxDiskBlocks, " ", kInodeLimit);
   LOG(INFO) << "Executing " << s;
   if (system(s.c_str())) {
     LOG(FATAL) << "Failed uid change";
   }
   std::string str = "1";
-  WriteToFd(commandPipe[1], str);
+  WriteToFd(command_pipe[1], str);
 }
 
 Container::~Container() {
   VLOG(3) << "Destroying container";
-  killInit();
+  KillInit();
   VLOG(3) << "Going to wait";
-  while (waitInit() == -1)
+  while (WaitInit() == -1)
     ;
-  initPid = 0;
+  init_pid = 0;
   VLOG(3) << "Removing container root";
-  RemoveTree(containerRoot);
+  RemoveTree(container_root);
   VLOG(3) << "Removed container root!";
 }
 
-void Container::killInit() {
+void Container::KillInit() {
   // Since we immediately move the contained process out of our process group,
-  // it is fine to do kill(-initPid)
-  kill(-initPid, SIGKILL);
-  kill(initPid, SIGKILL);
+  // it is fine to do kill(-init_pid)
+  kill(-init_pid, SIGKILL);
+  kill(init_pid, SIGKILL);
 }
 
-int Container::waitInit() {
+int Container::WaitInit() {
   int status;
-  int pid = waitpid(initPid, &status, 0);
+  int pid = waitpid(init_pid, &status, 0);
   if (pid == -1) {
     if (errno == EINTR) {
       return -1;
@@ -160,18 +165,19 @@ int Container::waitInit() {
   return status;
 }
 
-bool Container::IsDead() { return initPid == 0; }
+bool Container::IsDead() { return init_pid == 0; }
 
-static void setTermination(
+static void SetTermination(
     Termination* termination,
-    const proto::ContainerTermination& containerTermination) {
-  switch (containerTermination.termination_case()) {
+    const proto::ContainerTermination& container_termination) {
+  switch (container_termination.termination_case()) {
     case proto::ContainerTermination::kSignal:
       termination->mutable_signal()->set_signal(
-          containerTermination.signal().signal());
+          container_termination.signal().signal());
       return;
     case proto::ContainerTermination::kExit:
-      termination->mutable_exit()->set_code(containerTermination.exit().code());
+      termination->mutable_exit()->set_code(
+          container_termination.exit().code());
       return;
     case proto::ContainerTermination::kError:
       CHECK(false) << "Errors should be handled outside set termination";
@@ -182,24 +188,24 @@ static void setTermination(
 
 struct MonitorState {
   Container* container;
-  std::atomic<bool> isDead;
-  std::atomic<bool> shouldKill;
-  bool waitReady;
+  std::atomic<bool> is_dead;
+  std::atomic<bool> should_kill;
+  bool wait_ready;
   std::mutex lock;
-  std::condition_variable waitCv;
+  std::condition_variable wait_cv;
   proto::ContainerTermination termination;
-  int returnPipe;
+  int return_pipe;
 
-  explicit MonitorState(Container* cont, int returnPipe)
+  explicit MonitorState(Container* cont, int return_pipe)
       : container(cont),
-        isDead(false),
-        shouldKill(false),
-        waitReady(false),
+        is_dead(false),
+        should_kill(false),
+        wait_ready(false),
         termination(),
-        returnPipe(returnPipe) {}
+        return_pipe(return_pipe) {}
 };
 
-static long long getLimit(const ResourceAmounts& limits, ResourceType type) {
+static long long GetLimit(const ResourceAmounts& limits, ResourceType type) {
   for (const auto& limit : limits.amounts()) {
     if (limit.type() == type) {
       return limit.amount();
@@ -208,7 +214,7 @@ static long long getLimit(const ResourceAmounts& limits, ResourceType type) {
   LOG(FATAL) << "Could not find resource type " << type;
 }
 
-static bool pollStatus(int fd, int* at, char buf[4]) {
+static bool PollStatus(int fd, int* at, char buf[4]) {
   VLOG(3) << "Polling exit status";
   while (true) {
     VLOG(3) << "Read " << *at << " so far";
@@ -229,22 +235,22 @@ static bool pollStatus(int fd, int* at, char buf[4]) {
   return true;
 }
 
-StatusOr<Termination> Container::monitorInit(const ResourceAmounts& limits) {
+StatusOr<Termination> Container::MonitorInit(const ResourceAmounts& limits) {
   Termination response;
   Stopwatch watch;
-  MonitorState monitorState(this, returnPipe[0]);
-  long long cpuTimeLimit = getLimit(limits, ResourceType::CPU_TIME);
-  long long wallTimeLimit = getLimit(limits, ResourceType::WALL_TIME);
-  long long memoryLimit = getLimit(limits, ResourceType::MEMORY);
+  MonitorState monitor_state(this, return_pipe[0]);
+  long long cpu_time_limit = GetLimit(limits, ResourceType::CPU_TIME);
+  long long wall_time_limit = GetLimit(limits, ResourceType::WALL_TIME);
+  long long memory_limit = GetLimit(limits, ResourceType::MEMORY);
 
   // We keep one thread that only waits for the process to complete.
   // We also let this thread be responsible for killing the process in case it
   // exceeds its resource limits. This avoids races between killing the process
   // and waiting for it, something that could otherwise result in us killing an
   // unrelated process after the PID has been reused.
-  pthread_t waitThread;
+  pthread_t wait_thread;
   errno = pthread_create(
-      &waitThread, nullptr,
+      &wait_thread, nullptr,
       [](void* arg) -> void* {
         MonitorState* state = static_cast<MonitorState*>(arg);
         // The resource monitor loop notifies us if we should
@@ -255,103 +261,105 @@ StatusOr<Termination> Container::monitorInit(const ResourceAmounts& limits) {
         // installed, otherwise we would get killed by the
         // signal.
         {
-          std::unique_lock<std::mutex> waitLock(state->lock);
+          std::unique_lock<std::mutex> wait_lock(state->lock);
           struct sigaction action;
           memset(&action, 0, sizeof(action));
           action.sa_handler = [](int) {};
           sigaction(SIGALRM, &action, NULL);
-          state->waitReady = true;
+          state->wait_ready = true;
         }
-        state->waitCv.notify_one();
-        int lengthRead = 0;
-        char lengthBuf[4];
+        state->wait_cv.notify_one();
+        int length_read = 0;
+        char length_buf[4];
         while (true) {
-          if (state->shouldKill) {
-            state->container->killInit();
+          if (state->should_kill) {
+            state->container->KillInit();
             state->termination.mutable_signal()->set_signal(9);  // SIGKILL
             break;
-          } else if (pollStatus(state->returnPipe, &lengthRead, lengthBuf)) {
-            CHECK(lengthRead == 4) << "Could not read termination length";
+          } else if (PollStatus(state->return_pipe, &length_read, length_buf)) {
+            CHECK(length_read == 4) << "Could not read termination length";
             int length = 0;
             for (int i = 0; i < 4; i++) {
-              length = length << 8 | lengthBuf[i];
+              length = length << 8 | length_buf[i];
             }
             CHECK(0 <= length && length <= 5000)
                 << "Unreasonable termination length";
             VLOG(3) << "Got length " << length;
             CHECK(state->termination.ParseFromString(
-                ReadFromFd(length, state->returnPipe)))
+                ReadFromFd(length, state->return_pipe)))
                 << "Could not read resulting termination reason";
             break;
           }
-          LOG(INFO) << "Reached end of monitor loop " << state->shouldKill;
+          LOG(INFO) << "Reached end of monitor loop - should kill"
+                    << state->should_kill;
         }
-        state->isDead = true;
+        state->is_dead = true;
         // To avoid some latency, we wake the resource
         // monitor up from its polling sleep whenever the
         // process is dead.
-        state->waitCv.notify_one();
+        state->wait_cv.notify_one();
         return nullptr;
       },
-      &monitorState);
+      &monitor_state);
   PCHECK(errno == 0) << "Could not create monitor thread";
 
-  // Wait for the waitThread to set up its signal handler
+  // Wait for the wait_thread to set up its signal handler
   {
-    std::unique_lock<std::mutex> waitLock(monitorState.lock);
-    monitorState.waitCv.wait(waitLock, [&] { return monitorState.waitReady; });
+    std::unique_lock<std::mutex> wait_lock(monitor_state.lock);
+    monitor_state.wait_cv.wait(wait_lock,
+                               [&] { return monitor_state.wait_ready; });
   }
 
-  while (!monitorState.isDead) {
+  while (!monitor_state.is_dead) {
 #define CHECK_LIM(current, limit, name) \
   if ((current) > (limit)) {            \
     LOG(INFO) << (name) << " exceeded"; \
-    monitorState.shouldKill = true;     \
-    pthread_kill(waitThread, SIGALRM);  \
+    monitor_state.should_kill = true;   \
+    pthread_kill(wait_thread, SIGALRM); \
     break;                              \
   }
     // Memory does not need to be monitored, since this is the only limit
     // that the control groups can be limit by itself.
-    CHECK_LIM(cgroup->CpuUsed(), cpuTimeLimit, "CPU");
-    CHECK_LIM(watch.millis(), wallTimeLimit, "Wall time");
+    CHECK_LIM(cgroup->CpuUsed(), cpu_time_limit, "CPU");
+    CHECK_LIM(watch.millis(), wall_time_limit, "Wall time");
 
-    std::unique_lock<std::mutex> timeoutLock(monitorState.lock);
-    monitorState.waitCv.wait_for(timeoutLock, 1ms,
-                                 [&] { return !monitorState.isDead; });
+    std::unique_lock<std::mutex> timeoutLock(monitor_state.lock);
+    monitor_state.wait_cv.wait_for(timeoutLock, 1ms,
+                                   [&] { return !monitor_state.is_dead; });
 #undef CHECK_LIM
   }
-  PCHECK((errno = pthread_join(waitThread, nullptr)) == 0)
+  PCHECK((errno = pthread_join(wait_thread, nullptr)) == 0)
       << "Could not join with monitor thread";
 
-  long long elapsedMs = watch.millis();
-  long long cpuUsedMs = cgroup->CpuUsed();
-  long long memoryUsedKb = cgroup->MemoryUsed();
-  ResourceAmounts* resourceUsage = response.mutable_used_resources();
-  ResourceAmount* cpuAmount = resourceUsage->add_amounts();
-  cpuAmount->set_type(ResourceType::CPU_TIME);
-  cpuAmount->set_amount(cpuUsedMs);
-  ResourceAmount* wallTimeAmount = resourceUsage->add_amounts();
-  wallTimeAmount->set_type(ResourceType::WALL_TIME);
-  wallTimeAmount->set_amount(elapsedMs);
-  ResourceAmount* memoryAmount = resourceUsage->add_amounts();
-  memoryAmount->set_type(ResourceType::MEMORY);
-  memoryAmount->set_amount(memoryUsedKb);
+  long long elapsed_ms = watch.millis();
+  long long cpu_used_ms = cgroup->CpuUsed();
+  long long memory_used_kb = cgroup->MemoryUsed();
+  ResourceAmounts* resource_usage = response.mutable_used_resources();
+  ResourceAmount* cpu_amount = resource_usage->add_amounts();
+  cpu_amount->set_type(ResourceType::CPU_TIME);
+  cpu_amount->set_amount(cpu_used_ms);
+  ResourceAmount* wall_time_amount = resource_usage->add_amounts();
+  wall_time_amount->set_type(ResourceType::WALL_TIME);
+  wall_time_amount->set_amount(elapsed_ms);
+  ResourceAmount* memory_amonut = resource_usage->add_amounts();
+  memory_amonut->set_type(ResourceType::MEMORY);
+  memory_amonut->set_amount(memory_used_kb);
 
-  if (cpuUsedMs > cpuTimeLimit) {
+  if (cpu_used_ms > cpu_time_limit) {
     response.set_resource_exceeded(ResourceType::CPU_TIME);
-  } else if (memoryUsedKb > memoryLimit) {
-    // Check if cgroup OOM-killed the program to see if it should have gotten
-    // memory limit exceeded
+  } else if (memory_used_kb > memory_limit) {
+    // TODO: Check if cgroup OOM-killed the program to see if it should have
+    // gotten memory limit exceeded
     response.set_resource_exceeded(ResourceType::MEMORY);
-  } else if (elapsedMs > wallTimeLimit) {
+  } else if (elapsed_ms > wall_time_limit) {
     response.set_resource_exceeded(ResourceType::WALL_TIME);
-  } else if (monitorState.termination.termination_case() ==
+  } else if (monitor_state.termination.termination_case() ==
              proto::ContainerTermination::kError) {
     return StatusOr<Termination>(
         grpc::Status(grpc::StatusCode::INTERNAL,
-                     monitorState.termination.error().error_message()));
+                     monitor_state.termination.error().error_message()));
   } else {
-    setTermination(&response, monitorState.termination);
+    SetTermination(&response, monitor_state.termination);
   }
   LOG(INFO) << "Finished with termination " << response.DebugString();
   return StatusOr<Termination>(response);
@@ -363,23 +371,23 @@ StatusOr<Termination> Container::Execute(const Execution& request) {
                         "Tried to execute on a dead container");
   }
 
-  long long memoryLimit =
-      getLimit(request.resource_limits(), ResourceType::MEMORY);
-  cgroup->SetMemoryLimit(memoryLimit);
-  proto::ContainerExecution containerRequest;
-  *containerRequest.mutable_command() = request.command();
-  *containerRequest.mutable_environment() = request.environment();
-  containerRequest.set_process_limit(
-      getLimit(request.resource_limits(), ResourceType::PROCESSES));
-  LOG(INFO) << "Sending execution request " << containerRequest.DebugString()
+  long long memory_limit =
+      GetLimit(request.resource_limits(), ResourceType::MEMORY);
+  cgroup->SetMemoryLimit(memory_limit);
+  proto::ContainerExecution container_request;
+  *container_request.mutable_command() = request.command();
+  *container_request.mutable_environment() = request.environment();
+  container_request.set_process_limit(
+      GetLimit(request.resource_limits(), ResourceType::PROCESSES));
+  LOG(INFO) << "Sending execution request " << container_request.DebugString()
             << " to init";
-  string requestBytes;
-  containerRequest.SerializeToString(&requestBytes);
-  WriteIntToFd(requestBytes.size(), commandPipe[1]);
+  string request_bytes;
+  container_request.SerializeToString(&request_bytes);
+  WriteIntToFd(request_bytes.size(), command_pipe[1]);
   Reset();
-  WriteToFd(commandPipe[1], requestBytes);
+  WriteToFd(command_pipe[1], request_bytes);
   VLOG(2) << "Starting monitoring " << request.command().DebugString();
-  return monitorInit(request.resource_limits());
+  return MonitorInit(request.resource_limits());
 }
 
 void Container::Reset() { cgroup->Reset(); }

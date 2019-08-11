@@ -18,14 +18,14 @@ class Chroot {
 
   // Adds a set of default rules to ensure that the new environment is a
   // somewhat functional system.
-  void addDefaultRules();
+  void AddDefaultRules();
 
   // Creates a new mount point inside the chroot from the given rule.
-  void addDirectoryMount(const DirectoryMount& rule);
+  void AddDirectoryMount(const DirectoryMount& rule);
 
   // Create a new chroot at the specified path, and initalize it with
   // some default mount points.
-  explicit Chroot(const string& newRoot);
+  explicit Chroot(const string& new_root);
 
  public:
   // Applies a container specification to this environment, setting up all
@@ -37,7 +37,7 @@ class Chroot {
   void SetRoot();
 
   // Creates a new chroot jail with a given new root directory.
-  static Chroot ForNewRoot(const string& newRoot);
+  static Chroot ForNewRoot(const string& new_root);
 
   Chroot(const Chroot&) = delete;
   Chroot& operator=(const Chroot&) = delete;

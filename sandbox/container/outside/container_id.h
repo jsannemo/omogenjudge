@@ -19,17 +19,17 @@ class ContainerIds;
 // ContainerIds instance. They are reclaimed when the instance is destroyed.
 class ContainerId {
   int id;
-  ContainerIds* containerIds;
+  ContainerIds* container_ids;
 
  public:
   int Get() const { return id; }
 
-  ContainerId(int id, ContainerIds* ptr) : id(id), containerIds(ptr) {}
+  ContainerId(int id, ContainerIds* ptr) : id(id), container_ids(ptr) {}
   ContainerId(ContainerId&& other) {
     id = other.id;
-    containerIds = other.containerIds;
+    container_ids = other.container_ids;
     other.id = 0;
-    other.containerIds = nullptr;
+    other.container_ids = nullptr;
   }
   ContainerId& operator=(ContainerId&& other);
   ~ContainerId();
@@ -42,7 +42,7 @@ class ContainerId {
 // This is thread-safe.
 class ContainerIds {
   absl::Mutex mutex;
-  std::vector<int> containerIds GUARDED_BY(mutex);
+  std::vector<int> container_ids GUARDED_BY(mutex);
 
  public:
   explicit ContainerIds(int limit);

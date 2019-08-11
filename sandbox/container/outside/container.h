@@ -22,27 +22,27 @@ namespace sandbox {
 class Container {
   // Process ID of the child process we are executing the new program in (called
   // init)
-  pid_t initPid;
+  pid_t init_pid;
   // Since we may receive the execution request after starting the new process,
   // we use a pipe to send the request to the process.
-  int commandPipe[2];
+  int command_pipe[2];
   // A pipe used by the container to tell us what the return status of the user
   // program was.
-  int returnPipe[2];
+  int return_pipe[2];
   // The path to the new root with specific paths mounted to it
-  std::string containerRoot;
+  std::string container_root;
 
   unique_ptr<Cgroup> cgroup;
 
-  unique_ptr<ContainerId> containerId;
+  unique_ptr<ContainerId> container_id;
 
-  StatusOr<Termination> monitorInit(const ResourceAmounts& limits);
+  StatusOr<Termination> MonitorInit(const ResourceAmounts& limits);
 
   // Forcibly kill()'s the init process.
-  void killInit();
+  void KillInit();
 
   // wait()'s the init process after it has been killed.
-  int waitInit();
+  int WaitInit();
 
  public:
   // Performs an execution in the sandbox. Assumes the given execution

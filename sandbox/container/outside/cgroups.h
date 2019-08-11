@@ -23,12 +23,12 @@ enum class CgroupSubsystem { CPU_ACCT = 0, MEMORY, INVALID };
 class Cgroup {
   string name;
   pid_t pid;
-  long long _memLimitKb;
+  long long _mem_limit_kb;
 
-  string getSubsystemPath(CgroupSubsystem subsystem);
-  string getSubsystemOp(CgroupSubsystem subsystem, const string& op);
-  void enableSubsystem(CgroupSubsystem subsystem);
-  void disableSubsystem(CgroupSubsystem subsystem);
+  string GetSubsystemPath(CgroupSubsystem subsystem);
+  string GetSubsystemOp(CgroupSubsystem subsystem, const string& op);
+  void EnableSubsystem(CgroupSubsystem subsystem);
+  void DisableSubsystem(CgroupSubsystem subsystem);
 
  public:
   // Creates a new cgroup for a given process and enables the subsystems used
