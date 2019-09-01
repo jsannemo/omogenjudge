@@ -1,38 +1,40 @@
+// Package compilers provides utilities for compiling programs.
 package compilers
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
+	"fmt"
 
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
+	"github.com/jsannemo/omogenjudge/util/go/files"
+	"github.com/jsannemo/omogenjudge/util/go/users"
 )
 
+// A Compilation represents the output of a program compilation.
 type Compilation struct {
+	// The compiled program. This is unset if the compilation failed.
 	Program *runpb.CompiledProgram
-	Output  string
-	Errors  string
+
+	// The output printed by the compiler to stdout.
+	Output string
+
+	// The output printed by the compiler to stderr.
+	Errors string
 }
 
-func writeFile(path string, contents []byte) error {
-	err := os.MkdirAll(filepath.Dir(path), 0755)
-	if err != nil {
-		return err
-	}
-  if err := os.Chmod(filepath.Dir(path), 0775); err != nil {
-    return err
-  }
-	return ioutil.WriteFile(path, contents, 0755)
-}
-
+// WriteProgramToDisc writes the source files in the given program to disc
 func WriteProgramToDisc(req *runpb.Program, outputPath string) ([]string, error) {
 	compiledPaths := []string{}
-
+	fb := files.NewFileBase(outputPath)
+	fb.Gid = users.OmogenClientsId()
+	fb.GroupWritable = true
+	if err := fb.Mkdir("."); err != nil {
+		return nil, fmt.Errorf("failed mkdir %s: %v", outputPath, err)
+	}
 	for _, file := range req.Sources {
-		err := writeFile(filepath.Join(outputPath, file.Path), []byte(file.Contents))
+		err := fb.WriteFile(file.Path, []byte(file.Contents))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed writing %s: %v", file.Path, err)
 		}
 		compiledPaths = append(compiledPaths, file.Path)
 	}
@@ -44,7 +46,7 @@ func WriteProgramToDisc(req *runpb.Program, outputPath string) ([]string, error)
 func Copy(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) (*Compilation, error) {
 	compiledPaths, err := WriteProgramToDisc(req, outputPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed writing program to disc: %v", err)
 	}
 	return &Compilation{
 		Program: &runpb.CompiledProgram{
@@ -52,17 +54,4 @@ func Copy(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) 
 			CompiledPaths: compiledPaths,
 			LanguageId:    req.LanguageId,
 		}}, nil
-}
-
-func Noop(req *runpb.Program, outputPath string, _ execpb.ExecuteServiceClient) (*Compilation, error) {
-	return nil, nil
-}
-
-// TODO move this to /util/go
-func PrefixPaths(prefix string, strs []string) []string {
-	var prefixedStrs []string
-	for _, str := range strs {
-		prefixedStrs = append(prefixedStrs, filepath.Join(prefix, str))
-	}
-	return prefixedStrs
 }

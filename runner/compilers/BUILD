@@ -8,5 +8,7 @@ go_library(
     deps = [
         "//runner/api:go_default_library",
         "//sandbox/api:go_default_library",
+        "//util/go/files:go_default_library",
+        "//util/go/users:go_default_library",
     ],
 )

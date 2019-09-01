@@ -50,7 +50,7 @@ static void SetResourceLimits() {
 }
 
 static int OpenFileWithFd(const string& path, bool writable) {
-  VLOG(2) << "Opening path " << path;
+  RAW_VLOG(2, "Opening path %s", path.c_str());
   int fd = writable ? open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666)
                     : open(path.c_str(), O_RDONLY);
   if (fd == -1) {
@@ -128,7 +128,8 @@ static vector<const char*> GetEnv(
     map<int, int> new_fds =
         OpenStreams(request.environment().stream_redirections());
     if (!request.environment().working_directory().empty()) {
-      PCHECK(chdir(request.environment().working_directory().c_str()) == 0);
+      RAW_CHECK(chdir(request.environment().working_directory().c_str()) == 0,
+                "could not set working directory");
     }
     // Write a \1 that the parent will read to make sure we didn't crash
     // before we decided to close the error pipe.
@@ -139,7 +140,7 @@ static vector<const char*> GetEnv(
     execve(argv[0], const_cast<char**>(argv), const_cast<char**>(env.data()));
     exit(255);
   } catch (InitException e) {
-    LOG(ERROR) << "Caught exception: " << e.what();
+    RAW_LOG(ERROR, "Caught exception: %s", e.what());
     WriteToFd(error_pipe, e.what());
     close(error_pipe);
     abort();

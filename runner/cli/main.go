@@ -23,7 +23,10 @@ func getLanguages(client runpb.RunServiceClient) {
 
 func main() {
 	flag.Parse()
-	client := rclient.NewClient()
+	client, err := rclient.NewClient()
+	if err != nil {
+		logger.Fatalf("Could not get runner client: %v", err)
+	}
 	op := flag.Arg(0)
 	if op == "langs" {
 		getLanguages(client)

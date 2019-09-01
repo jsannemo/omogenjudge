@@ -11,21 +11,20 @@ using std::cerr;
 using std::cout;
 using std::endl;
 
-const std::string kSubmissionPath = "/var/lib/omogen/submissions";
+const std::string kSandboxPath = "/var/lib/omogen/sandbox";
 
 int main(int argc, char** argv) {
   if (argc != 2) {
     cerr << "Incorrect number of arguments" << endl;
     return 1;
   }
-  int submission_id;
-  if (!absl::SimpleAtoi(std::string(argv[1]), &submission_id) ||
-      submission_id < 0) {
+  int sandbox_id;
+  if (!absl::SimpleAtoi(std::string(argv[1]), &sandbox_id) || sandbox_id < 0) {
     cerr << "Invalid first argument" << endl;
     return 1;
   }
 
-  std::string path = absl::StrCat(kSubmissionPath, "/", submission_id);
+  std::string path = absl::StrCat(kSandboxPath, "/", sandbox_id);
 
   if (setuid(0) != 0) {
     cerr << "Could not setuid" << endl;
@@ -39,14 +38,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  std::string chown_cmd = absl::StrCat(
-      "/bin/chown -R omogenjudge-local:omogenjudge-clients ", path);
-  if (system(chown_cmd.c_str())) {
-    cerr << "Could not chown" << endl;
-  }
-
-  // We must have a mode that allows us to remove all the files afterwards as
-  // well.
-  std::string chmod_cmd = absl::StrCat("/bin/chmod -R gu+wrx ", path);
-  return system(chmod_cmd.c_str());
+  // Remove the old submission
+  std::string rm_cmd = absl::StrCat("/bin/rm -rf ", path);
+  return system(rm_cmd.c_str());
 }

@@ -15,11 +15,11 @@ var (
 
 // Returns a new client for the ExecService.
 func NewClient() (execpb.ExecuteServiceClient, error) {
-  var opts []grpc.DialOption
-  opts = append(opts, grpc.WithInsecure())
-  conn, err := grpc.Dial(*serverAddr, opts...)
-  if err != nil {
-    return nil, err
-  }
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	conn, err := grpc.Dial(*serverAddr, opts...)
+	if err != nil {
+		return nil, err
+	}
 	return execpb.NewExecuteServiceClient(conn), nil
 }

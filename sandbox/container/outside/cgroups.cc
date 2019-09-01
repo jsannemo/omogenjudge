@@ -61,6 +61,7 @@ const string kCpuUsage = "cpuacct.usage";
 const string kMemLimit = "memory.limit_in_bytes";
 const string kMemUsage = "memory.max_usage_in_bytes";
 const string kTasks = "tasks";
+const string kNotify = "notify_on_release";
 
 static int IndexForSubsystem(CgroupSubsystem subsystem) {
   return static_cast<int>(subsystem);
@@ -83,6 +84,7 @@ string Cgroup::GetSubsystemOp(CgroupSubsystem subsystem, const string& op) {
 void Cgroup::EnableSubsystem(CgroupSubsystem subsystem) {
   MakeDir(GetSubsystemPath(subsystem));
   WriteToFile(GetSubsystemOp(subsystem, kTasks), absl::StrCat(pid));
+  WriteToFile(GetSubsystemOp(subsystem, kNotify), "1");
 }
 
 void Cgroup::DisableSubsystem(CgroupSubsystem subsystem) {

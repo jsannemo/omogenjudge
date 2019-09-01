@@ -14,10 +14,10 @@ for i in {0..200}; do
 done
 
 set -e
-systemctl start omogenjudge-sandbox
 mkdir -p /var/lib/omogen/sandbox
-mkdir -p /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
-chown omogenjudge-sandbox:omogenjudge-sandbox /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain
-chown omogenjudge-sandbox:omogenjudge-sandbox /var/lib/omogen/sandbox
 
-chmod u+s /usr/bin/omogenjudge-setquota
+chmod u+s /usr/bin/omogenjudge-sandboxr
+chmod u+s /usr/bin/omogenjudge-sandboxc
+
+systemctl daemon-reload
+systemctl start omogenjudge-sandbox

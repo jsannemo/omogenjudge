@@ -16,10 +16,12 @@ cc_binary(
 cc_library(
     name = "inside",
     srcs = [
+        "quota.cc",
         "chroot.cc",
         "setup.cc",
     ],
     hdrs = [
+        "quota.h",
         "chroot.h",
         "setup.h",
     ],

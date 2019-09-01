@@ -35,8 +35,9 @@ func verifySubmissions(ctx context.Context, path string, problem *toolspb.Proble
 					})
 			}
 		}
+		// TODO: this should not use 0
 		req := &runpb.EvaluateRequest{
-			SubmissionId: fmt.Sprintf("%s-%d", filepath.Base(path), i),
+			SubmissionId: 0,
 			Program:      resp.Program,
 			MemLimitKb:   int64(problem.Metadata.Limits.MemoryLimitKb),
 			TimeLimitMs:  int64(problem.Metadata.Limits.TimeLimitMs),

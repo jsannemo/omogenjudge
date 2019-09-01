@@ -23,6 +23,6 @@ proto_library(
         "eval.proto",
         "language.proto",
         "program.proto",
-        "run.proto",
+        "run_service.proto",
     ],
 )

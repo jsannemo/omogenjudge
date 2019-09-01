@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set +e
+userdel omogenjudge-frontend || true
+set -e

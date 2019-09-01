@@ -15,6 +15,22 @@ using std::unique_ptr;
 namespace omogen {
 namespace sandbox {
 
+struct SandboxArgs {
+  int id;
+  string s_id;
+
+  int stdin_fd;
+  string s_stdin_fd;
+  int stdout_fd;
+  string s_stdout_fd;
+
+  int close_fd;
+  int close_fd2;
+
+  string rootfs;
+  ContainerSpec container_spec;
+};
+
 // A process container, implemented using Linux control groups, namespaces and
 // rlimits. Note that the constructor creates the new process ahead-of-time and
 // performs some setup. The remaining setup is performed once Execute() is
@@ -36,6 +52,10 @@ class Container {
 
   unique_ptr<ContainerId> container_id;
 
+  std::vector<char> stack;
+
+  SandboxArgs args;
+
   StatusOr<Termination> MonitorInit(const ResourceAmounts& limits);
 
   // Forcibly kill()'s the init process.
@@ -43,6 +63,8 @@ class Container {
 
   // wait()'s the init process after it has been killed.
   int WaitInit();
+
+  void startSandbox(const ContainerSpec& spec, int sandboxId);
 
  public:
   // Performs an execution in the sandbox. Assumes the given execution

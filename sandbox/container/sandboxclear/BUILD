@@ -1,11 +1,10 @@
 cc_binary(
-    name = "omogenjudge-setquota",
-    srcs = ["main.cc"],
+    name = "omogenjudge-sandboxc",
+    srcs = ["sandboxclear.cpp"],
     visibility = [
         "//sandbox:__subpackages__",
     ],
     deps = [
-        "//util/cpp",
         "@com_google_absl//absl/strings",
     ],
 )

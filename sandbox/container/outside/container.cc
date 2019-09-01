@@ -19,16 +19,16 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "glog/logging.h"
+#include "glog/raw_logging.h"
 #include "grpc/grpc.h"
 #include "sandbox/api/execspec.pb.h"
-#include "sandbox/container/inside/chroot.h"
 #include "sandbox/proto/container.pb.h"
 #include "util/cpp/files.h"
 #include "util/cpp/statusor.h"
 #include "util/cpp/time.h"
 
-using omogen::util::MakeDir;
 using omogen::util::ReadFromFd;
+using omogen::util::ReadIntFromFd;
 using omogen::util::RemoveTree;
 using omogen::util::Stopwatch;
 using omogen::util::WriteIntToFd;
@@ -40,55 +40,33 @@ using namespace std::chrono_literals;  // for ms
 namespace omogen {
 namespace sandbox {
 
-DEFINE_string(
-    container_root, "/var/lib/omogen/sandbox",
-    "A non-world writable directory to store the container root systems in");
-
-static const int kChildStackSize = 100 * 1000;  // 100 KB
+static const char* kContainerRoot = "/var/lib/omogen/sandbox";
 
 static const int kInodeLimit = 1000;
 
-struct SandboxArgs {
-  int id;
+void Container::startSandbox(const ContainerSpec& spec, int sandboxId) {
+  init_pid = fork();
+  PCHECK(init_pid != -1) << "Failed forking";
+  if (init_pid != 0) {
+    cgroup = std::make_unique<Cgroup>(init_pid);
+    return;
+  }
+  close(command_pipe[1]);
+  close(return_pipe[0]);
 
-  int stdin_fd;
-  int stdout_fd;
-
-  int close_fd;
-  int close_fd2;
-
-  string rootfs;
-  ContainerSpec container_spec;
-};
-
-static int StartSandbox [[noreturn]] (void* argp) {
-  setpgid(getpid(), getpid());
-  SandboxArgs args = *static_cast<SandboxArgs*>(argp);
-  PCHECK(prctl(PR_SET_KEEPCAPS, 1) != -1) << "Could not keep capabilities";
-  // Close the other ends of the pipes we use for stdin/stdout to avoid keeping
-  // them open on our side.
-  PCHECK(close(args.close_fd) != -1)
-      << "Could not close other end of stdin pipe";
-  PCHECK(close(args.close_fd2) != -1)
-      << "Could not close other end of stdout pipe";
-  Chroot chroot = Chroot::ForNewRoot(args.rootfs);
-  chroot.ApplyContainerSpec(args.container_spec);
-  chroot.SetRoot();
-
-  string sandbox_id = absl::StrCat(args.id);
-  ReadFromFd(1, args.stdin_fd);
-  // TODO make constants of a bunch of things
-  PCHECK(setuid(65123) != -1) << "Could not set uid";
-  PCHECK(setgid(65123) != -1) << "Could not set gid";
+  unsigned long long maxDiskBlocks =
+      (unsigned long long)spec.max_disk_kb() * 1000 / 1024;
   char* const argv[] = {strdup("/usr/bin/omogenjudge-sandboxr"),
                         strdup("-logtostderr"),
-                        strdup(sandbox_id.c_str()),
-                        strdup(absl::StrCat(args.stdin_fd).c_str()),
-                        strdup(absl::StrCat(args.stdout_fd).c_str()),
+                        strdup("-v=4"),
+                        strdup(absl::StrCat(sandboxId).c_str()),
+                        strdup(absl::StrCat(command_pipe[0]).c_str()),
+                        strdup(absl::StrCat(return_pipe[1]).c_str()),
+                        strdup(absl::StrCat(maxDiskBlocks).c_str()),
+                        strdup(absl::StrCat(kInodeLimit).c_str()),
                         NULL};
   PCHECK(execv("/usr/bin/omogenjudge-sandboxr", argv) != -1)
       << "Could not start sandbox";
-  assert(false && "unreachable");
 }
 
 Container::Container(std::unique_ptr<ContainerId> container_id_,
@@ -97,41 +75,16 @@ Container::Container(std::unique_ptr<ContainerId> container_id_,
   PCHECK(pipe(command_pipe) != -1) << "Failed creating command pipe";
   PCHECK(pipe(return_pipe) != -1) << "Failed creating return pipe";
   // The container will get a new root with chroot; we store this in a temporary
-  // directory
-  container_root = absl::StrCat(FLAGS_container_root, "/", container_id->Get());
-  MakeDir(container_root);
-  // Clone requires us to provide a new stack for the child process
-  std::vector<char> stack(kChildStackSize);
-  // Clone and create new namespaces for the contained process
-  SandboxArgs args{container_id->Get(),
-                   command_pipe[0],
-                   return_pipe[1],
-                   command_pipe[1],
-                   return_pipe[0],
-                   container_root,
-                   spec};
-  PCHECK((init_pid = clone(StartSandbox, stack.data() + stack.size(),
-                           SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS |
-                               CLONE_NEWPID | CLONE_NEWUSER | CLONE_NEWUTS,
-                           &args)) != -1)
-      << "Failed cloning new contained process";
-  LOG(INFO) << "Created new container with process ID is " << init_pid;
-  PCHECK(close(command_pipe[0]) != -1)
-      << "Failed closing read end of command pipe";
-  PCHECK(close(return_pipe[1]) != -1)
-      << "Failed closing write end of return pipe";
-  unsigned long long maxDiskBlocks =
-      (unsigned long long)spec.max_disk_kb() * 1000 / 1024;
-  cgroup = std::make_unique<Cgroup>(init_pid);
-  string s =
-      absl::StrCat("/usr/bin/omogenjudge-setquota ", init_pid, " ",
-                   container_id->Get(), " ", maxDiskBlocks, " ", kInodeLimit);
-  LOG(INFO) << "Executing " << s;
-  if (system(s.c_str())) {
-    LOG(FATAL) << "Failed uid change";
-  }
-  std::string str = "1";
-  WriteToFd(command_pipe[1], str);
+  // directory.
+  container_root = absl::StrCat(kContainerRoot, "/", container_id->Get());
+  startSandbox(spec, container_id->Get());
+  close(command_pipe[0]);
+  close(return_pipe[1]);
+
+  string spec_bytes;
+  spec.SerializeToString(&spec_bytes);
+  WriteIntToFd(spec_bytes.size(), command_pipe[1]);
+  WriteToFd(command_pipe[1], spec_bytes);
 }
 
 Container::~Container() {
@@ -142,7 +95,9 @@ Container::~Container() {
     ;
   init_pid = 0;
   VLOG(3) << "Removing container root";
-  RemoveTree(container_root);
+  std::string cmd =
+      absl::StrCat("/usr/bin/omogenjudge-sandboxc ", container_id->Get());
+  CHECK(system(cmd.c_str()) == 0) << "Could not clear submission";
   VLOG(3) << "Removed container root!";
 }
 
@@ -324,7 +279,7 @@ StatusOr<Termination> Container::MonitorInit(const ResourceAmounts& limits) {
     CHECK_LIM(watch.millis(), wall_time_limit, "Wall time");
 
     std::unique_lock<std::mutex> timeoutLock(monitor_state.lock);
-    monitor_state.wait_cv.wait_for(timeoutLock, 1ms,
+    monitor_state.wait_cv.wait_for(timeoutLock, 10ms,
                                    [&] { return !monitor_state.is_dead; });
 #undef CHECK_LIM
   }

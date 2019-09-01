@@ -7,7 +7,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//runner/api:go_default_library",
-        "@com_github_google_logger//:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

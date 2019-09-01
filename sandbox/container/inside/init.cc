@@ -1,9 +1,12 @@
 // Init is the init process (PID 1) of a container. Its purpose is to recieve
 // execution requests from the outside container and fork of a process to
 // execute it.
+#include <grp.h>
+#include <pwd.h>
 #include <sys/fcntl.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -13,15 +16,19 @@
 #include <string>
 
 #include "absl/strings/numbers.h"
+#include "absl/strings/str_cat.h"
 #include "glog/logging.h"
 #include "glog/raw_logging.h"
+#include "sandbox/api/execspec.pb.h"
 #include "sandbox/container/inside/chroot.h"
+#include "sandbox/container/inside/quota.h"
 #include "sandbox/container/inside/setup.h"
 #include "sandbox/proto/container.pb.h"
 #include "util/cpp/files.h"
 
 using omogen::sandbox::proto::ContainerExecution;
 using omogen::sandbox::proto::ContainerTermination;
+using omogen::util::MakeDir;
 using omogen::util::ReadFromFd;
 using omogen::util::ReadIntFromFd;
 using omogen::util::WriteIntToFd;
@@ -30,6 +37,12 @@ using std::string;
 
 namespace omogen {
 namespace sandbox {
+
+static const char* kContainerRoot = "/var/lib/omogen/sandbox";
+
+static const int kChildStackSize = 100 * 1000;  // 100 KB
+
+static const int kInodeLimit = 1000;
 
 // Returns a termination cause based on the given status, which should
 // be given in the waitpid format.
@@ -55,10 +68,10 @@ static ContainerTermination TerminationForError(const string& error_message) {
 static ContainerTermination Execute(const ContainerExecution& request) {
   // We need to set this here rather than in setup since we lose privilege to
   // change this to a potentially higher number after the fork.
-  rlim_t process_limit = request.process_limit() + 2;  // +1 for this process
-  rlimit rlim = {.rlim_cur = process_limit, .rlim_max = process_limit};
-  PCHECK(setrlimit(RLIMIT_NPROC, &rlim) != -1)
-      << "Could not set the process limit";
+  // rlim_t process_limit = request.process_limit() + 2;  // +1 for this process
+  // rlimit rlim = {.rlim_cur = process_limit, .rlim_max = process_limit};
+  // PCHECK(setrlimit(RLIMIT_NPROC, &rlim) != -1)
+  //    << "Could not set the process limit";
 
   // Start a fork to set up the execution environment for the request.
   // In the parent, we will wait for the request to finish. Since an error
@@ -140,24 +153,24 @@ static ContainerTermination Execute(const ContainerExecution& request) {
 }  // namespace sandbox
 }  // namespace omogen
 
-int main(int argc, char** argv) {
-  gflags::ParseCommandLineFlags(&argc, &argv, true);
-  google::InitGoogleLogging(argv[0]);
-  google::InstallFailureSignalHandler();
+static std::vector<char> stack(omogen::sandbox::kChildStackSize);
+static int in_id;
+static int out_id;
+static int sandbox_id;
+static string container_root;
+static gid_t omogenclients_gid;
 
-  CHECK(argc == 4) << "Incorrect number of arguments";
-  int sandbox_id;
-  CHECK(absl::SimpleAtoi(string(argv[1]), &sandbox_id))
-      << "Can not convert sandbox ID to integer";
-  CHECK(sandbox_id >= 0) << "Sandbox ID was negative";
-  int in_id, out_id;
-  CHECK(absl::SimpleAtoi(string(argv[2]), &in_id))
-      << "Can not convert input FD to integer";
-  CHECK(absl::SimpleAtoi(string(argv[3]), &out_id))
-      << "Can not convert output FD to integer";
-  CHECK(in_id >= 0) << "Input FD was negative";
-  CHECK(out_id >= 0) << "Ouptut FD was negative";
-
+int startSandbox(void* arg) {
+  omogen::sandbox::ContainerSpec spec;
+  int length;
+  CHECK(ReadIntFromFd(&length, in_id)) << "Failed reading length";
+  string spec_bytes = ReadFromFd(length, in_id);
+  CHECK(spec.ParseFromString(spec_bytes))
+      << "Could not read complete request: " << spec.DebugString();
+  omogen::sandbox::Chroot chroot =
+      omogen::sandbox::Chroot::ForNewRoot(container_root);
+  chroot.ApplyContainerSpec(spec);
+  chroot.SetRoot();
   // Kill us if the main sandbox is killed, to prevent our child from possibly
   // keep running. This is not a race with the parent death, since the read
   // later will crash us in case our parent dies after the prctl call.
@@ -165,32 +178,94 @@ int main(int argc, char** argv) {
   // running in the sandbox since we are PID 1 in a PID namespace.
   CHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
       << "Could not set PR_SET_PDEATHSIG";
-  LOG(INFO) << "Started up container";
+  LOG(INFO) << "S" << sandbox_id << " Started up container";
   // Keep reading execution requests in a loop in case we want to run more
   // commands in the same sandbox. Requests are written in the format
   // <number of bytes><request bytes>.
   while (true) {
     // Read execution request from the parent.
     ContainerExecution request;
-    int length;
     if (!ReadIntFromFd(&length, in_id)) {
-      break;
+      LOG(ERROR) << "S" << sandbox_id << " Failed reading length";
+      return 1;
     }
-    LOG(INFO) << "Request length: " << length;
+    LOG(INFO) << "S" << sandbox_id << " Request length: " << length;
     string request_bytes = ReadFromFd(length, in_id);
-    LOG(INFO) << "Read request size: " << request_bytes.length();
+    LOG(INFO) << "S" << sandbox_id
+              << " Read request size: " << request_bytes.length();
     if (!request.ParseFromString(request_bytes)) {
-      LOG(ERROR) << "Could not read complete request";
-      break;
+      LOG(ERROR) << "Could not read complete request: "
+                 << request.DebugString();
+      return 1;
     }
-    LOG(INFO) << "Received request " << request.DebugString();
+    LOG(INFO) << "S" << sandbox_id << " Received request "
+              << request.DebugString();
     ContainerTermination response = omogen::sandbox::Execute(request);
-    LOG(INFO) << "Done with termination " << response.DebugString();
+    LOG(INFO) << "S" << sandbox_id << " Done with termination "
+              << response.DebugString();
     string response_bytes;
     response.SerializeToString(&response_bytes);
     WriteIntToFd(response_bytes.size(), out_id);
     WriteToFd(out_id, response_bytes);
   }
-  PCHECK(close(out_id) != -1) << "Could not close output pipe";
+  LOG(INFO) << "S" << sandbox_id << " Closing";
+  PCHECK(close(out_id) != -1)
+      << "S" << sandbox_id << "Could not close output pipe";
   gflags::ShutDownCommandLineFlags();
+  return 0;
+}
+
+int main(int argc, char** argv) {
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  google::InitGoogleLogging(argv[0]);
+  google::InstallFailureSignalHandler();
+  setpgid(getpid(), getpid());
+  CHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
+      << "Could not set PR_SET_PDEATHSIG";
+
+  CHECK(argc == 6) << "Incorrect number of arguments";
+  CHECK(absl::SimpleAtoi(string(argv[1]), &sandbox_id))
+      << "Can not convert sandbox ID to integer";
+  CHECK(sandbox_id >= 0) << "Sandbox ID was negative";
+  CHECK(absl::SimpleAtoi(string(argv[2]), &in_id))
+      << "Can not convert input FD to integer";
+  CHECK(absl::SimpleAtoi(string(argv[3]), &out_id))
+      << "Can not convert output FD to integer";
+  CHECK(in_id >= 0) << "Input FD was negative";
+  CHECK(out_id >= 0) << "Ouptut FD was negative";
+  int block_quota, inode_quota;
+  CHECK(absl::SimpleAtoi(std::string(argv[4]), &block_quota))
+      << "Can not convert block quota to integer";
+  CHECK(block_quota >= 0) << "Block quota was negative";
+  CHECK(absl::SimpleAtoi(std::string(argv[5]), &inode_quota))
+      << "Can not convert Inode quota to integer";
+  CHECK(inode_quota >= 0) << "Inode quota was negative";
+
+  container_root =
+      absl::StrCat(omogen::sandbox::kContainerRoot, "/", sandbox_id);
+  MakeDir(container_root);
+  struct group* group = getgrnam("omogenjudge-clients");
+  omogenclients_gid = group->gr_gid;
+  std::string user = absl::StrCat("omogenjudge-client", sandbox_id);
+  struct passwd* pw = getpwnam(user.c_str());
+  omogen::sandbox::SetQuota(block_quota, inode_quota, pw->pw_uid);
+  PCHECK(pw != NULL) << "Could not fetch user";
+  PCHECK(chown(container_root.c_str(), pw->pw_uid, group->gr_gid) != -1)
+      << "Could not chown container root";
+  PCHECK(chmod(container_root.c_str(), 0775) != -1)
+      << "Could not chmod container root";
+
+  PCHECK(setegid(pw->pw_gid) != -1) << "Could not set gid";
+  PCHECK(seteuid(pw->pw_uid) != -1) << "Could not set uid";
+  pid_t clone_pid;
+  // Clone and create new namespaces for the contained process
+  PCHECK(
+      (clone_pid = clone(startSandbox, stack.data() + stack.size(),
+                         SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS |
+                             CLONE_NEWPID | CLONE_NEWUSER | CLONE_NEWUTS,
+                         nullptr)) != -1)
+      << "Failed cloning new contained process";
+  struct passwd* sandbox_pw = getpwnam("omogenjudge-sandbox");
+  PCHECK(setuid(sandbox_pw->pw_uid) != -1) << "Could not set uid to sandbox";
+  wait(nullptr);
 }

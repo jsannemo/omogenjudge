@@ -17,7 +17,12 @@ go_library(
     visibility = ["//vendor/golang.org/x/crypto:__subpackages__"],
     deps = [
         "//vendor/golang.org/x/crypto/internal/subtle:go_default_library",
-    ],
+    ] + select({
+        "@io_bazel_rules_go//go/platform:s390x": [
+            "@org_golang_x_sys//cpu:go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 go_test(

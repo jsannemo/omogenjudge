@@ -1,0 +1,7 @@
+#!/bin/bash
+
+rm -rf /var/lib/omogen/submissions
+
+set +e
+userdel omogenjudge || true
+set -e

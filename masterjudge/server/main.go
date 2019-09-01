@@ -11,8 +11,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"strconv"
-	"sync"
 
 	"github.com/google/logger"
 	"google.golang.org/grpc"
@@ -26,7 +24,9 @@ import (
 	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/problems"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
+	"github.com/jsannemo/omogenjudge/util/go/files"
 	"github.com/jsannemo/omogenjudge/util/go/filestore"
+	"github.com/jsannemo/omogenjudge/util/go/users"
 )
 
 var (
@@ -35,13 +35,13 @@ var (
 
 var runner runpb.RunServiceClient
 var filehandler filepb.FileHandlerServiceClient
-var slotPool = sync.Pool{}
+var slotPool = make(chan int, 4)
 
 func init() {
-	slotPool.Put(0)
-	slotPool.Put(1)
-	slotPool.Put(2)
-	slotPool.Put(3)
+	slotPool <- 0
+	slotPool <- 1
+	slotPool <- 2
+	slotPool <- 3
 }
 
 func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.CompileResponse, outerr **error) {
@@ -84,9 +84,16 @@ func toProgram(val *models.OutputValidator) (*runpb.Program, error) {
 }
 
 func judge(ctx context.Context, submission *models.Submission) error {
-	slot := slotPool.Get()
-	defer slotPool.Put(slot)
+	slot := <-slotPool
+	defer func() { slotPool <- slot }()
 	logger.Infof("Judging submission %d", submission.SubmissionId)
+	// TODO: this should be created in the local evaluator prior to compilation somehow
+	root := files.NewFileBase(fmt.Sprintf("/var/lib/omogen/submissions/%d", submission.SubmissionId))
+	root.Gid = users.OmogenClientsId()
+	root.GroupWritable = true
+	if err := root.Mkdir("."); err != nil {
+		return fmt.Errorf("Could not create submission directory: %v", err)
+	}
 
 	var compileErr *error = nil
 	compileOutput := make(chan *runpb.CompileResponse)
@@ -156,7 +163,7 @@ func judge(ctx context.Context, submission *models.Submission) error {
 		})
 	}
 	evalReq := &runpb.EvaluateRequest{
-		SubmissionId: strconv.Itoa(int(submission.SubmissionId)),
+		SubmissionId: int32(submission.SubmissionId),
 		Program:      compileResponse.Program,
 		Cases:        reqTests,
 		TimeLimitMs:  int64(problem.TimeLimMs),
@@ -200,7 +207,11 @@ func main() {
 	flag.Parse()
 	defer logger.Init("masterjudge", false, true, os.Stderr).Close()
 
-	runner = rclient.NewClient()
+	var err error
+	runner, err = rclient.NewClient()
+	if err != nil {
+		logger.Fatalf("Failed creating runner client: %v", err)
+	}
 	filehandler = fhclient.NewClient()
 
 	judgeQueue := make(chan *models.Submission, 1000)

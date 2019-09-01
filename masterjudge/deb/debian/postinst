@@ -2,4 +2,12 @@
 
 set -e
 
+if ! id -u omogenjudge >/dev/null 2>&1; then
+  useradd -s /usr/bin/nologin -r omogenjudge -G omogenjudge-clients
+fi
+
+mkdir -p /var/lib/omogen/submissions
+
+chown omogenjudge:omogenjudge /var/lib/omogen/submissions
+
 systemctl start omogenjudge-master

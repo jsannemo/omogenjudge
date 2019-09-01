@@ -28,9 +28,14 @@ func (s *toolServer) ParseCourse(ctx context.Context, req *toolspb.ParseCourseRe
 	return courses.ParseCourse(req.CoursePath)
 }
 
-func Register(grpcServer *grpc.Server) {
+func Register(grpcServer *grpc.Server) error {
+	client, err := rclient.NewClient()
+	if err != nil {
+		return err
+	}
 	server := &toolServer{
-		rclient.NewClient(),
+		runner: client,
 	}
 	toolspb.RegisterToolServiceServer(grpcServer, server)
+	return nil
 }

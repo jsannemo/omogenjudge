@@ -18,12 +18,21 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
+    linkopts = [
+        "-lcap",
+    ],
 )
 
 cc_library(
     name = "internals",
-    srcs = ["cgroups.cc"],
-    hdrs = ["cgroups.h"],
+    srcs = [
+        "cgroups.cc",
+        "chroot.cc",
+    ],
+    hdrs = [
+        "cgroups.h",
+        "chroot.h",
+    ],
     deps = [
         "//sandbox/api:omogen_sandbox_cpp_proto",
         "//util/cpp",

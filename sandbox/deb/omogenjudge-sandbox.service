@@ -6,7 +6,13 @@ After=network.target
 Type=simple
 Restart=always
 User=omogenjudge-sandbox
-ExecStart=/usr/bin/omogenjudge-sandbox --logtostderr
+ExecStartPre=+bash -c 'mkdir -p /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain'
+ExecStartPre=+bash -c 'chown omogenjudge-sandbox:omogenjudge-sandbox /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain'
+ExecStartPre=+bash -c 'echo "rmdir" > /sys/fs/cgroup/memory/release_agent || true'
+ExecStartPre=+bash -c 'echo "rmdir" > /sys/fs/cgroup/cpuacct/release_agent || true'
+PermissionsStartOnly=true
+ExecStart=/usr/bin/omogenjudge-sandbox --logtostderr -v=4
+ExecStopPost=+bash -c 'rmdir /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain || true'
 
 [Install]
 WantedBy=multi-user.target

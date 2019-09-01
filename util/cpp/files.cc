@@ -1,15 +1,17 @@
+#include "util/cpp/files.h"
+
 #include <dirent.h>
 #include <fcntl.h>
 #include <ftw.h>
-#include <glog/logging.h>
-#include <glog/raw_logging.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
 #include <algorithm>
 #include <cassert>
 #include <fstream>
 
-#include "util/cpp/files.h"
+#include "glog/logging.h"
+#include "glog/raw_logging.h"
 
 using std::string;
 
@@ -202,7 +204,7 @@ std::string ReadFromFd(int bytes, int fd) {
   int at = 0;
   while (at != bytes) {
     int r = read(fd, buf + at, bytes - at);
-    PCHECK(r != -1 || errno == EINTR) << "Failed reading return value";
+    RAW_CHECK(r != -1 || errno == EINTR, "Failed reading return value");
     if (errno == EINTR) {
       continue;
     }

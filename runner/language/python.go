@@ -1,4 +1,3 @@
-// A Language implementation of Python, both version 2 and 3 and CPython/pypy runtimes.
 package language
 
 import (
@@ -9,6 +8,7 @@ import (
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	"github.com/jsannemo/omogenjudge/runner/compilers"
 	"github.com/jsannemo/omogenjudge/runner/runners"
+	"github.com/jsannemo/omogenjudge/util/go/commands"
 )
 
 func init() {
@@ -37,7 +37,7 @@ func initPython(executable, name, tag string, languageGroup runpb.LanguageGroup)
 		// TODO: check if error was because of something other than not existing
 		return
 	}
-	version, err := runners.FirstLineFromCommand(realPath, []string{"--version"})
+	version, err := commands.FirstLineFromCommand(realPath, []string{"--version"})
 	if err != nil {
 		logger.Fatalf("Could not retrieve version for python %v", realPath)
 	}

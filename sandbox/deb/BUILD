@@ -41,13 +41,13 @@ pkg_tar(
 )
 
 pkg_tar(
-    name = "setquota",
+    name = "clear",
     srcs = [
-        "//sandbox/container/setquota:omogenjudge-setquota",
+        "//sandbox/container/sandboxclear:omogenjudge-sandboxc",
     ],
     mode = "0755",
     package_dir = "/usr/bin",
-    strip_prefix = "/sandbox/container/setquota",
+    strip_prefix = "/sandbox/container/sandboxclear",
 )
 
 pkg_tar(
@@ -58,7 +58,7 @@ pkg_tar(
         ":service",
         ":runner",
         ":server",
-        ":setquota",
+        ":clear",
     ],
 )
 

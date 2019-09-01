@@ -46,7 +46,7 @@ message GetLanguagesResponse {
 
 // A request to evaluate an already compiled program on testdata.
 message EvaluateRequest {
-  string submission_id = 1;
+  int32 submission_id = 1;
 
   // The compiled program.
   CompiledProgram program = 2;
@@ -103,6 +103,8 @@ service RunService {
   // Compile source files in a program, producing a compiled program.
   rpc Compile(CompileRequest) returns (CompileResponse) {}
 
+  // Compile a program and store the results in a cache. If the program
+  // existed in the cache, return that instead.
   rpc CompileCached(CompileCachedRequest) returns (CompileCachedResponse) {}
 
   // Evaluate a compiled submission.
@@ -112,5 +114,4 @@ service RunService {
 
   // Fetch all supported languages of the machine hosting this service.
   rpc GetLanguages(GetLanguagesRequest) returns (GetLanguagesResponse) {}
-
 }

@@ -31,6 +31,7 @@ type runServer struct {
 	exec      execpb.ExecuteServiceClient
 }
 
+// TODO: rewrite
 func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) (*runpb.SimpleRunResponse, error) {
 	execStream, err := s.exec.Execute(context.Background())
 	defer execStream.CloseSend()
@@ -52,7 +53,7 @@ func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) 
 	}
 	defer os.RemoveAll(dir)
 
-	env, err := runners.NewEnv(filepath.Join(dir, "env"))
+	env, err := runners.NewFileLinker(filepath.Join(dir, "env"))
 	if err != nil {
 		return nil, err
 	}
@@ -114,6 +115,10 @@ var compileCache = make(map[string]*runpb.CompileResponse)
 var cacheLock sync.Mutex
 
 func (s *runServer) CompileCached(ctx context.Context, req *runpb.CompileCachedRequest) (*runpb.CompileCachedResponse, error) {
+	logger.Infof("/RunService.CompileCached: %v", req)
+	if status := ValidateCompileRequest(req.Request); status.Code() != codes.OK {
+		return nil, status.Err()
+	}
 	cacheLock.Lock()
 	defer cacheLock.Unlock()
 	res, has := compileCache[req.Identifier]
@@ -131,15 +136,18 @@ func (s *runServer) CompileCached(ctx context.Context, req *runpb.CompileCachedR
 
 // Implementation of RunServer.Compile.
 func (s *runServer) Compile(ctx context.Context, req *runpb.CompileRequest) (*runpb.CompileResponse, error) {
-	logger.Infof("RunService.Compile: %v", req)
-	// TODO: add request validation
+	logger.Infof("/RunService.Compile: %v", req)
+	if status := ValidateCompileRequest(req); status.Code() != codes.OK {
+		return nil, status.Err()
+	}
+
 	language, exists := language.GetLanguage(req.Program.LanguageId)
 	if !exists {
 		return nil, status.Errorf(codes.InvalidArgument, "Language %v does not exist", req.Program.LanguageId)
 	}
+	// TODO: pass on context here
 	compiledProgram, err := language.Compile(req.Program, req.OutputPath, s.exec)
 	if err != nil {
-		logger.Errorf("Failed program compilation: %v", err)
 		return nil, err
 	}
 	response := &runpb.CompileResponse{
@@ -152,10 +160,15 @@ func (s *runServer) Compile(ctx context.Context, req *runpb.CompileRequest) (*ru
 
 // Implementation of RunServer.Evaluate.
 func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService_EvaluateServer) error {
+	logger.Infof("/RunService.Evaluate: %v", req)
+	if err := ValidateEvaluateRequest(req); err != nil {
+		return err
+	}
+
 	execStream, err := s.exec.Execute(context.Background())
 	defer execStream.CloseSend()
 	if err != nil {
-		return err
+		return status.Errorf(codes.Internal, "Failed opening execution stream: %v", err)
 	}
 
 	lang, exists := language.GetLanguage(req.Program.LanguageId)
@@ -164,34 +177,29 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 	}
 	program, err := lang.Program(req.Program, execStream)
 	if err != nil {
-		return err
+		return status.Errorf(codes.Internal, "Invalid compiled program: %v", err)
 	}
 	var validator runners.Program
 	if req.Validator != nil {
 		valExecStream, err := s.exec.Execute(context.Background())
 		defer valExecStream.CloseSend()
 		if err != nil {
-			return err
+			return status.Errorf(codes.Internal, "Failed opening execution stream for validation: %v", err)
 		}
-    lang, exists := language.GetLanguage(req.Validator.Program.LanguageId)
-    if !exists {
-      return status.Errorf(codes.InvalidArgument, "Language %v does not exist", req.Program.LanguageId)
-    }
+		lang, exists := language.GetLanguage(req.Validator.Program.LanguageId)
+		if !exists {
+			return status.Errorf(codes.InvalidArgument, "Language %v does not exist", req.Program.LanguageId)
+		}
 		validator, err = lang.Program(req.Validator.Program, valExecStream)
 		if err != nil {
-			return err
+			return status.Errorf(codes.InvalidArgument, "Invalid validator: %v", err)
 		}
 	}
 
-	root := fmt.Sprintf("/var/lib/omogen/submissions/%s", req.SubmissionId)
-	if err := os.Mkdir(root, 0755); err != nil {
-		if !os.IsExist(err) {
-			return err
-		}
-	}
+	root := fmt.Sprintf("/var/lib/omogen/submissions/%d", req.SubmissionId)
 	evaluator, err := eval.NewEvaluator(root, program, validator)
 	if err != nil {
-		return fmt.Errorf("failed creating evaluator: %v", err)
+		return status.Errorf(codes.Internal, "Failed creating evaluator: %v", err)
 	}
 	evaluator.EvaluateAll = req.EvaluateAll
 
@@ -207,23 +215,31 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 	results := make(chan *eval.Result, 10)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+	var evalErr error
 	go func() {
 		// TODO handle these errors
 		for res := range results {
 			if res.TestCaseVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
-				stream.Send(&runpb.EvaluateResponse{
+				if err = stream.Send(&runpb.EvaluateResponse{
 					Result: &runpb.EvaluateResponse_TestCase{&runpb.TestCaseResult{Verdict: res.TestCaseVerdict}},
-				})
+				}); err != nil {
+					break
+				}
 			} else if res.SubmissionVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
-				stream.Send(&runpb.EvaluateResponse{
+				if err = stream.Send(&runpb.EvaluateResponse{
 					Result: &runpb.EvaluateResponse_Submission{&runpb.SubmissionResult{Verdict: res.SubmissionVerdict}},
-				})
+				}); err != nil {
+					break
+				}
 			}
 		}
 		wg.Done()
 	}()
 	if err := evaluator.Evaluate(tcs, req.TimeLimitMs, req.MemLimitKb, results); err != nil {
-		return fmt.Errorf("failed evaluation: %v", err)
+		return status.Errorf(codes.Internal, "Failed evaluation: %v", err)
+	}
+	if evalErr != nil {
+		return status.Errorf(codes.Internal, "Could not send back verdict: %v", evalErr)
 	}
 	wg.Wait()
 	return nil
@@ -234,10 +250,10 @@ func newServer() (*runServer, error) {
 	for _, language := range language.GetLanguages() {
 		apiLanguages = append(apiLanguages, language.ToApiLanguage())
 	}
-  execClient, err := eclient.NewClient()
-  if err != nil {
-    return nil, fmt.Errorf("failed creating ExecuteService client: %v", err)
-  }
+	execClient, err := eclient.NewClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed creating ExecuteService client: %v", err)
+	}
 	s := &runServer{
 		languages: apiLanguages,
 		exec:      execClient,
@@ -245,6 +261,7 @@ func newServer() (*runServer, error) {
 	return s, nil
 }
 
+// Register registers a new RunService with the given server.
 func Register(grpcServer *grpc.Server) {
 	server, err := newServer()
 	if err != nil {

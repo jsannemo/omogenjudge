@@ -39,5 +39,6 @@ pkg_deb(
     package = "omogenjudge-master",
     postinst = "debian/postinst",
     prerm = "debian/prerm",
+    postrm = "debian/postrm",
     version = "0.0.1",
 )

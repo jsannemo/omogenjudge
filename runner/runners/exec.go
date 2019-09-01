@@ -2,7 +2,6 @@ package runners
 
 import (
 	"errors"
-	"os"
 	"path/filepath"
 
 	"github.com/google/logger"
@@ -10,60 +9,62 @@ import (
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 )
 
-type ExecArgs struct {
-	Command          string
-	Args             []string
-	WorkingDirectory string
-	InputPath        string
-	OutputPath       string
-	ErrorPath        string
-	ExtraReadPaths   []string
-	ExtraWritePaths  []string
-	TimeLimitMs      int64
-	MemoryLimitKb    int64
-	ReuseContainer   bool
-}
-
-type ExitReason int
+// An ExitType describes why a program exited.
+type ExitType int
 
 const (
-	Exited ExitReason = iota
+	// Exited means the program exited normally with an exit code.
+	Exited ExitType = iota
+
+	// Signaled means the program was killed by a signal.
 	Signaled
+
+	// TimedOut means the program was killed due to exceeding its time limit.
 	TimedOut
+
+	// MemoryExceeded means the program was killed due to exceeding its allocated memory.
+	MemoryExceeded
 )
 
+// An ExecResult describes the result of a single execution.
 type ExecResult struct {
-	ExitReason    ExitReason
-	ExitCode      int32
-	Signal        int32
-	TimeUsageMs   int
+	// How how the program exited.
+	ExitType ExitType
+
+	// The exit code. Only set if the program exited with a code.
+	ExitCode int32
+
+	// The termination singal. Only set if the program exited with a signal.
+	Signal int32
+
+	// The time the execution used.
+	TimeUsageMs int
+
+	// The memory the execution used.
 	MemoryUsageKb int
 }
 
-func (res ExecResult) Abnormal() bool {
-	return !res.CrashedWith(0)
-}
-
+// CrashedWith checks whether the program exited normally with the given code.
 func (res ExecResult) CrashedWith(code int32) bool {
-	return res.ExitReason == Exited && res.ExitCode == code
+	return res.ExitType == Exited && res.ExitCode == code
 }
 
+// Crashed checks whether the program crashed.
 func (res ExecResult) Crashed() bool {
-	return (res.ExitReason == Exited && res.ExitCode != 0) || res.ExitReason == Signaled
+	return (res.ExitType == Exited && res.ExitCode != 0) || res.ExitType == Signaled
 }
 
+// TimedOut checks whether the program exceeded its time limit or not.
 func (res ExecResult) TimedOut() bool {
-	return res.ExitReason == TimedOut
+	return res.ExitType == TimedOut
 }
 
-// TODO error handlign
-func ensureFolder(path string) {
-	os.MkdirAll(path, 0755)
+// MemoryExceeded checks whether the program exceeded its memory limit or not.
+func (res ExecResult) MemoryExceeded() bool {
+	return res.ExitType == MemoryExceeded
 }
 
 func makeStreams(in, out, err string) *execpb.Streams {
-	ensureFolder(filepath.Dir(out))
-	ensureFolder(filepath.Dir(err))
 	return &execpb.Streams{
 		Mappings: []*execpb.Streams_Mapping{
 			&execpb.Streams_Mapping{
@@ -83,6 +84,20 @@ func makeStreams(in, out, err string) *execpb.Streams {
 			},
 		},
 	}
+}
+
+type ExecArgs struct {
+	Command          string
+	Args             []string
+	WorkingDirectory string
+	InputPath        string
+	OutputPath       string
+	ErrorPath        string
+	ExtraReadPaths   []string
+	ExtraWritePaths  []string
+	TimeLimitMs      int64
+	MemoryLimitKb    int64
+	ReuseContainer   bool
 }
 
 func Execute(exec execpb.ExecuteService_ExecuteClient, args *ExecArgs) (*ExecResult, error) {
@@ -114,7 +129,7 @@ func Execute(exec execpb.ExecuteService_ExecuteClient, args *ExecArgs) (*ExecRes
 			},
 		},
 		ContainerSpec: &execpb.ContainerSpec{
-      MaxDiskKb: 1000 * 1000, // 1 GB
+			MaxDiskKb: 1000 * 1000, // 1 GB
 			Mounts: makeMounts(
 				append(args.ExtraReadPaths,
 					filepath.Dir(args.InputPath),
@@ -148,25 +163,25 @@ func toResult(termination *execpb.Termination) (*ExecResult, error) {
 	switch termination.Termination.(type) {
 	case *execpb.Termination_Signal_:
 		return &ExecResult{
-			ExitReason: Signaled,
+			ExitType: Signaled,
 		}, nil
 	case *execpb.Termination_Exit_:
 		return &ExecResult{
-			ExitReason: Exited,
-			ExitCode:   termination.GetExit().Code,
+			ExitType: Exited,
+			ExitCode: termination.GetExit().Code,
 		}, nil
 	case *execpb.Termination_ResourceExceeded:
 		if termination.GetResourceExceeded() == execpb.ResourceType_CPU_TIME {
 			return &ExecResult{
-				ExitReason: TimedOut,
+				ExitType: TimedOut,
 			}, nil
 		} else if termination.GetResourceExceeded() == execpb.ResourceType_WALL_TIME {
 			return &ExecResult{
-				ExitReason: TimedOut,
+				ExitType: TimedOut,
 			}, nil
 		} else if termination.GetResourceExceeded() == execpb.ResourceType_MEMORY {
 			return &ExecResult{
-				ExitReason: Signaled,
+				ExitType: MemoryExceeded,
 			}, nil
 		} else {
 			return nil, errors.New("unknown resource exceeded")

@@ -22,13 +22,14 @@ func (s *masterServer) GetLanguages(ctx context.Context, _ *masterpb.GetLanguage
 	return &masterpb.GetLanguagesResponse{InstalledLanguages: langs.InstalledLanguages}, nil
 }
 
-func newServer() *masterServer {
-	return &masterServer{
-		run: rclient.NewClient(),
+func Register(grpcServer *grpc.Server) error {
+	client, err := rclient.NewClient()
+	if err != nil {
+		return err
 	}
-}
-
-func Register(grpcServer *grpc.Server) {
-	server := newServer()
+	server := &masterServer{
+		run: client,
+	}
 	masterpb.RegisterMasterServiceServer(grpcServer, server)
+	return nil
 }

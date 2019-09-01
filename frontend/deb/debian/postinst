@@ -2,4 +2,8 @@
 
 set -e
 
+if ! id -u omogenjudge-frontend >/dev/null 2>&1; then
+  useradd -s /usr/bin/nologin -r omogenjudge-frontend
+fi
+
 systemctl start omogenjudge-frontend

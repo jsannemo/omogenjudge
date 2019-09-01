@@ -51,5 +51,6 @@ pkg_deb(
     package = "omogenjudge-frontend",
     postinst = "debian/postinst",
     prerm = "debian/prerm",
+    postrm = "debian/postrm",
     version = "0.0.1",
 )
