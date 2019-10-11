@@ -22,6 +22,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//frontend/courses:go_default_library",
+        "//frontend/editor:go_default_library",
         "//frontend/home:go_default_library",
         "//frontend/middleware",
         "//frontend/paths",

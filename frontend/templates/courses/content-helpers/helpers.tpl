@@ -8,7 +8,7 @@
   {{ .LocalizedStatement ctx.Locales }}
 
   {{ range .Samples }}
-    <b>Sample</b>
+    <b>Exempel</b>
     <pre>{{ .InputFile.FileString }}</pre>
     <hr>
     <pre>{{ .OutputFile.FileString }}</pre>

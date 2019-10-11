@@ -9,6 +9,7 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_HTMLorMML"></script>
     <link rel="stylesheet" href="/static/main.css">
     <link rel="stylesheet" href="/static/judge.css">
+    <link rel="stylesheet" href="/static/editor.css">
     <link rel="icon" href="/static/kodsport/favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,300i,400,400i,600,600i,700,700i" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">

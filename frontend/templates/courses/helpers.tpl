@@ -10,7 +10,7 @@
 # Nästa avsnitt
 {{ define "course_next_section" }}
 {{ with .section.NextSection }}
-<h2>Next section</h2>
+<h2>Nästa avsnitt</h2>
 {{ template "course_chapter_box" dict "Chapter" . "C" $.C }}
 {{ end }}
 {{ end }}

@@ -1,0 +1,27 @@
+section.content {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor, .editor article {
+  display: flex;
+  flex: 1 0 auto;
+}
+
+.editor-files {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.editor-running {
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+}

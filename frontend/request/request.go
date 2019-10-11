@@ -68,6 +68,15 @@ func (templateResponse) Code() int {
 	return http.StatusOK
 }
 
+type rawResponse struct {
+  // The raw data that should be passed to the client
+	Content string
+}
+
+func (rawResponse) Code() int {
+	return http.StatusOK
+}
+
 type redirectResponse struct {
 	// The path the client should be redirected to
 	Path string
@@ -119,6 +128,11 @@ func Template(name string, data interface{}) Response {
 	return &templateResponse{name, data}
 }
 
+// Raw returns a Response that renders raw content to the client.
+func Raw(content string) Response {
+	return &rawResponse{content}
+}
+
 // Write writes the Response currently stored in the request to the client.
 func (req *Request) Write(w http.ResponseWriter) {
 	switch r := req.Response.(type) {
@@ -128,6 +142,9 @@ func (req *Request) Write(w http.ResponseWriter) {
 	case *redirectResponse:
 		w.Header().Set("Location", r.Path)
 		w.WriteHeader(r.Code())
+	case *rawResponse:
+    w.Write([]byte(r.Content))
+    w.WriteHeader(r.Code())
 	case *templateResponse:
 		err := templates.ExecuteTemplates(w, r.Name,
 			struct {

@@ -192,3 +192,14 @@ CREATE TABLE course_section_localization(
 );
 
 GRANT ALL ON course_section_localization TO omogenjudge;
+
+CREATE TABLE editor_file(
+  editor_file_id SERIAL PRIMARY KEY,
+  account_id INTEGER NOT NULL REFERENCES account_id,
+  file_name TEXT NOT NULL,
+  file_content TEXT NOT NULL
+);
+
+GRANT ALL ON editor_file TO omogenjudge;
+
+CREATE UNIQUE INDEX editor_file_account_name ON editor_file(account_id, file_name);
