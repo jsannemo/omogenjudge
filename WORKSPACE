@@ -5,18 +5,21 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 # ======== Build tools ========
 
-# Golang build rules
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "8df59f11fb697743cbb3f26cfb8750395f30471e9eabde0d174c3aebc7a1cd39",
     urls = [
-        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.19.1/rules_go-0.19.1.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/0.19.1/rules_go-0.19.1.tar.gz",
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/v0.20.2/rules_go-v0.20.2.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.20.2/rules_go-v0.20.2.tar.gz",
     ],
+    sha256 = "b9aa86ec08a292b97ec4591cf578e020b35f98e12173bbd4a921f84f583aebd9",
 )
 
-load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
+
 go_rules_dependencies()
+
 go_register_toolchains()
 
 git_repository(
@@ -73,31 +76,23 @@ git_repository(
 )
 
 # ======== Protobuf ========
-
 git_repository(
-    name = "com_google_protobuf",
-    remote = "https://github.com/google/protobuf.git",
-    commit = "655310ca192a6e3a050e0ca0b7084a2968072260",
-    shallow_since = "1565024848 -0700",
+    name = "rules_proto_grpc",
+    commit = "65b3876bf833fe72049217312727fd04e04e6a1e",
+    remote = "https://github.com/rules-proto-grpc/rules_proto_grpc.git",
 )
 
-load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
-protobuf_deps()
+load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_repos")
+rules_proto_grpc_repos()
 
-# Proto/gRPC build rules
-git_repository(
-    name = "com_github_stackb_rules_proto",
-    commit = "d9a123032f8436dbc34069cfc3207f2810a494ee",
-    shallow_since = "1561665037 -0600",
-    remote = "https://github.com/stackb/rules_proto.git",
-)
+load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
+rules_proto_grpc_toolchains()
 
-load("@com_github_stackb_rules_proto//cpp:deps.bzl", "cpp_proto_library", "cpp_grpc_library")
-cpp_proto_library()
-cpp_grpc_library()
+load("@rules_proto_grpc//cpp:repositories.bzl", rules_proto_grpc_cpp_repos="cpp_repos")
+rules_proto_grpc_cpp_repos()
 
-load("@com_github_stackb_rules_proto//go:deps.bzl", "go_proto_library", "go_grpc_library")
-go_proto_library()
+load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos="go_repos")
+rules_proto_grpc_go_repos()
 
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 grpc_deps()

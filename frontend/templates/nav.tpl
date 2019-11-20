@@ -14,7 +14,8 @@
         <li><a href="/">Hem</a></li>
         <li><a href="/courses">Kurser</a></li>
         <li><a href="/problems">Problemarkiv</a></li>
-        <li><a href="/editor">Kodredigerare</a></li>
+        <li><a href="/contests">Tävlingar</a></li>
+        <!-- <li><a href="/editor">Kodredigerare</a></li> -->
         {{ if .C.User }}
           <li class="navbar-dropdown closed">
             <a href="javascript:;"> <i class="material-icons">person</i> {{ .C.User.Username }}<span class="navbar-dropdown-caret"></span></a>
@@ -32,5 +33,4 @@
   </div>
 </header>
 <section class="content">
-<div class="text-center alert alert-error">Kodsport Academy är just nu i en tidig utvecklingsfas - det kan finnas många fel, och konton kan regelbundet raderas!</div>
 {{ end }}

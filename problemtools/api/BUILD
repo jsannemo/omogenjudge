@@ -1,6 +1,6 @@
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("@com_github_stackb_rules_proto//go:go_grpc_library.bzl", "go_grpc_library")
+load("@rules_proto_grpc//go:go_grpc_library.bzl", "go_grpc_library")
 
 package(default_visibility = ["//visibility:public"])
 

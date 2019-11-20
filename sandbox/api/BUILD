@@ -1,8 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
-load("@com_github_stackb_rules_proto//cpp:cpp_proto_library.bzl", "cpp_proto_library")
-load("@com_github_stackb_rules_proto//cpp:cpp_grpc_library.bzl", "cpp_grpc_library")
-load("@com_github_stackb_rules_proto//go:go_grpc_library.bzl", "go_grpc_library")
+load("@rules_proto_grpc//cpp:cpp_grpc_library.bzl", "cpp_grpc_library")
+load("@rules_proto_grpc//go:go_grpc_library.bzl", "go_grpc_library")
 
 cpp_grpc_library(
     name = "omogen_sandbox_cpp_proto",
