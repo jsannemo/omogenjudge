@@ -28,6 +28,10 @@ func (s *toolServer) ParseCourse(ctx context.Context, req *toolspb.ParseCourseRe
 	return courses.ParseCourse(req.CoursePath)
 }
 
+func (s *toolServer) InstallContest(ctx context.Context, req *toolspb.InstallContestRequest) (*toolspb.InstallContestResponse, error) {
+	return nil, nil
+}
+
 func Register(grpcServer *grpc.Server) error {
 	client, err := rclient.NewClient()
 	if err != nil {

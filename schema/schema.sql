@@ -1,43 +1,46 @@
--- TODO: document database fields
-
 -- File tables
 CREATE TYPE hash AS (hash VARCHAR(256));
 
 CREATE TABLE stored_file(
-  file_hash hash PRIMARY KEY,
-  url bytea NOT NULL
+	-- The hash of the stored file contents.
+	file_hash hash PRIMARY KEY,
+	-- A URL describing how to get the resource.
+	url bytea NOT NULL
 );
 
 GRANT ALL ON stored_file TO omogenjudge;
 
+-- Extracts the URL of a file hash.
 CREATE FUNCTION file_url(in hash, out bytea)
-   AS $$ SELECT url FROM stored_file WHERE file_hash = $1 $$
-   LANGUAGE SQL;
+AS $$ SELECT url FROM stored_file WHERE file_hash = $1 $$
+LANGUAGE SQL;
 
 CREATE FUNCTION file_hash(in hash, out VARCHAR(256))
-   AS $$ SELECT $1.hash $$
-   LANGUAGE SQL;
+AS $$ SELECT $1.hash $$
+LANGUAGE SQL;
 
 -- Account tables
 CREATE TABLE account(
-  account_id SERIAL PRIMARY KEY,
-  username TEXT NOT NULL,
-  password_hash TEXT NOT NULL
+	account_id SERIAL PRIMARY KEY,
+	username TEXT NOT NULL,
+	password_hash TEXT NOT NULL,
+	full_name TEXT NOT NULL,
+	email TEXT NOT NULL
 );
 
 CREATE UNIQUE INDEX account_username ON account(username);
+CREATE UNIQUE INDEX account_email ON account(email);
 
 GRANT ALL ON account TO omogenjudge;
 GRANT ALL ON account_account_id_seq TO omogenjudge;
 
 -- Problem tables
 CREATE TABLE problem(
-  problem_id SERIAL PRIMARY KEY,
-  short_name TEXT NOT NULL,
-  author TEXT NOT NULL,
-  license TEXT NOT NULL,
-  time_limit_ms INTEGER NOT NULL,
-  memory_limit_kb INTEGER NOT NULL
+	problem_id SERIAL PRIMARY KEY,
+	short_name TEXT NOT NULL,
+	author TEXT NOT NULL,
+	license TEXT NOT NULL,
+	current_version INTEGER
 );
 
 CREATE UNIQUE INDEX problem_shortname ON problem(short_name);
@@ -45,43 +48,65 @@ CREATE UNIQUE INDEX problem_shortname ON problem(short_name);
 GRANT ALL ON problem TO omogenjudge;
 GRANT ALL ON problem_problem_id_seq TO omogenjudge;
 
+CREATE TABLE problem_version(
+	problem_version_id SERIAL PRIMARY KEY,
+	problem_id INTEGER NOT NULL REFERENCES problem ON DELETE CASCADE,
+	time_limit_ms INTEGER NOT NULL,
+	memory_limit_kb INTEGER NOT NULL
+);
+
+GRANT ALL ON problem_version TO omogenjudge;
+
+ALTER TABLE problem ADD FOREIGN KEY (problem_version_id) REFERENCES problem_version(current_version) DEFERRABLE INITIALLY IMMEDIATE;
+
 CREATE TABLE problem_output_validator(
-  problem_id INTEGER NOT NULL REFERENCES problem ON DELETE CASCADE,
-  validator_language_id TEXT NOT NULL,
-  validator_source_zip hash NOT NULL,
-  UNIQUE(problem_id)
+	problem_version_id INTEGER NOT NULL REFERENCES problem_version ON DELETE CASCADE,
+	validator_language_id TEXT NOT NULL,
+	validator_source_zip hash NOT NULL,
+	PRIMARY KEY(problem_version_id)
 );
 
 GRANT ALL ON problem_output_validator TO omogenjudge;
 
 CREATE TABLE problem_statement(
-  problem_id INTEGER,
-  language TEXT NOT NULL,
-  title TEXT NOT NULL,
-  html TEXT NOT NULL,
-  PRIMARY KEY(problem_id, language)
+	problem_id INTEGER NOT NULL REFERENCES problem ON DELETE CASCADE,
+	language TEXT NOT NULL,
+	title TEXT NOT NULL,
+	html TEXT NOT NULL,
+	PRIMARY KEY(problem_id, language)
 );
 
 GRANT ALL ON problem_statement TO omogenjudge;
 
-CREATE TABLE problem_testgroup(
-  problem_testgroup_id SERIAL PRIMARY KEY,
-  problem_id INTEGER NOT NULL REFERENCES problem ON DELETE CASCADE,
-  testgroup_name TEXT NOT NULL,
-  public_visibility BOOLEAN NOT NULL
+CREATE TABLE problem_statement_file(
+	problem_id INTEGER NOT NULL,
+	language TEXT NOT NULL,
+	FOREIGN KEY(problem_id, language) REFERENCES problem_statement ON DELETE CASCADE,
+	file_path TEXT NOT NULL,
+	file_hash hash NOT NULL REFERENCES stored_file,
+	PRIMARY KEY(problem_id_version, language, file_path)
 );
 
-CREATE INDEX problem_testgroup_problem_id ON problem_testgroup(problem_id);
+CREATE TABLE problem_testgroup(
+	problem_testgroup_id SERIAL PRIMARY KEY,
+	problem_version_id INTEGER NOT NULL REFERENCES problem_version ON DELETE CASCADE,
+	testgroup_name TEXT NOT NULL,
+	public_visibility BOOLEAN NOT NULL,
+	score INTEGER NOT NULL,
+	output_validator_flags TEXT NOT NULL
+);
+
+CREATE INDEX problem_testgroup_problem_id ON problem_testgroup(problem_id_version);
 
 GRANT ALL ON problem_testgroup TO omogenjudge;
 GRANT ALL ON problem_testgroup_problem_testgroup_id_seq TO omogenjudge;
 
 CREATE TABLE problem_testcase(
-  problem_testcase_id SERIAL PRIMARY KEY,
-  problem_testgroup_id INTEGER NOT NULL REFERENCES problem_testgroup ON DELETE CASCADE,
-  testcase_name TEXT NOT NULL,
-  input_file_hash hash NOT NULL REFERENCES stored_file,
-  output_file_hash hash NOT NULL REFERENCES stored_file
+	problem_testcase_id SERIAL PRIMARY KEY,
+	problem_testgroup_id INTEGER NOT NULL REFERENCES problem_testgroup ON DELETE CASCADE,
+	testcase_name TEXT NOT NULL,
+	input_file_hash hash NOT NULL REFERENCES stored_file,
+	output_file_hash hash NOT NULL REFERENCES stored_file
 );
 
 GRANT ALL ON problem_testcase TO omogenjudge;
@@ -94,112 +119,85 @@ CREATE TYPE verdict AS ENUM('VERDICT_UNSPECIFIED', 'UNJUDGED', 'ACCEPTED', 'WRON
 
 -- Submission tables
 CREATE TABLE submission(
-  submission_id SERIAL PRIMARY KEY,
-  account_id INTEGER NOT NULL REFERENCES account,
-  problem_id INTEGER NOT NULL REFERENCES problem,
-  language TEXT NOT NULL,
-  date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
-  status status NOT NULL DEFAULT 'new',
-  verdict verdict DEFAULT 'UNJUDGED',
-  compile_error TEXT
+	submission_id SERIAL PRIMARY KEY,
+	account_id INTEGER NOT NULL REFERENCES account,
+	problem_id INTEGER NOT NULL REFERENCES problem,
+	language TEXT NOT NULL,
+	date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp
 );
 
 GRANT ALL ON submission TO omogenjudge;
 GRANT ALL ON submission_submission_id_seq TO omogenjudge;
 
-CREATE INDEX submission_status ON submission(status);
-
-CREATE FUNCTION notify_submission() RETURNS TRIGGER AS $$
-BEGIN
-  PERFORM pg_notify('new_submission', (NEW.submission_id)::text);
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER "new_submission"
-AFTER INSERT ON submission
-FOR EACH ROW EXECUTE PROCEDURE notify_submission();
-
 CREATE TABLE submission_file(
-  submission_id INTEGER NOT NULL REFERENCES submission ON DELETE CASCADE,
-  file_path TEXT NOT NULL,
-  file_contents TEXT NOT NULL
+	submission_id INTEGER NOT NULL REFERENCES submission ON DELETE CASCADE,
+	file_path TEXT NOT NULL,
+	file_contents TEXT NOT NULL
 );
 
 GRANT ALL ON submission_file TO omogenjudge;
 
 CREATE INDEX submission_file_submission ON submission_file(submission_id);
 
--- Course tables
-CREATE TABLE course(
-  course_id SERIAL PRIMARY KEY,
-  course_short_name TEXT NOT NULL,
-  UNIQUE(course_short_name)
+CREATE TABLE submission_run(
+	submission_run_id SERIAL PRIMARY KEY,
+	submission_id INTEGER NOT NULL REFERENCES submission ON DELETE CASCADE,
+	problem_version_id INTEGER NOT NULL REFERENCES problem_version ON DELETE SET NULL,
+	date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
+	status status NOT NULL DEFAULT 'new',
+	verdict verdict DEFAULT 'UNJUDGED',
+	compile_error TEXT,
+	public_run BOOLEAN NOT NULL
 );
 
-GRANT ALL ON course TO omogenjudge;
-GRANT ALL ON course_course_id_seq TO omogenjudge;
+CREATE INDEX submission_run_status ON submission_run(status);
 
-CREATE TABLE course_localization(
-  course_id INTEGER NOT NULL REFERENCES course ON DELETE CASCADE,
-  course_language TEXT NOT NULL,
-  course_name TEXT NOT NULL,
-  course_summary TEXT NOT NULL,
-  course_description TEXT NOT NULL,
-  UNIQUE(course_id, course_language)
+CREATE FUNCTION notify_run() RETURNS TRIGGER AS $$
+BEGIN
+	PERFORM pg_notify('new_run', (NEW.submission_run_id)::text);
+	RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER "new_run"
+AFTER INSERT ON submission_run
+FOR EACH ROW EXECUTE PROCEDURE notify_run();
+
+
+-- Contest tables
+CREATE TABLE contest(
+	contest_id SERIAL PRIMARY KEY,
+	short_name TEXT NOT NULL,
+	host_name TEXT,
+	start_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
+	duration INTERVAL NOT NULL,
+	title TEXT NOT NULL,
+	hidden_scoreboard BOOLEAN NOT NULL
 );
 
-GRANT ALL ON course_localization TO omogenjudge;
+CREATE INDEX contest_host_name ON contest(host_name);
+CREATE INDEX contest_short_name ON contest(short_name);
 
-CREATE TABLE course_chapter(
-  course_id INTEGER NOT NULL REFERENCES course ON DELETE CASCADE,
-  course_chapter_id SERIAL PRIMARY KEY,
-  chapter_short_name TEXT NOT NULL,
-  UNIQUE(course_id, course_chapter_id)
+CREATE TABLE team(
+	team_id SERIAL PRIMARY KEY,
+	contest_id INTEGER NOT NULL REFERENCES contest ON DELETE CASCADE,
+	team_name TEXT,
+	virtual BOOLEAN NOT NULL,
+	unofficial BOOLEAN NOT NULL,
+	start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+	team_data json NOT NULL
 );
 
-GRANT ALL ON course_chapter TO omogenjudge;
-GRANT ALL ON course_chapter_course_chapter_id_seq TO omogenjudge;
+CREATE INDEX team_contest_id ON team(contest_id);
 
-CREATE TABLE course_chapter_localization(
-  course_chapter_id INTEGER NOT NULL REFERENCES course_chapter ON DELETE CASCADE,
-  chapter_language TEXT NOT NULL,
-  chapter_name TEXT NOT NULL,
-  chapter_summary TEXT NOT NULL,
-  chapter_description TEXT NOT NULL,
-  UNIQUE(course_chapter_id, chapter_language)
+CREATE TABLE team_member(
+	team_id INTEGER NOT NULL REFERENCES team ON DELETE CASCADE,
+	account_id INTEGER NOT NULL REFERENCES account,
+	PRIMARY KEY(team_id, account_id)
 );
 
-GRANT ALL ON course_chapter_localization TO omogenjudge;
-
-CREATE TABLE course_section(
-  course_chapter_id INTEGER NOT NULL REFERENCES course_chapter ON DELETE CASCADE,
-  course_section_id SERIAL PRIMARY KEY,
-  section_short_name TEXT NOT NULL,
-  UNIQUE(course_chapter_id, section_short_name)
+CREATE TABLE contest_problem(
+	contest_id INTEGER NOT NULL REFERENCES contest ON DELETE CASCADE,
+	problem_id INTEGER NOT NULL REFERENCES contest,
+	label TEXT NOT NULL
 );
-
-GRANT ALL ON course_section TO omogenjudge;
-GRANT ALL ON course_section_course_section_id_seq TO omogenjudge;
-
-CREATE TABLE course_section_localization(
-  course_section_id INTEGER NOT NULL REFERENCES course_section ON DELETE CASCADE,
-  section_language TEXT NOT NULL,
-  section_name TEXT NOT NULL,
-  section_summary TEXT NOT NULL,
-  section_contents TEXT NOT NULL,
-  UNIQUE(course_section_id, section_language)
-);
-
-GRANT ALL ON course_section_localization TO omogenjudge;
-
-CREATE TABLE editor_file(
-  editor_file_id SERIAL PRIMARY KEY,
-  account_id INTEGER NOT NULL REFERENCES account_id,
-  file_name TEXT NOT NULL,
-  file_content TEXT NOT NULL
-);
-
-GRANT ALL ON editor_file TO omogenjudge;
-
-CREATE UNIQUE INDEX editor_file_account_name ON editor_file(account_id, file_name);

@@ -69,7 +69,7 @@ func (templateResponse) Code() int {
 }
 
 type rawResponse struct {
-  // The raw data that should be passed to the client
+	// The raw data that should be passed to the client
 	Content string
 }
 
@@ -143,8 +143,8 @@ func (req *Request) Write(w http.ResponseWriter) {
 		w.Header().Set("Location", r.Path)
 		w.WriteHeader(r.Code())
 	case *rawResponse:
-    w.Write([]byte(r.Content))
-    w.WriteHeader(r.Code())
+		w.Write([]byte(r.Content))
+		w.WriteHeader(r.Code())
 	case *templateResponse:
 		err := templates.ExecuteTemplates(w, r.Name,
 			struct {

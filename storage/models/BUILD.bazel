@@ -4,9 +4,10 @@ go_library(
     name = "go_default_library",
     srcs = [
         "courses.go",
-        "doc.go",
+        "editor.go",
         "enums.go",
         "files.go",
+        "problem_version.go",
         "problems.go",
         "submissions.go",
         "testdata.go",

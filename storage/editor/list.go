@@ -21,7 +21,7 @@ type ListFilter struct {
 func listQuery(args ListArgs, filter ListFilter) (string, []interface{}) {
 	var filterSegs []string
 	var params []interface{}
-  // TODO: require user ID for filtering
+	// TODO: require user ID for filtering
 	if filter.UserId != 0 {
 		params = append(params, filter.UserId)
 		filterSegs = append(filterSegs, fmt.Sprintf("account_id = $%d", len(params)))
@@ -35,10 +35,10 @@ func listQuery(args ListArgs, filter ListFilter) (string, []interface{}) {
 		filterStr = fmt.Sprintf("WHERE %s", strings.Join(filterSegs, " AND "))
 	}
 
-  columnSegs := []string{"editor_file_id",  "account_id",  "file_name"}
-  if args.WithContent {
-    columnSegs = append(columnSegs, "file_content")
-  }
+	columnSegs := []string{"editor_file_id", "account_id", "file_name"}
+	if args.WithContent {
+		columnSegs = append(columnSegs, "file_content")
+	}
 	return fmt.Sprintf("SELECT %s FROM editor_file %s ORDER BY file_name DESC", filterStr), params
 }
 

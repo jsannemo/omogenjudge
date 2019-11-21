@@ -12,13 +12,18 @@ import (
 	util "github.com/jsannemo/omogenjudge/problemtools/util"
 )
 
-func parseTestdata(path string, reporter util.Reporter) ([]*toolspb.TestGroup, error) {
-	testgroups := make([]*toolspb.TestGroup, 0)
-	testdataPath := filepath.Join(path, "testdata")
+func parseTestdata(path string, reporter util.Reporter) (map[string]*toolspb.TestGroup, error) {
+	testgroups := make(map[string]*toolspb.TestGroup)
+	testdataPath := filepath.Join(path, "data")
 
 	if _, err := os.Stat(testdataPath); os.IsNotExist(err) {
-		reporter.Err("Problem had no testdata folder")
+		reporter.Err("Problem had no data folder")
 		return testgroups, nil
+	}
+
+	config, err := parseConfig(testdataPath, reporter)
+	if err != nil {
+		return nil, err
 	}
 
 	files, err := ioutil.ReadDir(testdataPath)
@@ -28,13 +33,13 @@ func parseTestdata(path string, reporter util.Reporter) ([]*toolspb.TestGroup, e
 
 	for _, f := range files {
 		if f.IsDir() {
-			testgroup, err := parseGroup(filepath.Join(testdataPath, f.Name()), reporter)
+			testgroup, err := parseGroup(filepath.Join(testdataPath, f.Name()), configFor(f.Name(), config), testgroups, reporter)
 			if err != nil {
 				return nil, err
 			}
 			// The testgroup can be null due to a reporter error that is not a run-time error
 			if testgroup != nil {
-				testgroups = append(testgroups, testgroup)
+				testgroups[f.Name()] = testgroup
 			}
 		}
 	}
@@ -42,35 +47,61 @@ func parseTestdata(path string, reporter util.Reporter) ([]*toolspb.TestGroup, e
 }
 
 type testGroupConfig struct {
+	Score      int32
 	Visibility string
+	InputFlags map[string]string
+	Include    string
 }
 
 func defaultConfig() testGroupConfig {
 	return testGroupConfig{
+		Score:      0,
 		Visibility: "hidden",
+		InputFlags: map[string]string{},
+		Include:    "",
 	}
 }
 
-func parseConfig(path string, reporter util.Reporter) (testGroupConfig, error) {
+func configFor(group string, configs map[string]testGroupConfig) testGroupConfig {
 	config := defaultConfig()
-	configPath := filepath.Join(path, "testgroup.yaml")
+	if v, ok := configs["default"]; ok {
+		config.InputFlags = v.InputFlags
+	}
+	if v, ok := configs[group]; ok {
+		config.Score = v.Score
+		config.Include = v.Include
+		if v.Visibility != "" {
+			config.Visibility = v.Visibility
+		}
+		for k, v := range v.InputFlags {
+			config.InputFlags[k] = v
+		}
+	}
+	return config
+}
+
+func parseConfig(path string, reporter util.Reporter) (map[string]testGroupConfig, error) {
+	configPath := filepath.Join(path, "testdata.yaml")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return config, nil
+		return nil, nil
 	}
 
 	dat, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		return config, err
+		return nil, err
 	}
 
+	var config map[string]testGroupConfig
 	err = yaml.Unmarshal([]byte(dat), &config)
 	if err != nil {
 		reporter.Err("Invalid config yaml: %v", err)
-		return config, nil
+		return nil, nil
 	}
 
-	if config.Visibility != "public" && config.Visibility != "hidden" {
-		reporter.Err("Visibility value %s is invalid (expected public or hidden)", config.Visibility)
+	for _, v := range config {
+		if v.Visibility != "" && v.Visibility != "public" && v.Visibility != "hidden" {
+			reporter.Err("Visibility value %s is invalid (expected public or hidden)", v.Visibility)
+		}
 	}
 
 	return config, nil
@@ -125,11 +156,7 @@ func parseTests(path string, reporter util.Reporter) ([]*toolspb.TestCase, error
 	return cases, nil
 }
 
-func parseGroup(path string, reporter util.Reporter) (*toolspb.TestGroup, error) {
-	config, err := parseConfig(path, reporter)
-	if err != nil {
-		return nil, err
-	}
+func parseGroup(path string, config testGroupConfig, groups map[string]*toolspb.TestGroup, reporter util.Reporter) (*toolspb.TestGroup, error) {
 	tests, err := parseTests(path, reporter)
 	if err != nil {
 		return nil, err
@@ -138,9 +165,23 @@ func parseGroup(path string, reporter util.Reporter) (*toolspb.TestGroup, error)
 	if len(tests) == 0 {
 		return nil, nil
 	}
+	inc := strings.Split(strings.TrimSpace(config.Include), " ")
+	for _, v := range inc {
+		if v == "" {
+			continue
+		}
+		tg, ok := groups[v]
+		if !ok {
+			reporter.Err("Could not include group %s, was not defined yet", v)
+		} else {
+			tests = append(tests, tg.Tests...)
+		}
+	}
 	return &toolspb.TestGroup{
 		Name:          filepath.Base(path),
 		PublicSamples: config.Visibility == "public",
+		Score:         config.Score,
+		InputFlags:    config.InputFlags,
 		Tests:         tests,
 	}, nil
 }

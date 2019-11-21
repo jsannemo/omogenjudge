@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/google/logger"
 	"gopkg.in/yaml.v2"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
@@ -34,15 +35,18 @@ func toLicense(l string, reporter util.Reporter) toolspb.License {
 		return toolspb.License_CC_BY_SA_3
 	case "public domain":
 		return toolspb.License_PUBLIC_DOMAIN
+	case "private":
+		return toolspb.License_PRIVATE
 	}
 	reporter.Err("Invalid license: %v", l)
 	return toolspb.License_LICENSE_UNSPECIFIED
 }
 
 func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, error) {
-	metadataPath := filepath.Join(path, "metadata.yaml")
+	metadataPath := filepath.Join(path, "problem.yaml")
+	logger.Infof("Looking for metadata path %s", metadataPath)
 	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
-		reporter.Err("There was no metadata.yaml file")
+		reporter.Err("There was no problem.yaml file")
 		return nil, nil
 	}
 	dat, err := ioutil.ReadFile(metadataPath)
@@ -53,7 +57,7 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 	var md problemMetadata
 	err = yaml.Unmarshal([]byte(dat), &md)
 	if err != nil {
-		reporter.Err("Invalid metadata yaml: %v", err)
+		reporter.Err("Invalid problem yaml: %v", err)
 		return nil, nil
 	}
 	timeLimit := md.Judging.Limits.Time

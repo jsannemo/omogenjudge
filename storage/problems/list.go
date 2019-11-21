@@ -1,10 +1,8 @@
-// Database actions related to problem storage.
 package problems
 
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/jsannemo/omogenjudge/storage/db"
@@ -12,9 +10,8 @@ import (
 )
 
 type ListFilter struct {
-	ShortName   string
-	ProblemId   int32
-	Submissions []*models.Submission
+	ShortName string
+	ProblemId []int32
 }
 
 type TestOpt byte
@@ -35,63 +32,68 @@ type ListArgs struct {
 	WithTests      TestOpt
 }
 
-func problemQuery(args ListArgs, filter ListFilter) (string, []interface{}) {
-	var params []interface{}
-	var filterSegs []string
-
-	if filter.ShortName != "" {
-		params = append(params, filter.ShortName)
-		filterSegs = append(filterSegs, fmt.Sprintf("short_name = $%d", len(params)))
+func List(ctx context.Context, args ListArgs, filter ListFilter) (ProblemList, error) {
+	if filter.ShortName != "" && len(filter.ProblemId) != 0 {
+		return nil, fmt.Errorf("Only one filter is allowed when listing problems")
 	}
-	if filter.ProblemId != 0 {
-		params = append(params, filter.ProblemId)
-		filterSegs = append(filterSegs, fmt.Sprintf("problem_id = $%d", len(params)))
-	}
-
-	filterStr := ""
-	if len(filterSegs) != 0 {
-		filterStr = "WHERE " + strings.Join(filterSegs, " AND ")
-	}
-
-	fields := ""
-	joins := ""
-	if args.WithTests == TestsAll {
-		joins = "LEFT JOIN problem_output_validator USING(problem_id)"
-		fields = `, file_hash(validator_source_zip) "problem_output_validator.validator_source_zip.hash", file_url(validator_source_zip) "problem_output_validator.validator_source_zip.url",
-    validator_language_id "problem_output_validator.language_id"`
-	}
-	return fmt.Sprintf("SELECT problem_id, short_name, author, license, time_limit_ms, memory_limit_kb "+fields+" FROM problem %s %s ORDER BY short_name", joins, filterStr), params
-}
-
-func List(ctx context.Context, args ListArgs, filter ListFilter) models.ProblemList {
 	conn := db.Conn()
-	var probs models.ProblemList
+	var probs ProblemList
 	query, params := problemQuery(args, filter)
 	if err := conn.SelectContext(ctx, &probs, query, params...); err != nil {
-		panic(err)
+		return nil, err
 	}
-	if args.WithStatements != StmtNone {
-		includeStatements(ctx, probs.AsMap(), args.WithStatements)
+	if err := includeStatements(ctx, probs.AsMap(), args.WithStatements); err != nil {
+		return nil, err
 	}
 	for _, p := range probs {
-		if args.WithTests != TestsNone {
-			includeTests(ctx, p, args.WithTests)
+		if err := includeTests(ctx, p.CurrentVersion, args.WithTests); err != nil {
+			return nil, err
 		}
 	}
-	return probs
+	return probs, nil
 }
 
-func includeTests(ctx context.Context, p *models.Problem, opt TestOpt) {
-	filter := "WHERE problem_id = $1"
+func problemQuery(args ListArgs, filterArgs ListFilter) (string, []interface{}) {
+	var params []interface{}
+	filter := ""
+	joins := ""
+	fields := ""
+
+	query := `
+    SELECT
+        problem_id, short_name, author, license,
+        problem_version.problem_version_id, problem_version.time_limit_ms, problem_version.memory_limit_kb, problem_version.problem_id
+        %s
+    FROM problem
+    LEFT JOIN problem_version ON current_version = problem_version.problem_version_id
+    %s
+    %s
+    `
+	if filterArgs.ShortName != "" {
+		filter, params = db.SetParam("short_name = $%d", params, filterArgs.ShortName)
+	} else if len(filterArgs.ProblemId) != 0 {
+		filter, params = db.SetInParamInt("WHERE problem_id IN (%s)", params, filterArgs.ProblemId)
+	}
+
+	if args.WithTests == TestsAll {
+		joins = "LEFT JOIN problem_output_validator USING(problem_version_id)"
+		fields = `, file_hash(validator_source_zip) "problem_version.problem_output_validator.validator_source_zip.hash", file_url(validator_source_zip) "problem.version.problem_output_validator.validator_source_zip.url",
+    validator_language_id "problem_output_validator.language_id"`
+	}
+	return fmt.Sprintf(query, fields, joins, filter), params
+}
+
+func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) error {
+	filter := "WHERE problem_version_id = $1"
 	if opt == TestsSamples {
 		filter = filter + " AND public_visibility = true"
 	}
-	query := "SELECT problem_id, problem_testgroup_id, testgroup_name, public_visibility FROM problem_testgroup " + filter + " ORDER BY testgroup_name"
-	var groups models.TestGroupList
-	if err := db.Conn().SelectContext(ctx, &groups, query, p.ProblemId); err != nil {
-		panic(err)
+	query := "SELECT problem_version_id, problem_testgroup_id, testgroup_name, public_visibility FROM problem_testgroup " + filter + " ORDER BY testgroup_name"
+	var groups TestGroupList
+	if err := db.Conn().SelectContext(ctx, &groups, query, pv.ProblemVersionId); err != nil {
+		return err
 	}
-	p.TestGroups = groups
+	pv.TestGroups = groups
 	query = `
 	SELECT
 	problem_testgroup_id,
@@ -104,19 +106,20 @@ func includeTests(ctx context.Context, p *models.Problem, opt TestOpt) {
 	FROM problem_testcase
 	NATURAL JOIN problem_testgroup ` + filter
 	var tests []*models.TestCase
-	if err := db.Conn().SelectContext(ctx, &tests, query, p.ProblemId); err != nil {
-		panic(err)
+	if err := db.Conn().SelectContext(ctx, &tests, query, pv.ProblemVersionId); err != nil {
+		return err
 	}
 	groupMap := groups.AsMap()
 	for _, t := range tests {
 		g := groupMap[t.TestGroupId]
 		g.Tests = append(g.Tests, t)
 	}
+	return nil
 }
 
-func includeStatements(ctx context.Context, ps models.ProblemMap, arg StmtOpt) {
-	if len(ps) == 0 {
-		return
+func includeStatements(ctx context.Context, ps ProblemMap, arg StmtOpt) error {
+	if len(ps) == 0 || arg == StmtNone {
+		return nil
 	}
 	pids := ps.Ids()
 	var cols string
@@ -125,13 +128,14 @@ func includeStatements(ctx context.Context, ps models.ProblemMap, arg StmtOpt) {
 	}
 	query, args, err := sqlx.In(fmt.Sprintf("SELECT problem_id, title, language %s FROM problem_statement WHERE problem_id IN (?);", cols), pids)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	conn := db.Conn()
 	query = conn.Rebind(query)
-	var statements models.StatementList
+	var statements StatementList
 	if err := conn.SelectContext(ctx, &statements, query, args...); err != nil {
-		panic(err)
+		return err
 	}
 	statements.AddTo(ps)
+	return nil
 }

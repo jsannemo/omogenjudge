@@ -32,11 +32,15 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 	metadataReporter.AddFailures(&errors, &warnings)
 
 	testgroupReporter := util.NewReporter()
-	testgroups, err := parseTestdata(path, testgroupReporter)
+	testGroupMap, err := parseTestdata(path, testgroupReporter)
 	if err != nil {
 		return nil, err
 	}
 	testgroupReporter.AddFailures(&errors, &warnings)
+	testGroups := make([]*toolspb.TestGroup, 0, len(testGroupMap))
+	for _, v := range testGroupMap {
+		testGroups = append(testGroups, v)
+	}
 
 	outputValidatorReporter := util.NewReporter()
 	outputValidator, err := parseOutputValidator(path, outputValidatorReporter)
@@ -64,7 +68,7 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 	problem := &toolspb.Problem{
 		Statements:      statements,
 		Metadata:        metadata,
-		TestGroups:      testgroups,
+		TestGroups:      testGroups,
 		OutputValidator: outputValidator,
 		InputValidators: inputValidators,
 		Submissions:     submissions,

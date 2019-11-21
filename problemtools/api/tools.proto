@@ -53,6 +53,15 @@ message ParseCourseResponse {
   repeated string warnings = 3;
 }
 
+message InstallContestRequest {
+  string contest_yaml = 1;
+}
+
+message InstallContestResponse {
+  repeated string errors = 1;
+  repeated string warnings = 2;
+}
+
 // The ToolService provides various utility methods used for problems, such as
 // parsing and validating them.
 service ToolService {
@@ -64,4 +73,8 @@ service ToolService {
 
   // Parse a given problem into a structured representation of it.
   rpc ParseCourse(ParseCourseRequest) returns (ParseCourseResponse) {}
+
+  // Installs a contest from a contest.yaml file.
+  rpc InstallContest(InstallContestRequest) returns (InstallContestResponse) {
+  }
 }

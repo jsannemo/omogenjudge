@@ -1,6 +1,7 @@
 package language
 
 import (
+	"fmt"
 	"os/exec"
 
 	"github.com/google/logger"
@@ -11,12 +12,21 @@ import (
 	"github.com/jsannemo/omogenjudge/util/go/commands"
 )
 
-func init() {
+func initPython() error {
 	logger.Infof("Initializing Python")
-	initPypy2()
-	initPypy3()
-	initPython2()
-	initPython3()
+	if err := initPypy2(); err != nil {
+		return err
+	}
+	if err := initPypy3(); err != nil {
+		return err
+	}
+	if err := initPython2(); err != nil {
+		return err
+	}
+	if err := initPython3(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func runPython(executable string) runners.RunFunc {
@@ -30,16 +40,16 @@ func runPython(executable string) runners.RunFunc {
 	return runners.CommandProgram(argFunc)
 }
 
-func initPython(executable, name, tag string, languageGroup runpb.LanguageGroup) {
+func initPythonVersion(executable, name, tag string, languageGroup runpb.LanguageGroup) error {
 	logger.Infof("Checking for Python executable %s", executable)
 	realPath, err := exec.LookPath(executable)
 	if err != nil {
-		// TODO: check if error was because of something other than not existing
-		return
+		logger.Infof("Could not find python executable: %v", err)
+		return nil
 	}
 	version, err := commands.FirstLineFromCommand(realPath, []string{"--version"})
 	if err != nil {
-		logger.Fatalf("Could not retrieve version for python %v", realPath)
+		return fmt.Errorf("Could not retrieve version for python %s: %v", realPath, err)
 	}
 	language := &Language{
 		Id:            tag,
@@ -49,20 +59,21 @@ func initPython(executable, name, tag string, languageGroup runpb.LanguageGroup)
 		Program:       runPython(realPath),
 	}
 	registerLanguage(language)
+	return nil
 }
 
-func initPypy2() {
-	initPython("pypy", "Python 2 (PyPy)", "pypy2", runpb.LanguageGroup_PYTHON_2_PYPY)
+func initPypy2() error {
+	return initPythonVersion("pypy", "Python 2 (PyPy)", "pypy2", runpb.LanguageGroup_PYTHON_2_PYPY)
 }
 
-func initPypy3() {
-	initPython("pypy3", "Python 3 (PyPy)", "pypy3", runpb.LanguageGroup_PYTHON_3_PYPY)
+func initPypy3() error {
+	return initPythonVersion("pypy3", "Python 3 (PyPy)", "pypy3", runpb.LanguageGroup_PYTHON_3_PYPY)
 }
 
-func initPython2() {
-	initPython("python2", "Python 2 (CPython)", "cpython2", runpb.LanguageGroup_PYTHON_2)
+func initPython2() error {
+	return initPythonVersion("python2", "Python 2 (CPython)", "cpython2", runpb.LanguageGroup_PYTHON_2)
 }
 
-func initPython3() {
-	initPython("python3", "Python 3 (CPython)", "cpython3", runpb.LanguageGroup_PYTHON_3)
+func initPython3() error {
+	return initPythonVersion("python3", "Python 3 (CPython)", "cpython3", runpb.LanguageGroup_PYTHON_3)
 }

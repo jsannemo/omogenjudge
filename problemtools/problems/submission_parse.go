@@ -49,7 +49,7 @@ func parseSubmissions(path string, reporter util.Reporter) ([]*toolspb.Submissio
 			return nil, fmt.Errorf("failed parsing submission: %v", err)
 		}
 		if program != nil {
-			logger.Infof("found submission %v", program)
+			logger.Infof("found submission %s", f.Name())
 			subMetadata, _ := metadata[f.Name()]
 			subMetadata.AllowedFailures = append(subMetadata.AllowedFailures, subMetadata.RequiredFailures...)
 			subMetadata.AllowedFailures = append(subMetadata.AllowedFailures, "ac")

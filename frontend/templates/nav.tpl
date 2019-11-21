@@ -2,7 +2,7 @@
 <header class="navbar">
   <div class="navbar-container">
     <div class="navbar-top">
-    <a href="/"><img class="navbar-logo" src="/static/kodsport/logo.svg"></a>
+    <a href="/"><img class="navbar-logo" src="/static/kodsport/logo.png"></a>
       <button class="navbar-hamburger">
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>

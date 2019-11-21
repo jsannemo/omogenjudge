@@ -63,6 +63,10 @@ message TestGroup {
 
   // The test cases that this group consists of.
   repeated TestCase tests = 3;
+
+  int32 score = 4;
+
+  map<string, string> input_flags = 5;
 }
 
 // A single test case
@@ -110,4 +114,5 @@ enum License {
   CC_BY_SA_3 = 1;
   PUBLIC_DOMAIN = 2;
   BY_PERMISSION = 3;
+  PRIVATE = 4;
 }

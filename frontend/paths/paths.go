@@ -28,9 +28,9 @@ const (
 	CourseChapterNameArg = "course_chapter_name"
 	CourseSection        = "course_section"
 	CourseSectionNameArg = "course_section_name"
-	Editor              = "editor"
+	Editor               = "editor"
 
-  Api_EditorFiles = "api_editor_files"
+	Api_EditorFiles = "api_editor_files"
 )
 
 var router = mux.NewRouter()

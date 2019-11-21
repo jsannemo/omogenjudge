@@ -86,6 +86,7 @@ const (
 	LicenseCcBySa3      License = "CC_BY_SA_3"
 	LicensePermission   License = "BY_PERMISSION"
 	LicensePublicDomain License = "PUBLIC_DOMAIN"
+	LicensePrivate      License = "PRIVATE"
 )
 
 func (l License) String() string {
@@ -96,6 +97,8 @@ func (l License) String() string {
 		return "Fri användning"
 	case LicensePermission:
 		return "Används med tillåtelse"
+	case LicensePrivate:
+		return "Endast för privat användning"
 	}
 	panic(fmt.Errorf("Unknown license: %v", l))
 }

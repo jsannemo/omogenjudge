@@ -1,22 +1,13 @@
 package models
 
-type TestGroupMap map[int32]*TestGroup
-type TestGroupList []*TestGroup
-
-func (tl TestGroupList) AsMap() TestGroupMap {
-	tm := make(TestGroupMap)
-	for _, g := range tl {
-		tm[g.TestGroupId] = g
-	}
-	return tm
-}
-
 type TestGroup struct {
-	ProblemId        int32  `db:"problem_id"`
-	TestGroupId      int32  `db:"problem_testgroup_id"`
-	Name             string `db:"testgroup_name"`
-	PublicVisibility bool   `db:"public_visibility"`
-	Tests            []*TestCase
+	TestGroupId          int32  `db:"problem_testgroup_id"`
+	ProblemVersionId     int32  `db:"problem_version_id"`
+	Name                 string `db:"testgroup_name"`
+	PublicVisibility     bool   `db:"public_visibility"`
+	Score                int32  `db:"score"`
+	OutputValidatorFlags string `db:"output_validator_flags"`
+	Tests                []*TestCase
 }
 
 type TestCase struct {

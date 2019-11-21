@@ -28,6 +28,10 @@ func NewFileBase(path string) FileBase {
 	}
 }
 
+func (fb FileBase) Path() string {
+	return fb.base
+}
+
 func (fb FileBase) SubBase(path string) (FileBase, error) {
 	nbase, err := fb.FullPath(path)
 	if err != nil {
@@ -100,7 +104,11 @@ func (fb FileBase) Exists(subPath string) (bool, error) {
 }
 
 func (fb FileBase) Copy(srcFile, dstFile string) error {
-	out, err := os.Create(dstFile)
+	npath, err := fb.FullPath(dstFile)
+	if err != nil {
+		return err
+	}
+	out, err := os.Create(npath)
 	defer out.Close()
 	if err != nil {
 		return err

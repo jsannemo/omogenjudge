@@ -2,14 +2,15 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"net"
-	"os"
 
 	"github.com/google/logger"
 	"google.golang.org/grpc"
 
 	fileservice "github.com/jsannemo/omogenjudge/filehandler/service"
 	toolservice "github.com/jsannemo/omogenjudge/problemtools/service"
+	"github.com/jsannemo/omogenjudge/runner/language"
 	runnerservice "github.com/jsannemo/omogenjudge/runner/service"
 )
 
@@ -19,7 +20,10 @@ var (
 
 func main() {
 	flag.Parse()
-	defer logger.Init("localjudge", false, true, os.Stderr).Close()
+	defer logger.Init("localjudge", true, false, ioutil.Discard).Close()
+	if err := language.Init(); err != nil {
+		logger.Fatalf("failed initializing languages: %v", err)
+	}
 	lis, err := net.Listen("tcp", *listenAddr)
 	if err != nil {
 		logger.Fatalf("failed to listen: %v", err)

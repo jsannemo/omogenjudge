@@ -132,19 +132,28 @@ func toStorageTestGroups(ctx context.Context, testGroups []*toolspb.TestGroup) (
 
 func installProblem(path string) error {
 	logger.Infof("Installing problem %s", path)
+	problemName := filepath.Base(path)
 
 	tmp, err := ioutil.TempDir("/tmp", "omogeninstall")
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not create installation directory: %v", err)
 	}
 	// defer os.RemoveAll(tmp)
 	if err := os.Chmod(tmp, 0777); err != nil {
+		return fmt.Errorf("Could not chmod installation directory: %v", err)
+	}
+	fb := futil.NewFileBase(tmp)
+	if err := fb.Mkdir(problemName); err != nil {
+		return fmt.Errorf("Could not create installation problem directory: %v", err)
+	}
+	installfb, err := fb.SubBase(problemName)
+	if err != nil {
 		return err
 	}
-	npath := filepath.Join(tmp, filepath.Base(path))
-	if err := futil.CopyDirectory(path, npath, 0777); err != nil {
-		return err
+	if err := installfb.CopyInto(path); err != nil {
+		return fmt.Errorf("Could not clone into installation directory: %v", err)
 	}
+	npath := installfb.Path()
 
 	ctx := context.Background()
 
@@ -197,15 +206,18 @@ func installProblem(path string) error {
 	if err != nil {
 		return err
 	}
-	if err := problems.Create(ctx, &models.Problem{
-		ShortName:       problem.Metadata.ProblemId,
-		Statements:      toStorageStatements(problem.Statements),
+	problemVersion := &models.ProblemVersion{
 		TestGroups:      storageTestGroups,
 		TimeLimMs:       problem.Metadata.Limits.TimeLimitMs,
 		MemLimKb:        problem.Metadata.Limits.MemoryLimitKb,
-		License:         models.License(problem.Metadata.License.String()),
-		Author:          problem.Metadata.Author,
 		OutputValidator: outputValidator,
+	}
+	if err := problems.Create(ctx, &models.Problem{
+		ShortName:      problem.Metadata.ProblemId,
+		Statements:     toStorageStatements(problem.Statements),
+		License:        models.License(problem.Metadata.License.String()),
+		Author:         problem.Metadata.Author,
+		CurrentVersion: problemVersion,
 	}); err != nil {
 		return err
 	}
@@ -214,7 +226,7 @@ func installProblem(path string) error {
 
 func main() {
 	flag.Parse()
-	defer logger.Init("addproblem", false, true, ioutil.Discard).Close()
+	defer logger.Init("addproblem", true, false, ioutil.Discard).Close()
 	path := flag.Arg(0)
 	path, err := filepath.Abs(path)
 	if err != nil {

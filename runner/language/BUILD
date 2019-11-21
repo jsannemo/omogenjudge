@@ -6,6 +6,7 @@ go_library(
         "cpp.go",
         "detect.go",
         "doc.go",
+        "init.go",
         "language.go",
         "python.go",
     ],

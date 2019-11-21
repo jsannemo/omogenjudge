@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//filehandler/service:go_default_library",
         "//problemtools/service:go_default_library",
+        "//runner/language:go_default_library",
         "//runner/service:go_default_library",
         "@com_github_google_logger//:go_default_library",
         "@org_golang_google_grpc//:go_default_library",

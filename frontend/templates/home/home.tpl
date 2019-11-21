@@ -1,11 +1,11 @@
 {{ define "home_home" }}
 <article>
   <header class="article-header">
-    <h1 class="display">Välkommen till Kodsport Academy!</h1>
+    <h1 class="display">Välkommen till Kodsport.dev!</h1>
   </header>
   <div class="row">
     <p>
-    <strong>Kodsport Academy</strong> är en del av den ideella organisationen <a href="https://kodsport.se">Kodsport Sverige</a>.
+    <strong>Kodsport.dev</strong> är en del av den ideella organisationen <a href="https://kodsport.se">Kodsport Sverige</a>.
     Vårt mål är att ge alla svenskar tillgång till högklassig utbildning i programmering, algoritmer och problemlösing.
 
     <!--

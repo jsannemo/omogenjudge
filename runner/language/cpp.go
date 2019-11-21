@@ -2,6 +2,7 @@ package language
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -23,9 +24,12 @@ import (
 	"github.com/jsannemo/omogenjudge/util/go/users"
 )
 
-func init() {
-	logger.Infof("Initializing Python")
-	initCpp17()
+func initCpp() error {
+	logger.Infof("Initializing C++")
+	if err := initCpp17(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func randStr() string {
@@ -133,16 +137,16 @@ func runCpp(executable string) runners.RunFunc {
 	return runners.CommandProgram(argFunc)
 }
 
-func initCpp(executable, name, tag, versionFlag string, languageGroup runpb.LanguageGroup) {
+func initCppVersion(executable, name, tag, versionFlag string, languageGroup runpb.LanguageGroup) error {
 	logger.Infof("Checking for C++ executable %s", executable)
 	realPath, err := exec.LookPath(executable)
-	// TODO check why this failed
 	if err != nil {
-		return
+		logger.Infof("Could not find G++: %v", err)
+		return nil
 	}
 	version, err := commands.FirstLineFromCommand(realPath, []string{"--version"})
 	if err != nil {
-		logger.Fatalf("Failed retreiving C++ version: %v", err)
+		return fmt.Errorf("Could not get G++ version: %v", err)
 	}
 	language := &Language{
 		Id:            tag,
@@ -152,8 +156,9 @@ func initCpp(executable, name, tag, versionFlag string, languageGroup runpb.Lang
 		Program:       runCpp(realPath),
 	}
 	registerLanguage(language)
+	return nil
 }
 
-func initCpp17() {
-	initCpp("g++", "GCC C++17", "gpp17", "--std=gnu++17", runpb.LanguageGroup_CPP_17)
+func initCpp17() error {
+	return initCppVersion("g++", "GCC C++17", "gpp17", "--std=gnu++17", runpb.LanguageGroup_CPP_17)
 }
