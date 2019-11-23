@@ -26,18 +26,20 @@ func connString() string {
 		hostPort[0], hostPort[1], *dbUser, *dbPassword, *dbName)
 }
 
-func Init() {
+func initializePool() {
 	pool = sqlx.MustConnect("postgres", connString())
 	logger.Infof("Connected to database: %v", *dbName)
 }
 
+// Conn returns a new database connection for the judging database.
 func Conn() *sqlx.DB {
 	if pool == nil {
-		Init()
+		initializePool()
 	}
 	return pool
 }
 
+// NewListener returns a new Postgres notify listener.
 func NewListener() *pq.Listener {
 	reportProblem := func(ev pq.ListenerEventType, err error) {
 		if err != nil {

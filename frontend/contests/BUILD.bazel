@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "team_list.go",
+        "team_register.go",
+    ],
+    importpath = "github.com/jsannemo/omogenjudge/frontend/contests",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//frontend/paths",
+        "//frontend/request",
+        "//storage/contests:go_default_library",
+        "//storage/models:go_default_library",
+    ],
+)

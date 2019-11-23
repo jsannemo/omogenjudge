@@ -15,7 +15,7 @@ type RegisterParams struct {
 
 func RegisterHandler(r *request.Request) (request.Response, error) {
 	root := paths.Route(paths.Home)
-	if r.Context.UserId != 0 {
+	if r.Context.UserID != 0 {
 		return request.Redirect(root), nil
 	}
 	if r.Request.Method == http.MethodPost {
@@ -26,13 +26,13 @@ func RegisterHandler(r *request.Request) (request.Response, error) {
 		}
 		user.SetPassword(password)
 
-		err := users.Create(r.Request.Context(), user)
+		err := users.CreateUser(r.Request.Context(), user)
 		if err == users.ErrUserExists {
 			return request.Template("users_register", &RegisterParams{Error: "Användarnamnet är upptaget"}), nil
 		} else if err != nil {
 			return nil, err
 		}
-		r.Context.UserId = user.AccountId
+		r.Context.UserID = user.AccountID
 		return request.Redirect(root), nil
 	}
 	return request.Template("users_register", &RegisterParams{}), nil

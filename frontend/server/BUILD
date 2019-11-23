@@ -13,6 +13,7 @@ go_binary(
 go_library(
     name = "go_default_library",
     srcs = [
+        "doc.go",
         "processor.go",
         "router.go",
         "server.go",
@@ -21,8 +22,7 @@ go_library(
     importpath = "github.com/jsannemo/omogenjudge/frontend/server",
     visibility = ["//visibility:private"],
     deps = [
-        "//frontend/courses:go_default_library",
-        "//frontend/editor:go_default_library",
+        "//frontend/contests:go_default_library",
         "//frontend/home:go_default_library",
         "//frontend/middleware",
         "//frontend/paths",

@@ -19,6 +19,7 @@ go_library(
         "//sandbox/api:go_default_library",
         "//util/go/commands:go_default_library",
         "//util/go/files:go_default_library",
+        "//util/go/strings:go_default_library",
         "//util/go/users:go_default_library",
         "@com_github_google_logger//:go_default_library",
         "@org_golang_google_grpc//codes:go_default_library",

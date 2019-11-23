@@ -1,5 +1,6 @@
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -18,9 +19,9 @@ int main(int argc, char** argv) {
     cerr << "Incorrect number of arguments" << endl;
     return 1;
   }
-  int submission_id;
-  if (!absl::SimpleAtoi(std::string(argv[1]), &submission_id) ||
-      submission_id < 0) {
+  std::string submission_id = std::string(argv[1]);
+  if (std::find(submission_id.begin(), submission_id.end(), '/') !=
+      submission_id.end()) {
     cerr << "Invalid first argument" << endl;
     return 1;
   }

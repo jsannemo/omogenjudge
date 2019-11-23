@@ -3,9 +3,12 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
-        "create.go",
-        "list.go",
-        "update.go",
+        "doc.go",
+        "run_create.go",
+        "run_list.go",
+        "run_update.go",
+        "submission_create.go",
+        "submission_list.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/storage/submissions",
     visibility = ["//visibility:public"],

@@ -1,4 +1,4 @@
-// The evaluator queue keeps track of all unjudged submissions, including new ones.
+// Package queue provides an evaluator queue that keeps track of all unjudged submission runs, including new ones.
 package queue
 
 import (
@@ -12,36 +12,42 @@ import (
 	"github.com/jsannemo/omogenjudge/storage/submissions"
 )
 
-func StartQueue(ctx context.Context, judge chan<- *models.Submission) error {
-	logger.Infoln("Starting submission listener")
+func StartQueue(ctx context.Context, judge chan<- *models.SubmissionRun) error {
+	logger.Infoln("Starting run listener")
 	listener := db.NewListener()
-	err := listener.Listen("new_submission")
+	err := listener.Listen("new_run")
 	if err != nil {
 		return err
 	}
 	logger.Infoln("Started listener")
-	unjudged := submissions.List(ctx, submissions.ListArgs{WithFiles: true}, submissions.ListFilter{OnlyUnjudged: true})
+	unjudged, err := submissions.ListRuns(ctx, submissions.RunListArgs{}, submissions.RunListFilter{OnlyUnjudged: true})
+	if err != nil {
+		return err
+	}
 	logger.Infof("Had backlog of %d submissions", len(unjudged))
 	go func() {
 		alreadyJudged := int32(0)
 		for _, sub := range unjudged {
 			logger.Infof("Unjudged: %v", sub)
 			judge <- sub
-			alreadyJudged = sub.SubmissionId
+			alreadyJudged = sub.SubmissionRunID
 		}
 		for {
 			notification := <-listener.Notify
 			submissionId, _ := strconv.Atoi(notification.Extra)
-			subs := submissions.List(ctx, submissions.ListArgs{WithFiles: true}, submissions.ListFilter{SubmissionId: int32(submissionId)})
-			if len(subs) == 0 {
+			unjudged, err := submissions.ListRuns(ctx, submissions.RunListArgs{}, submissions.RunListFilter{RunID: []int32{int32(submissionId)}})
+			if err != nil {
+				panic(err)
+			}
+			if len(unjudged) == 0 {
 				logger.Errorf("requested %d but was not present in DB", submissionId)
-			} else if len(subs) > 1 {
-				logger.Errorf("requested %d but got %d submissions", submissionId, len(subs))
+			} else if len(unjudged) > 1 {
+				logger.Errorf("requested %d but got %d submissions", submissionId, len(unjudged))
 			} else {
-				sub := subs[0]
+				sub := unjudged[0]
 				// We may have read some of the newly delivered submissions in our list call,
 				// so we need to filter out any earlier submissions.
-				if sub.SubmissionId > alreadyJudged {
+				if sub.SubmissionRunID > alreadyJudged {
 					judge <- sub
 				}
 			}

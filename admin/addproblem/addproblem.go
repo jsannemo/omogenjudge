@@ -8,7 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
+	//"os"
 	"path/filepath"
 
 	"github.com/google/logger"
@@ -22,7 +22,21 @@ import (
 	"github.com/jsannemo/omogenjudge/util/go/cli"
 	futil "github.com/jsannemo/omogenjudge/util/go/files"
 	"github.com/jsannemo/omogenjudge/util/go/filestore"
+	"github.com/jsannemo/omogenjudge/util/go/users"
 )
+
+func main() {
+	flag.Parse()
+	defer logger.Init("addproblem", true, false, ioutil.Discard).Close()
+	path := flag.Arg(0)
+	path, err := filepath.Abs(path)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	if err := installProblem(path); err != nil {
+		logger.Fatalf("Failed installing problem: %v", err)
+	}
+}
 
 func toStorageOutputValidator(ctx context.Context, val *runpb.Program) (*models.OutputValidator, error) {
 	if val == nil {
@@ -48,12 +62,14 @@ func toStorageOutputValidator(ctx context.Context, val *runpb.Program) (*models.
 	if err != nil {
 		return nil, err
 	}
-	storedFile := &models.StoredFile{Hash: hash, Url: url}
-	files.Create(ctx, storedFile)
+	storedFile := &models.StoredFile{Hash: hash, URL: url}
+	if err := files.CreateFile(ctx, storedFile); err != nil {
+		return nil, err
+	}
 
 	return &models.OutputValidator{
-		ValidatorLanguageId: sql.NullString{String: val.LanguageId, Valid: true},
-		ValidatorSourceZip:  storedFile.ToNilable(),
+		ValidatorLanguageID: sql.NullString{String: val.LanguageId, Valid: true},
+		ValidatorSourceZIP:  storedFile.ToNilable(),
 	}, nil
 }
 
@@ -64,7 +80,7 @@ func toStorageStatements(statements []*toolspb.ProblemStatement) []*models.Probl
 			&models.ProblemStatement{
 				Language: s.LanguageCode,
 				Title:    s.Title,
-				Html:     s.StatementHtml,
+				HTML:     s.StatementHtml,
 			})
 	}
 	return storage
@@ -80,8 +96,7 @@ func insertFile(ctx context.Context, path string) (*models.StoredFile, error) {
 		return nil, err
 	}
 	storedFile := &models.StoredFile{hash, url}
-	files.Create(ctx, storedFile)
-	if err != nil {
+	if err := files.CreateFile(ctx, storedFile); err != nil {
 		return nil, err
 	}
 	return storedFile, nil
@@ -114,6 +129,7 @@ func toStorageTestGroup(ctx context.Context, tc *toolspb.TestGroup) (*models.Tes
 	}
 	return &models.TestGroup{
 		Name:             tc.Name,
+		Score: tc.Score,
 		PublicVisibility: tc.PublicSamples,
 		Tests:            tests}, nil
 }
@@ -138,11 +154,16 @@ func installProblem(path string) error {
 	if err != nil {
 		return fmt.Errorf("Could not create installation directory: %v", err)
 	}
-	// defer os.RemoveAll(tmp)
-	if err := os.Chmod(tmp, 0777); err != nil {
-		return fmt.Errorf("Could not chmod installation directory: %v", err)
-	}
+	//defer os.RemoveAll(tmp)
 	fb := futil.NewFileBase(tmp)
+	fb.Gid = users.OmogenClientsID()
+	fb.GroupWritable = true
+	if err := fb.FixOwners("."); err != nil {
+		return err
+	}
+	if err := fb.FixModeExec("."); err != nil {
+		return err
+	}
 	if err := fb.Mkdir(problemName); err != nil {
 		return fmt.Errorf("Could not create installation problem directory: %v", err)
 	}
@@ -151,7 +172,7 @@ func installProblem(path string) error {
 		return err
 	}
 	if err := installfb.CopyInto(path); err != nil {
-		return fmt.Errorf("Could not clone into installation directory: %v", err)
+		return fmt.Errorf("Could not clone into installation problem directory: %v", err)
 	}
 	npath := installfb.Path()
 
@@ -163,6 +184,9 @@ func installProblem(path string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("ParseProblem failed: %v", err)
+	}
+	for _, infoMsg := range parsed.Infos {
+		logger.Infoln(infoMsg)
 	}
 	for _, warnMsg := range parsed.Warnings {
 		logger.Warningln(warnMsg)
@@ -183,6 +207,9 @@ func installProblem(path string) error {
 		return fmt.Errorf("VerifyProblem failed: %v", err)
 	}
 	hasWarnings = hasWarnings || len(verified.Warnings) > 0
+	for _, infoMsg := range verified.Infos {
+		logger.Infoln(infoMsg)
+	}
 	for _, warnMsg := range verified.Warnings {
 		logger.Warningln(warnMsg)
 	}
@@ -208,11 +235,11 @@ func installProblem(path string) error {
 	}
 	problemVersion := &models.ProblemVersion{
 		TestGroups:      storageTestGroups,
-		TimeLimMs:       problem.Metadata.Limits.TimeLimitMs,
-		MemLimKb:        problem.Metadata.Limits.MemoryLimitKb,
+		TimeLimMS:       problem.Metadata.Limits.TimeLimitMs,
+		MemLimKB:        problem.Metadata.Limits.MemoryLimitKb,
 		OutputValidator: outputValidator,
 	}
-	if err := problems.Create(ctx, &models.Problem{
+	if err := problems.CreateProblem(ctx, &models.Problem{
 		ShortName:      problem.Metadata.ProblemId,
 		Statements:     toStorageStatements(problem.Statements),
 		License:        models.License(problem.Metadata.License.String()),
@@ -222,17 +249,4 @@ func installProblem(path string) error {
 		return err
 	}
 	return nil
-}
-
-func main() {
-	flag.Parse()
-	defer logger.Init("addproblem", true, false, ioutil.Discard).Close()
-	path := flag.Arg(0)
-	path, err := filepath.Abs(path)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	if err := installProblem(path); err != nil {
-		logger.Fatalf("Failed installing problem: %v", err)
-	}
 }

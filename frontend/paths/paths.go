@@ -21,16 +21,7 @@ const (
 	SubmissionIdArg      = "submission_id"
 	User                 = "user"
 	UserNameArg          = "user_name"
-	CourseList           = "course_list"
-	Course               = "course"
-	CourseNameArg        = "course_name"
-	CourseChapter        = "course_chapter"
-	CourseChapterNameArg = "course_chapter_name"
-	CourseSection        = "course_section"
-	CourseSectionNameArg = "course_section_name"
-	Editor               = "editor"
-
-	Api_EditorFiles = "api_editor_files"
+	ContestTeams         = "contest_teams"
 )
 
 var router = mux.NewRouter()
@@ -66,7 +57,7 @@ func Route(name string, args ...interface{}) string {
 		case uint64:
 			stringified = append(stringified, strconv.FormatUint(uint64(a), 10))
 		default:
-			panic(fmt.Errorf("Used unknown type %T in route", a))
+			panic(fmt.Errorf("used unknown type %T in route", a))
 		}
 	}
 	url, err := GetRouter().Get(name).URL(stringified...)

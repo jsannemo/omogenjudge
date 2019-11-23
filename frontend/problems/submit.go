@@ -21,12 +21,15 @@ type SubmitParams struct {
 func SubmitHandler(r *request.Request) (request.Response, error) {
 	loginUrl := paths.Route(paths.Login)
 	// TODO save current page location
-	if r.Context.UserId == 0 {
+	if r.Context.UserID == 0 {
 		return request.Redirect(loginUrl), nil
 	}
 
 	vars := mux.Vars(r.Request)
-	problems := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
+	problems, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
+	if err != nil {
+		return nil, err
+	}
 	if len(problems) == 0 {
 		return request.NotFound(), nil
 	}
@@ -40,9 +43,8 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 			return request.NotFound(), nil
 		}
 		s := &models.Submission{
-			AccountId: r.Context.UserId,
-			ProblemId: problem.ProblemId,
-			Status:    models.StatusNew,
+			AccountID: r.Context.UserID,
+			ProblemID: problem.ProblemID,
 			Language:  l.LanguageId,
 			Files: []*models.SubmissionFile{
 				&models.SubmissionFile{
@@ -50,12 +52,20 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 					Contents: submit,
 				},
 			},
+			Runs: []*models.SubmissionRun{&models.SubmissionRun{
+				ProblemVersionID: problem.CurrentVersion.ProblemVersionID,
+				Status:           models.StatusNew,
+				Evaluation: models.Evaluation{
+					Verdict: models.VerdictUnjudged,
+				},
+				Public: true,
+			}},
 		}
-		err := submissions.Create(r.Request.Context(), s)
+		err := submissions.CreateSubmission(r.Request.Context(), s, problem.CurrentVersion.ProblemVersionID)
 		if err != nil {
 			return request.Error(err), nil
 		}
-		subUrl := paths.Route(paths.Submission, paths.SubmissionIdArg, s.SubmissionId)
+		subUrl := paths.Route(paths.Submission, paths.SubmissionIdArg, s.SubmissionID)
 		return request.Redirect(subUrl), nil
 	}
 

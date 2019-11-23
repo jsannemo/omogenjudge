@@ -2,7 +2,15 @@
 <header class="navbar">
   <div class="navbar-container">
     <div class="navbar-top">
-    <a href="/"><img class="navbar-logo" src="/static/kodsport/logo.png"></a>
+      <a href="/">
+        {{ if .C.Contest }}
+          <span class="navbar-textlogo">
+          {{ .C.Contest.Title }}
+          </span>
+        {{ else }}
+          <img class="navbar-logo" src="/static/kodsport/logo.png">
+        {{ end }}
+      </a>
       <button class="navbar-hamburger">
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -12,17 +20,19 @@
     <nav class="navbar-nav closed">
       <ul>
         <li><a href="/">Hem</a></li>
-        <li><a href="/courses">Kurser</a></li>
-        <li><a href="/problems">Problemarkiv</a></li>
-        <li><a href="/contests">Tävlingar</a></li>
-        <!-- <li><a href="/editor">Kodredigerare</a></li> -->
+        {{ if not (or .C.Contest .C.Contest.Started) }}
+          <li><a href="/problems">Problem</a></li>
+        {{ end }}
+        <li><a href="/teams">Lag</a></li>
         {{ if .C.User }}
           <li class="navbar-dropdown closed">
             <a href="javascript:;"> <i class="material-icons">person</i> {{ .C.User.Username }}<span class="navbar-dropdown-caret"></span></a>
             <ul>
-              <li><a href="/users/{{ .C.User.Username}}">Inskickningar</a>
-              <li><a href="/logout">Logga ut</a></li>
-            <ul>
+              {{ if not (or .C.Contest .C.Contest.Started) }}
+                <li><a href="/users/{{ .C.User.Username}}">Inskickningar</a></li>
+              {{ end }}
+              <li><a href="/logout">Logga&nbsp;ut</a></li>
+            </ul>
           </li>
         {{ else }}
           <li><a href="/login">Logga in</a></li>
@@ -33,4 +43,4 @@
   </div>
 </header>
 <section class="content">
-{{ end }}
+  {{ end }}

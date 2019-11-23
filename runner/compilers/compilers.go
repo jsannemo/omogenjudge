@@ -26,7 +26,7 @@ type Compilation struct {
 func WriteProgramToDisc(req *runpb.Program, outputPath string) ([]string, error) {
 	compiledPaths := []string{}
 	fb := files.NewFileBase(outputPath)
-	fb.Gid = users.OmogenClientsId()
+	fb.Gid = users.OmogenClientsID()
 	fb.GroupWritable = true
 	if err := fb.Mkdir("."); err != nil {
 		return nil, fmt.Errorf("failed mkdir %s: %v", outputPath, err)

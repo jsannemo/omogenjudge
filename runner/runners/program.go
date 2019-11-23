@@ -12,19 +12,14 @@ type RunFunc func(*runpb.CompiledProgram, execpb.ExecuteService_ExecuteClient) (
 type ProgramArgs struct {
 	// The file path that should be mapped to stdin in the execution.
 	InputPath string
-
 	// The file path that should be mapped to stdout in the execution.
 	OutputPath string
-
 	// The file path that should be mapped to stderr in the execution.
 	ErrorPath string
-
 	// The time limit to enforce on the execution.
-	TimeLimitMs int64
-
+	TimeLimitMs int32
 	// The memory limit to enforce on the execution.
-	MemoryLimitKb int64
-
+	MemoryLimitKb int32
 	// Potential extra arguments that should be provided to the program.
 	ExtraArgs []string
 }

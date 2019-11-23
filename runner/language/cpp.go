@@ -4,12 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
-	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/google/logger"
 	"google.golang.org/grpc/codes"
@@ -21,6 +17,7 @@ import (
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 	"github.com/jsannemo/omogenjudge/util/go/commands"
 	"github.com/jsannemo/omogenjudge/util/go/files"
+	"github.com/jsannemo/omogenjudge/util/go/strings"
 	"github.com/jsannemo/omogenjudge/util/go/users"
 )
 
@@ -32,24 +29,11 @@ func initCpp() error {
 	return nil
 }
 
-func randStr() string {
-	rand.Seed(time.Now().UnixNano())
-	chars := []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		"0123456789")
-	length := 8
-	var b strings.Builder
-	for i := 0; i < length; i++ {
-		b.WriteRune(chars[rand.Intn(len(chars))])
-	}
-	return b.String()
-}
-
 func cppCompile(executable, version string) CompileFunc {
 	return func(req *runpb.Program, outputPath string, exec execpb.ExecuteServiceClient) (*compilers.Compilation, error) {
 		programFiles, err := compilers.WriteProgramToDisc(req, outputPath)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "failde writing program to disc: %v", err)
+			return nil, status.Errorf(codes.Internal, "failed writing program to disc: %v", err)
 		}
 		// TODO used a propagated context
 		stream, err := exec.Execute(context.TODO())
@@ -58,23 +42,23 @@ func cppCompile(executable, version string) CompileFunc {
 			return nil, status.Errorf(codes.Internal, "failed opening exec connection: %v", err)
 		}
 		fb := files.NewFileBase("/var/lib/omogen/tmps")
-		inFile, outFile, errFile := randStr(), randStr(), randStr()
+		fb.Gid = users.OmogenClientsID()
+		inFile, outFile, errFile := strings.RandStr(8), strings.RandStr(8), strings.RandStr(8)
 		inf, err := fb.FullPath(inFile)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		outf, err := fb.FullPath(outFile)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		errf, err := fb.FullPath(errFile)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
-		defer os.Remove(inf)
-		defer os.Remove(outf)
-		defer os.Remove(errf)
-		fb.Gid = users.OmogenClientsId()
+		defer fb.Remove(inf)
+		defer fb.Remove(outf)
+		defer fb.Remove(errf)
 		if err := fb.WriteFile(inFile, []byte{}); err != nil {
 			return nil, err
 		}

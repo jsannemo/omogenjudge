@@ -48,7 +48,7 @@ func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.Com
 	response, err := runner.Compile(ctx,
 		&runpb.CompileRequest{
 			Program:    s.ToRunnerProgram(),
-			OutputPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/program", s.SubmissionId),
+			OutputPath: fmt.Sprintf("/var/lib/omogen/submissions/%d/program", s.SubmissionID),
 		})
 	if err != nil {
 		*outerr = &err
@@ -59,8 +59,8 @@ func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.Com
 }
 
 func toProgram(val *models.OutputValidator) (*runpb.Program, error) {
-	program := &runpb.Program{LanguageId: val.ValidatorLanguageId.String}
-	contents, err := filestore.GetFile(val.ValidatorSourceZip.Url)
+	program := &runpb.Program{LanguageId: val.ValidatorLanguageID.String}
+	contents, err := filestore.GetFile(val.ValidatorSourceZIP.Url)
 	r, err := zip.NewReader(bytes.NewReader(contents), int64(len(contents)))
 	if err != nil {
 		return nil, err
@@ -83,13 +83,21 @@ func toProgram(val *models.OutputValidator) (*runpb.Program, error) {
 	return program, nil
 }
 
-func judge(ctx context.Context, submission *models.Submission) error {
+func judge(ctx context.Context, run *models.SubmissionRun) error {
 	slot := <-slotPool
 	defer func() { slotPool <- slot }()
-	logger.Infof("Judging submission %d", submission.SubmissionId)
+	logger.Infof("Judging run %d", run.SubmissionRunID)
+	subs, err := submissions.ListSubmissions(ctx, submissions.ListArgs{WithFiles:true}, submissions.ListFilter{SubmissionID: []int32{run.SubmissionID}})
+	if err != nil {
+		return err
+	}
+	if len(subs) != 1 {
+		return fmt.Errorf("could not find submission %d", run.SubmissionID)
+	}
+	submission := subs[0]
 	// TODO: this should be created in the local evaluator prior to compilation somehow
-	root := files.NewFileBase(fmt.Sprintf("/var/lib/omogen/submissions/%d", submission.SubmissionId))
-	root.Gid = users.OmogenClientsId()
+	root := files.NewFileBase(fmt.Sprintf("/var/lib/omogen/submissions/%d", run.SubmissionRunID))
+	root.Gid = users.OmogenClientsID()
 	root.GroupWritable = true
 	if err := root.Mkdir("."); err != nil {
 		return fmt.Errorf("Could not create submission directory: %v", err)
@@ -98,16 +106,26 @@ func judge(ctx context.Context, submission *models.Submission) error {
 	var compileErr *error = nil
 	compileOutput := make(chan *runpb.CompileResponse)
 	go compile(ctx, submission, compileOutput, &compileErr)
-	submission.Status = models.StatusCompiling
-	submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}})
-
-	problems := problems.List(ctx, problems.ListArgs{WithTests: problems.TestsAll}, problems.ListFilter{ProblemId: submission.ProblemId})
-	if len(problems) == 0 {
-		return fmt.Errorf("requested problem %d, got %d problems", submission.ProblemId, len(problems))
+	run.Status = models.StatusCompiling
+	if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus}}); err != nil {
+		return err
 	}
-	problem := problems[0]
+	probs, err := problems.List(ctx, problems.ListArgs{WithTests: problems.TestsAll}, problems.ListFilter{ProblemId: []int32{submission.ProblemID}})
+	if err != nil {
+		return err
+	}
+	if len(probs) == 0 {
+		return fmt.Errorf("requested problem %d, got %d problems", submission.ProblemID, len(probs))
+	}
+	problem := probs[0]
 
-	testHandles := problem.TestDataFiles().ToHandlerFiles()
+	var testHandles []*filepb.FileHandle
+	for _, tg := range problem.CurrentVersion.TestGroups {
+		for _, tc := range tg.Tests {
+			testHandles = append(testHandles, &filepb.FileHandle{Sha256Hash: tc.InputFile.Hash, Url: tc.InputFile.URL})
+			testHandles = append(testHandles, &filepb.FileHandle{Sha256Hash: tc.OutputFile.Hash, Url: tc.OutputFile.URL})
+		}
+	}
 	resp, err := filehandler.EnsureFile(ctx, &filepb.EnsureFileRequest{Handles: testHandles})
 	if err != nil {
 		return err
@@ -118,17 +136,19 @@ func judge(ctx context.Context, submission *models.Submission) error {
 	}
 
 	var validatorProgram *runpb.CompiledProgram
-	if problem.OutputValidator.Nil() {
-		outputValidator, err := toProgram(problem.OutputValidator)
+	validator := problem.CurrentVersion.OutputValidator
+	if !validator.Nil() {
+		outputValidator, err := toProgram(validator)
 		if err != nil {
 			return err
 		}
+		validatorId := validator.ValidatorSourceZIP.Hash.String
 		resp, err := runner.CompileCached(ctx,
 			&runpb.CompileCachedRequest{
-				Identifier: problem.OutputValidator.ValidatorSourceZip.Hash.String,
+				Identifier: validatorId,
 				Request: &runpb.CompileRequest{
 					Program:    outputValidator,
-					OutputPath: fmt.Sprintf("/var/lib/omogen/tmps/val-%s", problem.OutputValidator.ValidatorSourceZip.Hash.String),
+					OutputPath: fmt.Sprintf("/var/lib/omogen/tmps/val-%s", validatorId),
 				},
 			})
 		if err != nil {
@@ -145,29 +165,40 @@ func judge(ctx context.Context, submission *models.Submission) error {
 		return fmt.Errorf("Compilation crashed: %v", *compileErr)
 	}
 	if compileResponse.Program == nil {
-		submission.Status = models.StatusCompilationFailed
-		submission.CompileError = sql.NullString{compileResponse.CompilationError, true}
-		submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus, submissions.FieldCompileError}})
+		run.Status = models.StatusSuccessful
+		run.Verdict = models.VerdictCompilationError
+		run.CompileError = sql.NullString{compileResponse.CompilationError, true}
+		if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus, submissions.RunFieldVerdict, submissions.RunFieldCompileError}}); err != nil {
+			return err
+		}
 		return nil
 	}
 
-	submission.Status = models.StatusRunning
-	submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldStatus}})
-	tests := problem.Tests()
-	var reqTests []*runpb.TestCase
-	for _, test := range tests {
-		reqTests = append(reqTests, &runpb.TestCase{
-			Name:       fmt.Sprintf("test-%d", test.TestCaseId),
-			InputPath:  testPathMap[test.InputFile.Hash],
-			OutputPath: testPathMap[test.OutputFile.Hash],
+	run.Status = models.StatusRunning
+	if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus}}); err != nil {
+		return err
+	}
+	var reqGroups []*runpb.TestGroup
+	for _, group := range problem.CurrentVersion.TestGroups {
+		var reqTests []*runpb.TestCase
+		for _, test := range group.Tests {
+			reqTests = append(reqTests, &runpb.TestCase{
+				Name:       fmt.Sprintf("test-%d", test.TestCaseID),
+				InputPath:  testPathMap[test.InputFile.Hash],
+				OutputPath: testPathMap[test.OutputFile.Hash],
+			})
+		}
+		reqGroups = append(reqGroups, &runpb.TestGroup{
+			Cases: reqTests,
+			Score: group.Score,
 		})
 	}
 	evalReq := &runpb.EvaluateRequest{
-		SubmissionId: int32(submission.SubmissionId),
+		SubmissionId: string(submission.SubmissionID),
 		Program:      compileResponse.Program,
-		Cases:        reqTests,
-		TimeLimitMs:  int64(problem.TimeLimMs),
-		MemLimitKb:   int64(problem.MemLimKb),
+		Groups:       reqGroups,
+		TimeLimitMs:  problem.CurrentVersion.TimeLimMS,
+		MemLimitKb:   problem.CurrentVersion.MemLimKB,
 	}
 	if validatorProgram != nil {
 		evalReq.Validator = &runpb.CustomValidator{Program: validatorProgram}
@@ -189,10 +220,15 @@ func judge(ctx context.Context, submission *models.Submission) error {
 		switch res := verdict.Result.(type) {
 		case *runpb.EvaluateResponse_TestCase:
 			// TODO report this
+		case *runpb.EvaluateResponse_TestGroup:
+			// TODO report this
 		case *runpb.EvaluateResponse_Submission:
-			submission.Verdict = models.Verdict(res.Submission.Verdict.String())
-			submission.Status = models.StatusSuccessful
-			submissions.Update(ctx, submission, submissions.UpdateArgs{Fields: []submissions.Field{submissions.FieldVerdict, submissions.FieldStatus}})
+			run.Verdict = models.Verdict(res.Submission.Verdict.String())
+			run.Status = models.StatusSuccessful
+			run.Score = res.Submission.Score
+			if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus, submissions.RunFieldVerdict, submissions.RunFieldScore}}); err != nil {
+				return err
+			}
 		case nil:
 			logger.Warningf("Got empty response")
 		default:
@@ -214,7 +250,7 @@ func main() {
 	}
 	filehandler = fhclient.NewClient()
 
-	judgeQueue := make(chan *models.Submission, 1000)
+	judgeQueue := make(chan *models.SubmissionRun, 1000)
 	if err := queue.StartQueue(context.Background(), judgeQueue); err != nil {
 		logger.Fatalf("Failed queue startup: %v", err)
 	}

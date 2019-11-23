@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+STAGED_GO_FILES=$(git diff --cached --name-only | grep ".go$")
+
+if [[ "$STAGED_GO_FILES" = "" ]]; then
+  exit 0
+fi
+
+PASS=true
+test -z $(gofmt -l $STAGED_GO_FILES)
+if [[ $? == 1 ]]; then
+  PASS=false
+fi
+
+for FILE in $STAGED_GO_FILES
+do
+  gofmt -w $FILE
+done
+
+if ! $PASS; then
+  printf "COMMIT FAILED\n"
+  exit 1
+else
+  printf "COMMIT SUCCEEDED\n"
+fi
+
+exit 0

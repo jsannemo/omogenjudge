@@ -8,6 +8,6 @@ import (
 
 // LogoutHandler handles logout requests
 func LogoutHandler(r *request.Request) (request.Response, error) {
-	r.Context.UserId = 0
+	r.Context.UserID = 0
 	return request.Redirect(paths.Route(paths.Home)), nil
 }

@@ -7,7 +7,7 @@ go_library(
     visibility = ["//localjudge:__subpackages__"],
     deps = [
         "//problemtools/api:go_default_library",
-        "//problemtools/courses:go_default_library",
+        "//problemtools/contests:go_default_library",
         "//problemtools/problems:go_default_library",
         "//runner/api:go_default_library",
         "//runner/client:go_default_library",

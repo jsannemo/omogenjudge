@@ -1,3 +1,5 @@
+js.cpp:
+  expected_score: 10
 js.py:
   required_failures: 
     - wa

@@ -46,17 +46,17 @@ message GetLanguagesResponse {
 
 // A request to evaluate an already compiled program on testdata.
 message EvaluateRequest {
-  int32 submission_id = 1;
+  string submission_id = 1;
 
   // The compiled program.
   CompiledProgram program = 2;
 
-  // The test cases to evaluate the program on.
+  // The test groups to evaluate the program on.
   // They will be evaluated in order.
-  repeated TestCase cases = 3;
+  repeated TestGroup groups = 3;
 
-  int64 time_limit_ms = 4;
-  int64 mem_limit_kb = 5;
+  int32 time_limit_ms = 4;
+  int32 mem_limit_kb = 5;
 
   CustomValidator validator = 6;
 
@@ -76,6 +76,7 @@ message EvaluateResponse {
     TestCaseResult test_case = 1;
     // If the entire submission was evaluated, submission is set.
     SubmissionResult submission = 2;
+    TestGroupResult test_group = 3;
   }
 }
 

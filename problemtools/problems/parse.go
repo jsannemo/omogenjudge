@@ -1,7 +1,6 @@
 package problems
 
 import (
-	"github.com/google/logger"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,56 +13,40 @@ import (
 
 // ParseProblem parses the problem at the given path into the API format.
 func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
-	var errors []string
-	var warnings []string
-
-	statementReporter := util.NewReporter()
-	statements, err := parseStatements(path, statementReporter)
+	parseReporter := util.NewReporter()
+	statements, err := parseStatements(path, parseReporter)
 	if err != nil {
 		return nil, err
 	}
-	statementReporter.AddFailures(&errors, &warnings)
 
-	metadataReporter := util.NewReporter()
-	metadata, err := parseMetadata(path, metadataReporter)
+	metadata, err := parseMetadata(path, parseReporter)
 	if err != nil {
 		return nil, err
 	}
-	metadataReporter.AddFailures(&errors, &warnings)
 
-	testgroupReporter := util.NewReporter()
-	testGroupMap, err := parseTestdata(path, testgroupReporter)
+	testGroupMap, err := parseTestdata(path, parseReporter)
 	if err != nil {
 		return nil, err
 	}
-	testgroupReporter.AddFailures(&errors, &warnings)
 	testGroups := make([]*toolspb.TestGroup, 0, len(testGroupMap))
 	for _, v := range testGroupMap {
 		testGroups = append(testGroups, v)
 	}
 
-	outputValidatorReporter := util.NewReporter()
-	outputValidator, err := parseOutputValidator(path, outputValidatorReporter)
+	outputValidator, err := parseOutputValidator(path, parseReporter)
 	if err != nil {
 		return nil, err
 	}
-	outputValidatorReporter.AddFailures(&errors, &warnings)
 
-	inputValidatorReporter := util.NewReporter()
-	inputValidators, err := parseInputValidators(path, inputValidatorReporter)
+	inputValidators, err := parseInputValidators(path, parseReporter)
 	if err != nil {
 		return nil, err
 	}
-	inputValidatorReporter.AddFailures(&errors, &warnings)
 
-	submissionReporter := util.NewReporter()
-	submissions, err := parseSubmissions(path, submissionReporter)
+	submissions, err := parseSubmissions(path, parseReporter)
 	if err != nil {
 		return nil, err
 	}
-	submissionReporter.AddFailures(&errors, &warnings)
-
-	logger.Infof("submissions: %v", submissions)
 
 	problem := &toolspb.Problem{
 		Statements:      statements,
@@ -75,8 +58,9 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 	}
 	return &toolspb.ParseProblemResponse{
 		ParsedProblem: problem,
-		Errors:        errors,
-		Warnings:      warnings,
+		Infos:         parseReporter.Infos(),
+		Warnings:      parseReporter.Warnings(),
+		Errors:        parseReporter.Errors(),
 	}, nil
 }
 

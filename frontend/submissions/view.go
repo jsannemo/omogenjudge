@@ -13,7 +13,7 @@ import (
 )
 
 type ViewParams struct {
-	Problems   models.ProblemMap
+	Problems   problems.ProblemMap
 	Submission *models.Submission
 }
 
@@ -23,11 +23,17 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	if err != nil {
 		return request.BadRequest("Non-numeric ID"), nil
 	}
-	subs := submissions.List(r.Request.Context(), submissions.ListArgs{WithFiles: true}, submissions.ListFilter{SubmissionId: int32(subId)})
+	subs, err := submissions.ListSubmissions(r.Request.Context(), submissions.ListArgs{WithFiles: true}, submissions.ListFilter{SubmissionID: []int32{int32(subId)}})
+	if err != nil {
+		return nil, err
+	}
 	if len(subs) == 0 {
 		return request.NotFound(), nil
 	}
 	sub := subs[0]
-	probs := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ProblemId: sub.ProblemId}).AsMap()
-	return request.Template("submissions_view", &ViewParams{probs, sub}), nil
+	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ProblemId: []int32{sub.ProblemID}})
+	if err != nil {
+		return nil, err
+	}
+	return request.Template("submissions_view", &ViewParams{probs.AsMap(), sub}), nil
 }

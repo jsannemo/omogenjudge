@@ -8,22 +8,15 @@ import (
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 )
 
+// A Problem is a problem users can submit solutions to.
 type Problem struct {
-	// A numeric problem ID.
-	// This should not be exposed externally.
-	ProblemId int32 `db:"problem_id"`
-
-	// The short name of the problem.
-	// This is suitable to use in e.g. URLs or as externally-visible identifiers.
-	ShortName string `db:"short_name"`
-
-	// A list of all statements corresponding to a problem.
-	Statements []*ProblemStatement
-
-	Author string `db:"author"`
-
-	License License `db:"license"`
-
+	// The numeric problem ID. This should not be exposed externally.
+	ProblemID int32 `db:"problem_id"`
+	// The short name of the problem. This is suitable to use in e.g. URLs or as externally-visible identifiers.
+	ShortName      string `db:"short_name"`
+	Statements     []*ProblemStatement
+	Author         string          `db:"author"`
+	License        License         `db:"license"`
 	CurrentVersion *ProblemVersion `db:"problem_version"`
 }
 
@@ -40,14 +33,17 @@ func localizedStatement(p *Problem, langs []language.Tag) *ProblemStatement {
 	return p.Statements[index]
 }
 
+// LocalizedTitle returns the problem title with preference given to some languages.
 func (p *Problem) LocalizedTitle(preferred []language.Tag) string {
 	return localizedStatement(p, preferred).Title
 }
 
+// LocalizedStatement returns the problem statement with preference given to some languages.
 func (p *Problem) LocalizedStatement(preferred []language.Tag) template.HTML {
-	return template.HTML(localizedStatement(p, preferred).Html)
+	return template.HTML(localizedStatement(p, preferred).HTML)
 }
 
+// Link returns a link to the problem page for the problem.
 func (p *Problem) Link() string {
 	return paths.Route(paths.Problem, paths.ProblemNameArg, p.ShortName)
 }
@@ -56,14 +52,13 @@ func (p *Problem) SubmitLink() string {
 	return paths.Route(paths.SubmitProblem, paths.ProblemNameArg, p.ShortName)
 }
 
+// A ProblemStatement is the text statement of a problem in a given language.
 type ProblemStatement struct {
-	ProblemId int32 `db:"problem_id"`
-	// The language tag for the statement.
+	ProblemID int32 `db:"problem_id"`
+	// The tag of the language that the statement is written in.
 	Language string `db:"language"`
-
 	// The title of the statement.
 	Title string `db:"title"`
-
 	// The HTML template of the statement.
-	Html string `db:"html"`
+	HTML string `db:"html"`
 }

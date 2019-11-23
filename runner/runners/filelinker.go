@@ -14,14 +14,14 @@ import (
 // It keeps all links in a small number of directories, which makes it easy to clear up the file system
 // environment between runs.
 type FileLinker struct {
-	readBase  files.FileBase
-	writeBase files.FileBase
+	readBase  *files.FileBase
+	writeBase *files.FileBase
 }
 
 // NewFileLinker returns a new file linker, rooted at the given path.
 func NewFileLinker(dir string) (*FileLinker, error) {
 	base := files.NewFileBase(dir)
-	base.Gid = users.OmogenClientsId()
+	base.Gid = users.OmogenClientsID()
 	if err := base.Mkdir("."); err != nil {
 		return nil, err
 	}
@@ -34,8 +34,8 @@ func NewFileLinker(dir string) (*FileLinker, error) {
 		return nil, err
 	}
 	linker := &FileLinker{
-		readBase:  reader,
-		writeBase: writer,
+		readBase:  &reader,
+		writeBase: &writer,
 	}
 	linker.writeBase.GroupWritable = true
 	if err := linker.writeBase.Mkdir("."); err != nil {
@@ -47,7 +47,7 @@ func NewFileLinker(dir string) (*FileLinker, error) {
 	return linker, nil
 }
 
-func (fl *FileLinker) base(writeable bool) files.FileBase {
+func (fl *FileLinker) base(writeable bool) *files.FileBase {
 	if writeable {
 		return fl.writeBase
 	} else {

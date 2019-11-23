@@ -1,10 +1,10 @@
-// Error utilities for database connections
 package db
 
 import (
 	"github.com/lib/pq"
 )
 
+// A PgError is a Postgres-specific error that can be returned by queries.
 type PgError int
 
 const (
@@ -15,7 +15,7 @@ const (
 	UniquenessViolation
 )
 
-// PgErrCode converts an error returned from a transaction into a typed Postgres error
+// PgErrCode converts an error returned from a transaction into a typed Postgres error.
 func PgErrCode(err error) PgError {
 	if pgerr, ok := err.(*pq.Error); ok {
 		code := pgerr.Code.Name()

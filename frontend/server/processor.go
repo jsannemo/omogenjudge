@@ -30,6 +30,7 @@ func executeMiddlewares(req *request.Request, middlewares []middleware.Middlewar
 		resp, err := middleware.Processor(req)
 		if err != nil {
 			logger.Errorf("Error during request handling: %v", err)
+			// TODO(jsannemo): only display actual errors for admins
 			req.Response = request.Error(err)
 			break
 		}
@@ -38,8 +39,7 @@ func executeMiddlewares(req *request.Request, middlewares []middleware.Middlewar
 		}
 	}
 	if req.Response == nil {
-		req.Response = request.Error(errors.New("No response generated"))
+		req.Response = request.Error(errors.New("no response generated"))
 	}
-	logger.Infof("Generated response %v", req.Response)
 	req.Write(req.Writer)
 }

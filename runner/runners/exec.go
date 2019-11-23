@@ -38,10 +38,10 @@ type ExecResult struct {
 	Signal int32
 
 	// The time the execution used.
-	TimeUsageMs int
+	TimeUsageMs int32
 
 	// The memory the execution used.
-	MemoryUsageKb int
+	MemoryUsageKb int32
 }
 
 // CrashedWith checks whether the program exited normally with the given code.
@@ -95,8 +95,8 @@ type ExecArgs struct {
 	ErrorPath        string
 	ExtraReadPaths   []string
 	ExtraWritePaths  []string
-	TimeLimitMs      int64
-	MemoryLimitKb    int64
+	TimeLimitMs      int32
+	MemoryLimitKb    int32
 	ReuseContainer   bool
 }
 
@@ -115,13 +115,13 @@ func Execute(exec execpb.ExecuteService_ExecuteClient, args *ExecArgs) (*ExecRes
 				Amounts: []*execpb.ResourceAmount{
 					&execpb.ResourceAmount{
 						Type:   execpb.ResourceType_CPU_TIME,
-						Amount: args.TimeLimitMs},
+						Amount: int64(args.TimeLimitMs)},
 					&execpb.ResourceAmount{
 						Type:   execpb.ResourceType_WALL_TIME,
-						Amount: 2 * args.TimeLimitMs},
+						Amount: 2 * int64(args.TimeLimitMs)},
 					&execpb.ResourceAmount{
 						Type:   execpb.ResourceType_MEMORY,
-						Amount: args.MemoryLimitKb},
+						Amount: int64(args.MemoryLimitKb)},
 					&execpb.ResourceAmount{
 						Type:   execpb.ResourceType_PROCESSES,
 						Amount: 10},
@@ -160,28 +160,49 @@ func Execute(exec execpb.ExecuteService_ExecuteClient, args *ExecArgs) (*ExecRes
 }
 
 func toResult(termination *execpb.Termination) (*ExecResult, error) {
+	time := int32(0)
+	memory := int32(0)
+	for _, res := range termination.UsedResources.Amounts {
+		switch res.Type {
+		case execpb.ResourceType_CPU_TIME:
+			time = int32(res.Amount)
+		case execpb.ResourceType_MEMORY:
+			memory = int32(res.Amount)
+		}
+	}
 	switch termination.Termination.(type) {
 	case *execpb.Termination_Signal_:
 		return &ExecResult{
 			ExitType: Signaled,
+			Signal: termination.GetSignal().Signal,
+			TimeUsageMs: time,
+			MemoryUsageKb: memory,
 		}, nil
 	case *execpb.Termination_Exit_:
 		return &ExecResult{
 			ExitType: Exited,
 			ExitCode: termination.GetExit().Code,
+			TimeUsageMs: time,
+			MemoryUsageKb: memory,
 		}, nil
 	case *execpb.Termination_ResourceExceeded:
 		if termination.GetResourceExceeded() == execpb.ResourceType_CPU_TIME {
 			return &ExecResult{
 				ExitType: TimedOut,
+				TimeUsageMs: time,
+				MemoryUsageKb: memory,
 			}, nil
 		} else if termination.GetResourceExceeded() == execpb.ResourceType_WALL_TIME {
 			return &ExecResult{
 				ExitType: TimedOut,
+				TimeUsageMs: time,
+				MemoryUsageKb: memory,
 			}, nil
 		} else if termination.GetResourceExceeded() == execpb.ResourceType_MEMORY {
 			return &ExecResult{
 				ExitType: MemoryExceeded,
+				TimeUsageMs: time,
+				MemoryUsageKb: memory,
 			}, nil
 		} else {
 			return nil, errors.New("unknown resource exceeded")

@@ -21,8 +21,8 @@ func validateProgram(program *runpb.CompiledProgram) error {
 }
 
 func ValidateEvaluateRequest(req *runpb.EvaluateRequest) error {
-	if req.SubmissionId <= 0 {
-		return status.Errorf(codes.InvalidArgument, "Non-positive submission ID")
+	if len(req.SubmissionId) == 0 {
+		return status.Errorf(codes.InvalidArgument, "Empty submission ID")
 	}
 	if req.Program == nil {
 		return status.Errorf(codes.InvalidArgument, "No submission program")
@@ -30,7 +30,7 @@ func ValidateEvaluateRequest(req *runpb.EvaluateRequest) error {
 	if err := validateProgram(req.Program); err != nil {
 		return err
 	}
-	if len(req.Cases) == 0 {
+	if len(req.Groups) == 0 {
 		return status.Errorf(codes.InvalidArgument, "Evaluation had no test cases")
 	}
 	if req.TimeLimitMs <= 0 {

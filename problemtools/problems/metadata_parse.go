@@ -13,6 +13,7 @@ import (
 )
 
 type problemLimits struct {
+	Multiplier int32
 	Time   float64
 	Memory int32
 }
@@ -60,11 +61,16 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 		reporter.Err("Invalid problem yaml: %v", err)
 		return nil, nil
 	}
-	timeLimit := md.Judging.Limits.Time
-	memLimit := md.Judging.Limits.Memory
+	limits := md.Judging.Limits
+	timeLimit := limits.Time
+	timeMultiplier := limits.Multiplier
+	memLimit := limits.Memory
 	if memLimit == 0 {
 		memLimit = 1000
 		reporter.Warn("No explicit memory limit set: using default 1000 MB")
+	}
+	if timeMultiplier == 0 && timeLimit == 0 {
+		timeMultiplier = 4
 	}
 	lic := toLicense(md.License, reporter)
 	return &toolspb.Metadata{
@@ -72,6 +78,7 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 		Limits: &toolspb.Limits{
 			TimeLimitMs:   int32(1000 * timeLimit),
 			MemoryLimitKb: int32(1000 * memLimit),
+			TimeLimitMultiplier: timeMultiplier,
 		},
 		Author:  md.Author,
 		License: lic,

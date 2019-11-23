@@ -91,21 +91,20 @@ message Limits {
 
   // The memory limit for executing a test case in megabytes.
   int32 memory_limit_kb = 2;
+
+  int32 time_limit_multiplier = 3;
 }
 
 message SubmissionConstraint {
-    repeated omogen.runner.Verdict required_failures = 2;
-
-    repeated omogen.runner.Verdict allowed_failures = 3;
+  int32 expected_score = 1;
+  repeated omogen.runner.Verdict required_failures = 2;
+  repeated omogen.runner.Verdict allowed_failures = 3;
 }
 
 message Submission {
   omogen.runner.Program submission = 1;
-
   SubmissionConstraint constraint = 2;
-
   bool use_for_timing = 3;
-
   string name = 4;
 }
 

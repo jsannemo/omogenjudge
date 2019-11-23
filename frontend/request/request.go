@@ -12,18 +12,18 @@ import (
 	"github.com/jsannemo/omogenjudge/storage/models"
 )
 
-// RequestContext keeps request-scoped information available during a request
+// A RequestContext keeps request-scoped information available during a request.
 type RequestContext struct {
 	// ID of the currently logged-in user
-	UserId int32
-
-	User *models.Account
-
+	UserID int32
+	User   *models.Account
+	Contest *models.Contest
+	Team *models.Team
 	// Locales as set in Accept-Language
 	Locales []language.Tag
 }
 
-// Request represents a single HTTP request
+// A Request represents a single HTTP request.
 type Request struct {
 	Writer   http.ResponseWriter
 	Request  *http.Request
@@ -47,7 +47,7 @@ func NewRequest(w http.ResponseWriter, r *http.Request) *Request {
 	return &Request{w, r, nil, &RequestContext{}, nil}
 }
 
-// Response is the return type of a HTTP processor.
+// A Response is the return type of a HTTP processor.
 // It represents the response that should be sent back to the client.
 // This is cached since we may have processors that should be run after the
 // main request handler, but before the response is actually sent.
@@ -59,7 +59,6 @@ type Response interface {
 type templateResponse struct {
 	// The name of the template element to execute
 	Name string
-
 	// The data to be passed when executing the template
 	Data interface{}
 }

@@ -4,8 +4,8 @@ go_library(
     name = "problems",
     srcs = [
         "create.go",
+        "doc.go",
         "list.go",
-        "util.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/storage/problems",
     visibility = ["//visibility:public"],

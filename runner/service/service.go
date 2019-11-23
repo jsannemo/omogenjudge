@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"sync"
 
@@ -20,6 +19,8 @@ import (
 	"github.com/jsannemo/omogenjudge/runner/runners"
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 	eclient "github.com/jsannemo/omogenjudge/sandbox/client"
+	"github.com/jsannemo/omogenjudge/util/go/files"
+	"github.com/jsannemo/omogenjudge/util/go/users"
 )
 
 var (
@@ -51,7 +52,16 @@ func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) 
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(dir)
+	// defer os.RemoveAll(dir)
+	fb := files.NewFileBase(dir)
+	fb.Gid = users.OmogenClientsID()
+	if err := fb.FixOwners("."); err != nil {
+		return nil, err
+	}
+	if err := fb.FixModeExec("."); err != nil {
+		return nil, err
+	}
+	fb.GroupWritable = true
 
 	env, err := runners.NewFileLinker(filepath.Join(dir, "env"))
 	if err != nil {
@@ -70,11 +80,11 @@ func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) 
 		errName := fmt.Sprintf("error-%d", i)
 
 		outPath := filepath.Join(dir, outName)
-		if _, err := os.Create(outPath); err != nil {
+		if err := fb.WriteFile(outName, []byte{}); err != nil {
 			return nil, err
 		}
 		errPath := filepath.Join(dir, errName)
-		if _, err := os.Create(errPath); err != nil {
+		if err := fb.WriteFile(errName, []byte{}); err != nil {
 			return nil, err
 		}
 		if err := env.LinkFile(input, "input", false); err != nil {
@@ -196,21 +206,12 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 		}
 	}
 
-	root := fmt.Sprintf("/var/lib/omogen/submissions/%d", req.SubmissionId)
+	root := fmt.Sprintf("/var/lib/omogen/submissions/%s", req.SubmissionId)
 	evaluator, err := eval.NewEvaluator(root, program, validator)
 	if err != nil {
 		return status.Errorf(codes.Internal, "Failed creating evaluator: %v", err)
 	}
 	evaluator.EvaluateAll = req.EvaluateAll
-
-	var tcs []*eval.TestCase
-	for _, tc := range req.Cases {
-		tcs = append(tcs, &eval.TestCase{
-			Name:       tc.Name,
-			InputPath:  tc.InputPath,
-			OutputPath: tc.OutputPath,
-		})
-	}
 
 	results := make(chan *eval.Result, 10)
 	wg := sync.WaitGroup{}
@@ -221,13 +222,29 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 		for res := range results {
 			if res.TestCaseVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
 				if err = stream.Send(&runpb.EvaluateResponse{
-					Result: &runpb.EvaluateResponse_TestCase{&runpb.TestCaseResult{Verdict: res.TestCaseVerdict}},
+					Result: &runpb.EvaluateResponse_TestCase{&runpb.TestCaseResult{Verdict: res.TestCaseVerdict,
+						TimeUsageMs: res.TimeUsageMs,
+						Score: res.Score,
+						}},
+				}); err != nil {
+					break
+				}
+			} else if res.TestGroupVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
+				if err = stream.Send(&runpb.EvaluateResponse{
+					Result: &runpb.EvaluateResponse_TestGroup{&runpb.TestGroupResult{Verdict: res.TestCaseVerdict,
+						TimeUsageMs: res.TimeUsageMs,
+						Score: res.Score,
+						}},
 				}); err != nil {
 					break
 				}
 			} else if res.SubmissionVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
 				if err = stream.Send(&runpb.EvaluateResponse{
-					Result: &runpb.EvaluateResponse_Submission{&runpb.SubmissionResult{Verdict: res.SubmissionVerdict}},
+					Result: &runpb.EvaluateResponse_Submission{&runpb.SubmissionResult{
+						Verdict: res.SubmissionVerdict,
+						TimeUsageMs: res.TimeUsageMs,
+						Score: res.Score,
+					}},
 				}); err != nil {
 					break
 				}
@@ -235,7 +252,7 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 		}
 		wg.Done()
 	}()
-	if err := evaluator.Evaluate(tcs, req.TimeLimitMs, req.MemLimitKb, results); err != nil {
+	if err := evaluator.Evaluate(req.Groups, req.TimeLimitMs, req.MemLimitKb, results); err != nil {
 		return status.Errorf(codes.Internal, "Failed evaluation: %v", err)
 	}
 	if evalErr != nil {

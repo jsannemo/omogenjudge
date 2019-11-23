@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm -rf /var/lib/omogen/{filecache,tmps}
+rm -rf /var/lib/omogen/{filecache,tmps,submissions}
 
 set +e
 userdel omogenjudge-local || true

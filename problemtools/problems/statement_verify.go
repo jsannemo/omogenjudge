@@ -21,6 +21,7 @@ func verifyStatements(problem *toolspb.Problem, reporter util.Reporter) error {
 		if _, err := language.Parse(statement.LanguageCode); err != nil {
 			reporter.Err("Invalid language statement: %v", err)
 		}
+		reporter.Info("Added statement %s (%s)", statement.Title, statement.LanguageCode)
 	}
 	return nil
 }

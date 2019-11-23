@@ -44,6 +44,8 @@ static const int kChildStackSize = 100 * 1000;  // 100 KB
 
 static const int kInodeLimit = 1000;
 
+static struct passwd* pw;
+
 // Returns a termination cause based on the given status, which should
 // be given in the waitpid format.
 static ContainerTermination TerminationForStatus(int wait_status) {
@@ -66,13 +68,9 @@ static ContainerTermination TerminationForError(const string& error_message) {
 }
 
 static ContainerTermination Execute(const ContainerExecution& request) {
-  // We need to set this here rather than in setup since we lose privilege to
-  // change this to a potentially higher number after the fork.
-  // rlim_t process_limit = request.process_limit() + 2;  // +1 for this process
-  // rlimit rlim = {.rlim_cur = process_limit, .rlim_max = process_limit};
-  // PCHECK(setrlimit(RLIMIT_NPROC, &rlim) != -1)
-  //    << "Could not set the process limit";
-
+  // De-privilege now. We must do this before execing, to keep rlimits we set.
+  PCHECK(setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) != -1) << "Could not set gid";
+  PCHECK(setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) != -1) << "Could not set uid";
   // Start a fork to set up the execution environment for the request.
   // In the parent, we will wait for the request to finish. Since an error
   // may occur during setup of the contained process, we keep a pipe open
@@ -247,22 +245,20 @@ int main(int argc, char** argv) {
   struct group* group = getgrnam("omogenjudge-clients");
   omogenclients_gid = group->gr_gid;
   std::string user = absl::StrCat("omogenjudge-client", sandbox_id);
-  struct passwd* pw = getpwnam(user.c_str());
-  omogen::sandbox::SetQuota(block_quota, inode_quota, pw->pw_uid);
-  PCHECK(pw != NULL) << "Could not fetch user";
-  PCHECK(chown(container_root.c_str(), pw->pw_uid, group->gr_gid) != -1)
+  omogen::sandbox::pw = getpwnam(user.c_str());
+  PCHECK(omogen::sandbox::pw != NULL) << "Could not fetch user";
+  omogen::sandbox::SetQuota(block_quota, inode_quota, omogen::sandbox::pw->pw_uid);
+  PCHECK(chown(container_root.c_str(), omogen::sandbox::pw->pw_uid, group->gr_gid) != -1)
       << "Could not chown container root";
   PCHECK(chmod(container_root.c_str(), 0775) != -1)
       << "Could not chmod container root";
 
-  PCHECK(setegid(pw->pw_gid) != -1) << "Could not set gid";
-  PCHECK(seteuid(pw->pw_uid) != -1) << "Could not set uid";
   pid_t clone_pid;
   // Clone and create new namespaces for the contained process
   PCHECK(
       (clone_pid = clone(startSandbox, stack.data() + stack.size(),
                          SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS |
-                             CLONE_NEWPID | CLONE_NEWUSER | CLONE_NEWUTS,
+                             CLONE_NEWPID | CLONE_NEWUTS,
                          nullptr)) != -1)
       << "Failed cloning new contained process";
   struct passwd* sandbox_pw = getpwnam("omogenjudge-sandbox");

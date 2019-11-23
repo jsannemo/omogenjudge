@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/Masterminds/sprig"
 
@@ -16,8 +17,8 @@ type TemplateExecutor interface {
 
 var tpls = []string{
 	"frontend/templates/*.tpl",
-	"frontend/templates/courses/*.tpl",
-	"frontend/templates/editor/*.tpl",
+	"frontend/templates/contests/*.tpl",
+	"frontend/templates/helpers/*.tpl",
 	"frontend/templates/home/*.tpl",
 	"frontend/templates/problems/*.tpl",
 	"frontend/templates/users/*.tpl",
@@ -28,6 +29,10 @@ func templates() *template.Template {
 	tpl := template.New("templates").Funcs(sprig.FuncMap()).Funcs(
 		map[string]interface{}{
 			"language": util.GetLanguage,
+			"interval": func(dur time.Duration) string {
+				secs := dur.Truncate(time.Second) / time.Second
+				return fmt.Sprintf("%02d:%02d:%02d", secs / 3600, (secs / 60) % 60, secs % 60)
+			},
 		})
 	for _, t := range tpls {
 		tpl = template.Must(tpl.ParseGlob(t))

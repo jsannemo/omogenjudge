@@ -44,6 +44,7 @@ static void SetResourceLimit(int resource, rlim_t limit) {
 }
 
 static void SetResourceLimits() {
+  SetResourceLimit(RLIMIT_AS, RLIM_INFINITY);
   SetResourceLimit(RLIMIT_STACK, RLIM_INFINITY);
   SetResourceLimit(RLIMIT_MEMLOCK, 0);
   SetResourceLimit(RLIMIT_CORE, 0);

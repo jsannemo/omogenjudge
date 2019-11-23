@@ -11,6 +11,7 @@ ExecStartPre=+bash -c 'chown omogenjudge-sandbox:omogenjudge-sandbox /sys/fs/cgr
 ExecStartPre=+bash -c 'echo "rmdir" > /sys/fs/cgroup/memory/release_agent || true'
 ExecStartPre=+bash -c 'echo "rmdir" > /sys/fs/cgroup/cpuacct/release_agent || true'
 PermissionsStartOnly=true
+LimitSTACK=unlimited
 ExecStart=/usr/bin/omogenjudge-sandbox --logtostderr -v=4
 ExecStopPost=+bash -c 'rmdir /sys/fs/cgroup/{cpuacct,memory,pids}/omogencontain || true'
 

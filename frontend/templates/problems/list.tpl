@@ -1,11 +1,6 @@
 {{ define "problems_list" }}
 <section>
   <article>
-    <header class="article-header">
-      <div class="row">
-        <h1 class="display">Problemarkiv</h1>
-      </div>
-    </header>
     <div class="row">
       <table class="bordered" style="margin: auto; width: 100%">
       <thead>

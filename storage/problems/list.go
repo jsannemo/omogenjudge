@@ -9,6 +9,8 @@ import (
 	"github.com/jsannemo/omogenjudge/storage/models"
 )
 
+// ListFilter filters the problems to search for.
+// Only one filter may be set.
 type ListFilter struct {
 	ShortName string
 	ProblemId []int32
@@ -19,11 +21,15 @@ type StmtOpt byte
 
 const (
 	TestsNone TestOpt = iota
+	// Only load sample test groups.
 	TestsSamples
+	// Load test data and validators.
 	TestsAll
 
 	StmtNone StmtOpt = iota
+	// Include only titles.
 	StmtTitles
+	// Include titles and HTML statement.
 	StmtAll
 )
 
@@ -34,13 +40,13 @@ type ListArgs struct {
 
 func List(ctx context.Context, args ListArgs, filter ListFilter) (ProblemList, error) {
 	if filter.ShortName != "" && len(filter.ProblemId) != 0 {
-		return nil, fmt.Errorf("Only one filter is allowed when listing problems")
+		return nil, fmt.Errorf("only one filter is allowed when listing problems")
 	}
 	conn := db.Conn()
 	var probs ProblemList
 	query, params := problemQuery(args, filter)
 	if err := conn.SelectContext(ctx, &probs, query, params...); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list query failed: %v", err)
 	}
 	if err := includeStatements(ctx, probs.AsMap(), args.WithStatements); err != nil {
 		return nil, err
@@ -61,8 +67,11 @@ func problemQuery(args ListArgs, filterArgs ListFilter) (string, []interface{}) 
 
 	query := `
     SELECT
-        problem_id, short_name, author, license,
-        problem_version.problem_version_id, problem_version.time_limit_ms, problem_version.memory_limit_kb, problem_version.problem_id
+        problem.problem_id, short_name, author, license,
+        problem_version.problem_version_id "problem_version.problem_version_id",
+   	    problem_version.time_limit_ms "problem_version.time_limit_ms",
+		problem_version.memory_limit_kb "problem_version.memory_limit_kb",
+		problem_version.problem_id "problem_version.problem_id"
         %s
     FROM problem
     LEFT JOIN problem_version ON current_version = problem_version.problem_version_id
@@ -70,15 +79,16 @@ func problemQuery(args ListArgs, filterArgs ListFilter) (string, []interface{}) 
     %s
     `
 	if filterArgs.ShortName != "" {
-		filter, params = db.SetParam("short_name = $%d", params, filterArgs.ShortName)
+		filter = db.SetParam("WHERE short_name = $%d", &params, filterArgs.ShortName)
 	} else if len(filterArgs.ProblemId) != 0 {
-		filter, params = db.SetInParamInt("WHERE problem_id IN (%s)", params, filterArgs.ProblemId)
+		filter = db.SetInParamInt("WHERE problem.problem_id IN (%s)", &params, filterArgs.ProblemId)
 	}
 
 	if args.WithTests == TestsAll {
 		joins = "LEFT JOIN problem_output_validator USING(problem_version_id)"
-		fields = `, file_hash(validator_source_zip) "problem_version.problem_output_validator.validator_source_zip.hash", file_url(validator_source_zip) "problem.version.problem_output_validator.validator_source_zip.url",
-    validator_language_id "problem_output_validator.language_id"`
+		fields = `, validator_source_zip "problem_version.problem_output_validator.validator_source_zip.hash",
+                    file_url(validator_source_zip) "problem.version.problem_output_validator.validator_source_zip.url",
+                    validator_language_id "problem_output_validator.language_id"`
 	}
 	return fmt.Sprintf(query, fields, joins, filter), params
 }
@@ -90,7 +100,7 @@ func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) e
 	}
 	query := "SELECT problem_version_id, problem_testgroup_id, testgroup_name, public_visibility FROM problem_testgroup " + filter + " ORDER BY testgroup_name"
 	var groups TestGroupList
-	if err := db.Conn().SelectContext(ctx, &groups, query, pv.ProblemVersionId); err != nil {
+	if err := db.Conn().SelectContext(ctx, &groups, query, pv.ProblemVersionID); err != nil {
 		return err
 	}
 	pv.TestGroups = groups
@@ -99,19 +109,19 @@ func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) e
 	problem_testgroup_id,
 	problem_testcase_id,
 	testcase_name,
-	file_hash(input_file_hash) "input_file.hash",
+	input_file_hash "input_file.hash",
 	file_url(input_file_hash) "input_file.url",
-	file_hash(output_file_hash) "output_file.hash",
+	output_file_hash "output_file.hash",
 	file_url(output_file_hash) "output_file.url"
 	FROM problem_testcase
 	NATURAL JOIN problem_testgroup ` + filter
 	var tests []*models.TestCase
-	if err := db.Conn().SelectContext(ctx, &tests, query, pv.ProblemVersionId); err != nil {
+	if err := db.Conn().SelectContext(ctx, &tests, query, pv.ProblemVersionID); err != nil {
 		return err
 	}
 	groupMap := groups.AsMap()
 	for _, t := range tests {
-		g := groupMap[t.TestGroupId]
+		g := groupMap[t.TestGroupID]
 		g.Tests = append(g.Tests, t)
 	}
 	return nil
@@ -136,6 +146,44 @@ func includeStatements(ctx context.Context, ps ProblemMap, arg StmtOpt) error {
 	if err := conn.SelectContext(ctx, &statements, query, args...); err != nil {
 		return err
 	}
-	statements.AddTo(ps)
+	for _, s := range statements {
+		p := ps[s.ProblemID]
+		p.Statements = append(p.Statements, s)
+	}
 	return nil
+}
+
+// ProblemMap maps problem IDs to problems.
+type ProblemMap map[int32]*models.Problem
+
+func (p ProblemMap) Ids() []int32 {
+	var ids []int32
+	for id, _ := range p {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+type ProblemList []*models.Problem
+
+func (pl ProblemList) AsMap() ProblemMap {
+	pm := make(ProblemMap)
+	for _, p := range pl {
+		pm[p.ProblemID] = p
+	}
+	return pm
+}
+
+type StatementList []*models.ProblemStatement
+
+type TestGroupMap map[int32]*models.TestGroup
+
+type TestGroupList []*models.TestGroup
+
+func (tl TestGroupList) AsMap() TestGroupMap {
+	tm := make(TestGroupMap)
+	for _, g := range tl {
+		tm[g.TestGroupID] = g
+	}
+	return tm
 }

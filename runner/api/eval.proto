@@ -12,8 +12,11 @@ enum Verdict {
   WRONG_ANSWER = 3;
 
   RUN_TIME_ERROR = 4;
+}
 
-  UNJUDGED = 5;
+message TestGroup {
+  repeated TestCase cases = 1;
+  int32 score = 2;
 }
 
 message TestCase {
@@ -24,8 +27,18 @@ message TestCase {
 
 message TestCaseResult {
   Verdict verdict = 1;
+  int32 time_usage_ms = 2;
+  int32 score = 3;
+}
+
+message TestGroupResult {
+  Verdict verdict = 1;
+  int32 time_usage_ms = 2;
+  int32 score = 3;
 }
 
 message SubmissionResult {
   Verdict verdict = 1;
+  int32 time_usage_ms = 2;
+  int32 score = 3;
 }

@@ -1,3 +1,4 @@
+// Package users contains utilities for OS-level user and group management.
 package users
 
 import (
@@ -7,7 +8,8 @@ import (
 	"github.com/google/logger"
 )
 
-func OmogenClientsId() int {
+// OmogenClientsID returns the group ID of the omogenjudge-clients group.
+func OmogenClientsID() int {
 	group, err := user.LookupGroup("omogenjudge-clients")
 	if err != nil {
 		logger.Fatalf("could not look up omogenjudge-clients group: %v", err)

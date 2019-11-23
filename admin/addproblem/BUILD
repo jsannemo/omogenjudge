@@ -15,6 +15,7 @@ go_library(
         "//util/go/cli:go_default_library",
         "//util/go/files:go_default_library",
         "//util/go/filestore:go_default_library",
+        "//util/go/users:go_default_library",
         "@com_github_google_logger//:go_default_library",
     ],
 )

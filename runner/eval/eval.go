@@ -2,6 +2,8 @@ package eval
 
 import (
 	"fmt"
+	"github.com/jsannemo/omogenjudge/util/go/files"
+	"github.com/jsannemo/omogenjudge/util/go/users"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -43,14 +45,11 @@ func NewEvaluator(root string, program runners.Program, validator runners.Progra
 	return eval, nil
 }
 
-type TestCase struct {
-	Name       string
-	InputPath  string
-	OutputPath string
-}
-
 type Result struct {
+	TimeUsageMs       int32
+	Score             int32
 	TestCaseVerdict   runpb.Verdict
+	TestGroupVerdict  runpb.Verdict
 	SubmissionVerdict runpb.Verdict
 }
 
@@ -59,9 +58,9 @@ func (e *Evaluator) resetPermissions() error {
 	return cmd.Run()
 }
 
-func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64, results chan<- *Result) error {
+func (e *Evaluator) Evaluate(testGroups []*runpb.TestGroup, timeLimMs int32, memLimitKb int32, results chan<- *Result) error {
 	if err := e.resetPermissions(); err != nil {
-		return err
+		return fmt.Errorf("Could not reset permissions: %v", err)
 	}
 	defer close(results)
 	defer e.linker.Clear()
@@ -82,92 +81,102 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 			OutputPath: e.valLinker.PathFor("output", true),
 			ErrorPath:  e.valLinker.PathFor("error", true),
 			// TODO make this configurable
-			TimeLimitMs:   2000,
+			TimeLimitMs:   60000,
 			MemoryLimitKb: 1000 * 1000,
 			ExtraArgs: []string{
 				e.valLinker.PathFor("input", false),
 				e.valLinker.PathFor("judge_answer", false),
-				filepath.Join(e.valLinker.PathFor("fedeback", true)),
+				filepath.Join(e.valLinker.PathFor("feedback", true)),
 			},
 		})
 	}
 
 	verdict := runpb.Verdict_ACCEPTED
-	for _, tc := range testCases {
-		tcPath := filepath.Join(e.root, tc.Name)
-		if err := os.MkdirAll(tcPath, 0755); err != nil {
+	time := int32(0)
+	score := int32(0)
+	for _, tg := range testGroups {
+		groupTime, groupVerdict, err := evaluateGroup(tg, outPath, e, results)
+		if err != nil {
 			return err
+		}
+		if groupTime > time {
+			time = groupTime
+		}
+		if groupVerdict != runpb.Verdict_ACCEPTED {
+			verdict = groupVerdict
+			results <- &Result{TestGroupVerdict: groupVerdict, TimeUsageMs: groupTime, Score: 0}
+		} else {
+			score += tg.Score
+			results <- &Result{TestGroupVerdict: groupVerdict, TimeUsageMs: groupTime, Score: tg.Score}
+		}
+	}
+	if score != 0 {
+		verdict = runpb.Verdict_ACCEPTED
+	}
+	results <- &Result{SubmissionVerdict: verdict, Score: score, TimeUsageMs: time}
+	return nil
+}
+
+func evaluateGroup(tg *runpb.TestGroup, outPath string, e *Evaluator, results chan<- *Result) (int32, runpb.Verdict, error) {
+	time := int32(0)
+	verdict := runpb.Verdict_ACCEPTED
+	for _, tc := range tg.Cases {
+		tcPath := filepath.Join(e.root, tc.Name)
+		fb := files.NewFileBase(tcPath)
+		fb.Gid = users.OmogenClientsID()
+		fb.GroupWritable = true
+		if err := os.MkdirAll(tcPath, 0755); err != nil {
+			return time, verdict, err
 		}
 
 		if err := e.linker.LinkFile(tc.InputPath, "input", false); err != nil {
-			return err
+			return time, verdict, err
+		}
+		fb.WriteFile("output", []byte{})
+		if err := e.linker.LinkFile(tcPath + "/output", "output", true); err != nil {
+			return time, verdict, err
+		}
+		fb.WriteFile("error", []byte{})
+		if err := e.linker.LinkFile(tcPath + "/error", "error", true); err != nil {
+			return time, verdict, err
 		}
 
 		exit, err := e.program.Execute()
 		if err != nil {
-			return err
+			return time, verdict, err
 		}
 		if err := e.resetPermissions(); err != nil {
-			return err
+			return time, verdict, err
 		}
 
 		if exit.Crashed() {
-			results <- &Result{TestCaseVerdict: runpb.Verdict_RUN_TIME_ERROR}
+			results <- &Result{TestCaseVerdict: runpb.Verdict_RUN_TIME_ERROR, TimeUsageMs: exit.TimeUsageMs}
 			verdict = runpb.Verdict_RUN_TIME_ERROR
 		} else if exit.TimedOut() {
-			results <- &Result{TestCaseVerdict: runpb.Verdict_TIME_LIMIT_EXCEEDED}
+			results <- &Result{TestCaseVerdict: runpb.Verdict_TIME_LIMIT_EXCEEDED, TimeUsageMs: exit.TimeUsageMs}
 			verdict = runpb.Verdict_TIME_LIMIT_EXCEEDED
 		} else {
+			wa := false
 			if e.validator != nil {
-				if err := e.valLinker.LinkFile(tc.InputPath, "input", false); err != nil {
-					return err
-				}
-				if err := e.valLinker.LinkFile(outPath, "team_output", false); err != nil {
-					return err
-				}
-				if err := e.valLinker.LinkFile(tc.OutputPath, "judge_answer", false); err != nil {
-					return err
-				}
-				exit, err := e.validator.Execute()
+				wa, err = runValidator(tc.InputPath, outPath, tc.OutputPath, e)
 				if err != nil {
-					return err
-				}
-				if err := e.resetPermissions(); err != nil {
-					return err
-				}
-
-				if exit.TimedOut() {
-					return fmt.Errorf("output validator timed out")
-				}
-				if exit.CrashedWith(42) {
-					results <- &Result{TestCaseVerdict: runpb.Verdict_ACCEPTED}
-				} else if exit.CrashedWith(43) {
-					results <- &Result{TestCaseVerdict: runpb.Verdict_WRONG_ANSWER}
-					verdict = runpb.Verdict_WRONG_ANSWER
-				} else {
-					// TODO handle error
-					dat, err := ioutil.ReadFile(e.valLinker.PathFor("error", true))
-					if err != nil {
-						return fmt.Errorf("could not read output validator errors: %v", err)
-					}
-					dat2, err := ioutil.ReadFile(e.valLinker.PathFor("output", true))
-					if err != nil {
-						return fmt.Errorf("could not read output validator output: %v", err)
-					}
-					return fmt.Errorf("output validator crashed: %v", string(dat)+" "+string(dat2))
+					return time, verdict, err
 				}
 			} else {
-				hasDiff, err := diffOutput(tc.OutputPath, outPath)
+				wa, err = diffOutput(tc.OutputPath, outPath)
 				if err != nil {
-					return err
-				}
-				if hasDiff {
-					results <- &Result{TestCaseVerdict: runpb.Verdict_WRONG_ANSWER}
-					verdict = runpb.Verdict_WRONG_ANSWER
-				} else {
-					results <- &Result{TestCaseVerdict: runpb.Verdict_ACCEPTED}
+					return time, verdict, err
 				}
 			}
+			if wa {
+				results <- &Result{TestCaseVerdict: runpb.Verdict_WRONG_ANSWER, TimeUsageMs: exit.TimeUsageMs}
+				verdict = runpb.Verdict_WRONG_ANSWER
+			} else {
+				results <- &Result{TestCaseVerdict: runpb.Verdict_ACCEPTED, TimeUsageMs: exit.TimeUsageMs}
+			}
+		}
+		if exit.TimeUsageMs > time {
+			time = exit.TimeUsageMs
 		}
 
 		e.linker.Clear()
@@ -178,8 +187,46 @@ func (e *Evaluator) Evaluate(testCases []*TestCase, timeLimMs, memLimitKb int64,
 			break
 		}
 	}
-	results <- &Result{SubmissionVerdict: verdict}
-	return nil
+	return time, verdict, nil
+}
+
+func runValidator(inpath, teampath, anspath string, e *Evaluator) (bool, error) {
+	if err := e.valLinker.LinkFile(inpath, "input", false); err != nil {
+		return false, err
+	}
+	if err := e.valLinker.LinkFile(teampath, "team_output", false); err != nil {
+		return false, err
+	}
+	if err := e.valLinker.LinkFile(anspath, "judge_answer", false); err != nil {
+		return false, err
+	}
+	exit, err := e.validator.Execute()
+	if err != nil {
+		return false, err
+	}
+	if err := e.resetPermissions(); err != nil {
+		return false, err
+	}
+
+	if exit.TimedOut() {
+		return false, fmt.Errorf("output validator timed out")
+	}
+	if exit.CrashedWith(42) {
+		return false, nil
+	}
+	if exit.CrashedWith(43) {
+		return true, nil
+	}
+	// Crash was abnormal
+	dat, err := ioutil.ReadFile(e.valLinker.PathFor("error", true))
+	if err != nil {
+		return false, fmt.Errorf("could not read output validator errors: %v", err)
+	}
+	dat2, err := ioutil.ReadFile(e.valLinker.PathFor("output", true))
+	if err != nil {
+		return false, fmt.Errorf("could not read output validator output: %v", err)
+	}
+	return false, fmt.Errorf("output validator crashed: %v", string(dat)+" "+string(dat2))
 }
 
 func diffOutput(refPath, outPath string) (bool, error) {

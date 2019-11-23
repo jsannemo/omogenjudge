@@ -1,4 +1,3 @@
-// Session-related middlewares.
 package middleware
 
 import (
@@ -11,6 +10,7 @@ import (
 )
 
 var (
+	// TODO(jsannemo): set this cookie secret in some configuration
 	cookieSecret = flag.String("cookie_secret", "TMP", "A string used to encrypt cookies - should be random and long enough to be unbruteforcable")
 )
 
@@ -24,11 +24,13 @@ func cookieStore() *sessions.CookieStore {
 }
 
 const (
+	// Cookie key for the user session
 	sessionKey = "omogenjudge_session"
-	userIdKey  = "omogenjudge_session_userid"
+	// Session value key for the logged-in user ID
+	userIDKey = "omogenjudge_session_userid"
 )
 
-// readSession reads the session data from the request cookie
+// readSession reads the session data from the request cookie.
 // Context values stored in cookies are also inserted in the context.
 func readSession(r *request.Request) (request.Response, error) {
 	session, err := cookieStore().Get(r.Request, sessionKey)
@@ -37,13 +39,12 @@ func readSession(r *request.Request) (request.Response, error) {
 	}
 	r.Session = session
 
-	userId, had := session.Values[userIdKey]
-	if had {
+	if userId, had := session.Values[userIDKey]; had {
 		id, err := strconv.Atoi(userId.(string))
 		if err != nil {
 			return nil, err
 		}
-		r.Context.UserId = int32(id)
+		r.Context.UserID = int32(id)
 	}
 	return nil, nil
 }
@@ -51,11 +52,11 @@ func readSession(r *request.Request) (request.Response, error) {
 // writeSession writes the session data to the request cookies.
 // Context values that should be persisted are also stored in the cookies.
 func writeSession(r *request.Request) (request.Response, error) {
-	userId := r.Context.UserId
+	userId := r.Context.UserID
 	if userId != 0 {
-		r.Session.Values[userIdKey] = strconv.Itoa(int(userId))
+		r.Session.Values[userIDKey] = strconv.Itoa(int(userId))
 	} else {
-		delete(r.Session.Values, userIdKey)
+		delete(r.Session.Values, userIDKey)
 	}
 	if err := r.Session.Save(r.Request, r.Writer); err != nil {
 		return nil, err

@@ -1,0 +1,4 @@
+tests:
+  score: 10
+sample:
+  visibility: public

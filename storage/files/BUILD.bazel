@@ -6,6 +6,7 @@ go_library(
     importpath = "github.com/jsannemo/omogenjudge/storage/files",
     visibility = ["//visibility:public"],
     deps = [
+        "//filehandler/api:go_default_library",
         "//storage/db:go_default_library",
         "//storage/models:go_default_library",
     ],
