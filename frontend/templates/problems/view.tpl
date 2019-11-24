@@ -1,5 +1,5 @@
 {{ define "problems_view" }}
-  <section class="course problem">
+  <section class="problem">
     <article>
       {{ template "helper_contest_banner" .C.Contest }}
       <div class="wide-row mdl-grid">
