@@ -6,8 +6,8 @@ import (
 	"google.golang.org/grpc"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
-	"github.com/jsannemo/omogenjudge/problemtools/problems"
 	"github.com/jsannemo/omogenjudge/problemtools/contests"
+	"github.com/jsannemo/omogenjudge/problemtools/problems"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	rclient "github.com/jsannemo/omogenjudge/runner/client"
 )

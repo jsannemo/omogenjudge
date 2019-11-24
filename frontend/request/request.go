@@ -17,7 +17,9 @@ type RequestContext struct {
 	// ID of the currently logged-in user
 	UserID int32
 	User   *models.Account
+	// The active contest. Generally taken from the hostname -> contest mapping.
 	Contest *models.Contest
+	// Team of the current logged-in user in the active contest.
 	Team *models.Team
 	// Locales as set in Accept-Language
 	Locales []language.Tag

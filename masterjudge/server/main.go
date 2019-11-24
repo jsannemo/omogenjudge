@@ -7,26 +7,25 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/jsannemo/omogenjudge/masterjudge/queue"
 	"io"
 	"io/ioutil"
 	"net"
 	"os"
+	"strconv"
 
 	"github.com/google/logger"
 	"google.golang.org/grpc"
 
 	filepb "github.com/jsannemo/omogenjudge/filehandler/api"
 	fhclient "github.com/jsannemo/omogenjudge/filehandler/client"
-	"github.com/jsannemo/omogenjudge/masterjudge/queue"
 	"github.com/jsannemo/omogenjudge/masterjudge/service"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	rclient "github.com/jsannemo/omogenjudge/runner/client"
 	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/problems"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
-	"github.com/jsannemo/omogenjudge/util/go/files"
 	"github.com/jsannemo/omogenjudge/util/go/filestore"
-	"github.com/jsannemo/omogenjudge/util/go/users"
 )
 
 var (
@@ -35,14 +34,6 @@ var (
 
 var runner runpb.RunServiceClient
 var filehandler filepb.FileHandlerServiceClient
-var slotPool = make(chan int, 4)
-
-func init() {
-	slotPool <- 0
-	slotPool <- 1
-	slotPool <- 2
-	slotPool <- 3
-}
 
 func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.CompileResponse, outerr **error) {
 	response, err := runner.Compile(ctx,
@@ -58,9 +49,9 @@ func compile(ctx context.Context, s *models.Submission, output chan<- *runpb.Com
 	close(output)
 }
 
-func toProgram(val *models.OutputValidator) (*runpb.Program, error) {
+func getValidatorProgram(val *models.OutputValidator) (*runpb.Program, error) {
 	program := &runpb.Program{LanguageId: val.ValidatorLanguageID.String}
-	contents, err := filestore.GetFile(val.ValidatorSourceZIP.Url)
+	contents, err := filestore.GetFile(val.ValidatorSourceZIP.URL)
 	r, err := zip.NewReader(bytes.NewReader(contents), int64(len(contents)))
 	if err != nil {
 		return nil, err
@@ -84,10 +75,8 @@ func toProgram(val *models.OutputValidator) (*runpb.Program, error) {
 }
 
 func judge(ctx context.Context, run *models.SubmissionRun) error {
-	slot := <-slotPool
-	defer func() { slotPool <- slot }()
 	logger.Infof("Judging run %d", run.SubmissionRunID)
-	subs, err := submissions.ListSubmissions(ctx, submissions.ListArgs{WithFiles:true}, submissions.ListFilter{SubmissionID: []int32{run.SubmissionID}})
+	subs, err := submissions.ListSubmissions(ctx, submissions.ListArgs{WithFiles: true}, submissions.ListFilter{SubmissionID: []int32{run.SubmissionID}})
 	if err != nil {
 		return err
 	}
@@ -95,24 +84,16 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		return fmt.Errorf("could not find submission %d", run.SubmissionID)
 	}
 	submission := subs[0]
-	// TODO: this should be created in the local evaluator prior to compilation somehow
-	root := files.NewFileBase(fmt.Sprintf("/var/lib/omogen/submissions/%d", run.SubmissionRunID))
-	root.Gid = users.OmogenClientsID()
-	root.GroupWritable = true
-	if err := root.Mkdir("."); err != nil {
-		return fmt.Errorf("Could not create submission directory: %v", err)
-	}
-
 	var compileErr *error = nil
 	compileOutput := make(chan *runpb.CompileResponse)
 	go compile(ctx, submission, compileOutput, &compileErr)
 	run.Status = models.StatusCompiling
 	if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus}}); err != nil {
-		return err
+		return fmt.Errorf("failed settin run as compiling: %v", err)
 	}
-	probs, err := problems.List(ctx, problems.ListArgs{WithTests: problems.TestsAll}, problems.ListFilter{ProblemId: []int32{submission.ProblemID}})
+	probs, err := problems.List(ctx, problems.ListArgs{WithTests: problems.TestsAll}, problems.ListFilter{ProblemID: []int32{submission.ProblemID}})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed retreiving problem info: %v", err)
 	}
 	if len(probs) == 0 {
 		return fmt.Errorf("requested problem %d, got %d problems", submission.ProblemID, len(probs))
@@ -128,7 +109,7 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 	}
 	resp, err := filehandler.EnsureFile(ctx, &filepb.EnsureFileRequest{Handles: testHandles})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed ensuring file: %v", err)
 	}
 	testPathMap := make(map[string]string)
 	for i, handle := range testHandles {
@@ -137,18 +118,18 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 
 	var validatorProgram *runpb.CompiledProgram
 	validator := problem.CurrentVersion.OutputValidator
-	if !validator.Nil() {
-		outputValidator, err := toProgram(validator)
+	if !validator.ValidatorSourceZIP.Nil() {
+		outputValidator, err := getValidatorProgram(validator)
 		if err != nil {
 			return err
 		}
-		validatorId := validator.ValidatorSourceZIP.Hash.String
+		validatorID := validator.ValidatorSourceZIP.Hash
 		resp, err := runner.CompileCached(ctx,
 			&runpb.CompileCachedRequest{
-				Identifier: validatorId,
+				Identifier: validatorID.String,
 				Request: &runpb.CompileRequest{
 					Program:    outputValidator,
-					OutputPath: fmt.Sprintf("/var/lib/omogen/tmps/val-%s", validatorId),
+					OutputPath: fmt.Sprintf("/var/lib/omogen/tmps/val-%s", validatorID),
 				},
 			})
 		if err != nil {
@@ -194,7 +175,7 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		})
 	}
 	evalReq := &runpb.EvaluateRequest{
-		SubmissionId: string(submission.SubmissionID),
+		SubmissionId: strconv.Itoa(int(submission.SubmissionID)),
 		Program:      compileResponse.Program,
 		Groups:       reqGroups,
 		TimeLimitMs:  problem.CurrentVersion.TimeLimMS,
@@ -219,11 +200,11 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		logger.Infof("Verdict: %v", verdict)
 		switch res := verdict.Result.(type) {
 		case *runpb.EvaluateResponse_TestCase:
-			// TODO report this
+			// TODO(jsannemo): report this
 		case *runpb.EvaluateResponse_TestGroup:
-			// TODO report this
+			// TODO(jsannemo): report this
 		case *runpb.EvaluateResponse_Submission:
-			run.Verdict = models.Verdict(res.Submission.Verdict.String())
+			run.Verdict = models.VerdictFromRunVerdict(res.Submission.Verdict)
 			run.Status = models.StatusSuccessful
 			run.Score = res.Submission.Score
 			if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus, submissions.RunFieldVerdict, submissions.RunFieldScore}}); err != nil {
@@ -232,7 +213,7 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		case nil:
 			logger.Warningf("Got empty response")
 		default:
-			return fmt.Errorf("Got unexpected result %T", res)
+			return fmt.Errorf("unexpected eval result: %T", res)
 		}
 
 	}
@@ -241,7 +222,7 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 
 func main() {
 	flag.Parse()
-	defer logger.Init("masterjudge", false, true, os.Stderr).Close()
+	defer logger.Init("omogenjudge-master", false, true, os.Stderr).Close()
 
 	var err error
 	runner, err = rclient.NewClient()
@@ -251,10 +232,7 @@ func main() {
 	filehandler = fhclient.NewClient()
 
 	judgeQueue := make(chan *models.SubmissionRun, 1000)
-	if err := queue.StartQueue(context.Background(), judgeQueue); err != nil {
-		logger.Fatalf("Failed queue startup: %v", err)
-	}
-	for w := 1; w <= 10; w++ {
+	for w := 1; w <= 4; w++ {
 		go func() {
 			for {
 				if err := judge(context.Background(), <-judgeQueue); err != nil {
@@ -262,6 +240,9 @@ func main() {
 				}
 			}
 		}()
+	}
+	if err := queue.StartQueue(context.Background(), judgeQueue); err != nil {
+		logger.Fatalf("Failed queue startup: %v", err)
 	}
 
 	lis, err := net.Listen("tcp", *listenAddr)
@@ -272,7 +253,11 @@ func main() {
 	if err != nil {
 		logger.Fatalf("failed to create server: %v", err)
 	}
-	service.Register(grpcServer)
+	if err := service.Register(grpcServer); err != nil {
+		logger.Fatalf("failed to register server: %v", err)
+	}
 	logger.Infof("serving on %v", *listenAddr)
-	grpcServer.Serve(lis)
+	if err := grpcServer.Serve(lis); err != nil {
+		logger.Fatalf("failed to listen: %v", err)
+	}
 }

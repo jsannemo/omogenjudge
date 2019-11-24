@@ -2,6 +2,7 @@ package submissions
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jsannemo/omogenjudge/storage/db"
 	"github.com/jsannemo/omogenjudge/storage/models"
@@ -13,7 +14,7 @@ import (
 func CreateSubmission(ctx context.Context, sub *models.Submission, problemVersion int32) error {
 	err := db.InTransaction(ctx, func(tx *sqlx.Tx) error {
 		if err := CreateSubmissionTx(ctx, tx, sub); err != nil {
-			return err
+			return fmt.Errorf("failed inserting submission: %v", err)
 		}
 		for _, file := range sub.Files {
 			file.SubmissionID = sub.SubmissionID
@@ -21,11 +22,12 @@ func CreateSubmission(ctx context.Context, sub *models.Submission, problemVersio
 				return err
 			}
 		}
-		for _, run := range sub.Runs {
-			run.SubmissionID = sub.SubmissionID
-			if err := CreateRunTx(ctx, run, tx); err != nil {
-				return err
-			}
+		sub.CurrentRun.SubmissionID = sub.SubmissionID
+		if err := CreateRunTx(ctx, sub.CurrentRun, tx); err != nil {
+			return err
+		}
+		if err := setCurrentRun(ctx, sub, tx); err != nil {
+			return err
 		}
 		return nil
 	})
@@ -46,4 +48,17 @@ func createFileTx(ctx context.Context, tx *sqlx.Tx, file *models.SubmissionFile)
 	query := `INSERT INTO submission_file(submission_id, file_path, file_contents) VALUES($1, $2, $3)`
 	_, err := tx.ExecContext(ctx, query, file.SubmissionID, file.Path, file.Contents)
 	return err
+}
+
+func setCurrentRun(ctx context.Context, submission *models.Submission, tx *sqlx.Tx) error {
+	_, err := tx.ExecContext(ctx,
+		`
+	UPDATE submission
+	SET current_run = $1
+	WHERE submission_id = $2`,
+		submission.CurrentRun.SubmissionRunID, submission.SubmissionID)
+	if err != nil {
+		return fmt.Errorf("failed setting current run: %v", err)
+	}
+	return nil
 }

@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
+	"github.com/jsannemo/omogenjudge/frontend/contests"
 	"github.com/jsannemo/omogenjudge/frontend/home"
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"github.com/jsannemo/omogenjudge/frontend/problems"
 	"github.com/jsannemo/omogenjudge/frontend/submissions"
 	"github.com/jsannemo/omogenjudge/frontend/users"
-	"github.com/jsannemo/omogenjudge/frontend/contests"
 
 	"github.com/gorilla/mux"
 )
@@ -25,6 +25,8 @@ func configureRouter() *mux.Router {
 	r.HandleFunc(fmt.Sprintf("/problems/{%s}/submit", paths.ProblemNameArg), plain(problems.SubmitHandler)).Name(paths.SubmitProblem)
 	r.HandleFunc(fmt.Sprintf("/submissions/{%s}", paths.SubmissionIdArg), plain(submissions.ViewHandler)).Name(paths.Submission)
 	r.HandleFunc(fmt.Sprintf("/users/{%s}", paths.UserNameArg), plain(users.ViewHandler)).Name(paths.User)
-	r.HandleFunc("/teams", plain(contests.ListHandler)).Name(paths.ContestTeams)
+	r.HandleFunc("/teams", plain(contests.TeamListHandler)).Name(paths.ContestTeams)
+	r.HandleFunc("/teams/register", plain(contests.RegisterHandler)).Name(paths.ContestTeamRegister)
+	r.HandleFunc("/scoreboard", plain(contests.ScoreboardHandler)).Name(paths.ContestScoreboard)
 	return r
 }

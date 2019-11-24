@@ -18,7 +18,7 @@ namespace sandbox {
 void RunServer() {
   ExecuteServiceImpl service;
   ServerBuilder builder;
-  // TODO: this should not use insecure credentials
+  // TODO(jsannemo): this should not use insecure credentials
   builder.AddListeningPort(FLAGS_sandbox_listen_addr,
                            grpc::InsecureServerCredentials());
   builder.RegisterService(&service);

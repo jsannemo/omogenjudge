@@ -19,6 +19,7 @@ func getConn() *grpc.ClientConn {
 	var err error
 	if conn == nil {
 		var opts []grpc.DialOption
+		// TODO(jsannemo): don't use insecure authentication
 		opts = append(opts, grpc.WithInsecure())
 		conn, err = grpc.Dial(*serverAddr, opts...)
 		if err != nil {

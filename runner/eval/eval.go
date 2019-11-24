@@ -16,6 +16,11 @@ import (
 	"github.com/jsannemo/omogenjudge/runner/runners"
 )
 
+type outcome struct {
+	verdict runpb.Verdict
+	time    int32
+}
+
 type Evaluator struct {
 	root        string
 	linker      *runners.FileLinker
@@ -23,6 +28,7 @@ type Evaluator struct {
 	valLinker   *runners.FileLinker
 	validator   runners.Program
 	EvaluateAll bool
+	EvalCache   map[string]outcome
 }
 
 func NewEvaluator(root string, program runners.Program, validator runners.Program) (*Evaluator, error) {
@@ -34,7 +40,9 @@ func NewEvaluator(root string, program runners.Program, validator runners.Progra
 		root:      root,
 		linker:    fl,
 		program:   program,
-		validator: validator}
+		validator: validator,
+		EvalCache: make(map[string]outcome),
+	}
 	if validator != nil {
 		valfl, err := runners.NewFileLinker(filepath.Join(root, "valenv"))
 		if err != nil {
@@ -60,7 +68,7 @@ func (e *Evaluator) resetPermissions() error {
 
 func (e *Evaluator) Evaluate(testGroups []*runpb.TestGroup, timeLimMs int32, memLimitKb int32, results chan<- *Result) error {
 	if err := e.resetPermissions(); err != nil {
-		return fmt.Errorf("Could not reset permissions: %v", err)
+		return fmt.Errorf("could not reset permissions: %v", err)
 	}
 	defer close(results)
 	defer e.linker.Clear()
@@ -103,7 +111,9 @@ func (e *Evaluator) Evaluate(testGroups []*runpb.TestGroup, timeLimMs int32, mem
 			time = groupTime
 		}
 		if groupVerdict != runpb.Verdict_ACCEPTED {
-			verdict = groupVerdict
+			if verdict == runpb.Verdict_ACCEPTED {
+				verdict = groupVerdict
+			}
 			results <- &Result{TestGroupVerdict: groupVerdict, TimeUsageMs: groupTime, Score: 0}
 		} else {
 			score += tg.Score
@@ -118,76 +128,104 @@ func (e *Evaluator) Evaluate(testGroups []*runpb.TestGroup, timeLimMs int32, mem
 }
 
 func evaluateGroup(tg *runpb.TestGroup, outPath string, e *Evaluator, results chan<- *Result) (int32, runpb.Verdict, error) {
-	time := int32(0)
+	groupTime := int32(0)
 	verdict := runpb.Verdict_ACCEPTED
 	for _, tc := range tg.Cases {
-		tcPath := filepath.Join(e.root, tc.Name)
-		fb := files.NewFileBase(tcPath)
-		fb.Gid = users.OmogenClientsID()
-		fb.GroupWritable = true
-		if err := os.MkdirAll(tcPath, 0755); err != nil {
-			return time, verdict, err
-		}
-
-		if err := e.linker.LinkFile(tc.InputPath, "input", false); err != nil {
-			return time, verdict, err
-		}
-		fb.WriteFile("output", []byte{})
-		if err := e.linker.LinkFile(tcPath + "/output", "output", true); err != nil {
-			return time, verdict, err
-		}
-		fb.WriteFile("error", []byte{})
-		if err := e.linker.LinkFile(tcPath + "/error", "error", true); err != nil {
-			return time, verdict, err
-		}
-
-		exit, err := e.program.Execute()
+		res, err := evaluateCase(e, tc, outPath)
 		if err != nil {
-			return time, verdict, err
+			return groupTime, verdict, err
 		}
-		if err := e.resetPermissions(); err != nil {
-			return time, verdict, err
-		}
-
-		if exit.Crashed() {
-			results <- &Result{TestCaseVerdict: runpb.Verdict_RUN_TIME_ERROR, TimeUsageMs: exit.TimeUsageMs}
-			verdict = runpb.Verdict_RUN_TIME_ERROR
-		} else if exit.TimedOut() {
-			results <- &Result{TestCaseVerdict: runpb.Verdict_TIME_LIMIT_EXCEEDED, TimeUsageMs: exit.TimeUsageMs}
-			verdict = runpb.Verdict_TIME_LIMIT_EXCEEDED
-		} else {
-			wa := false
-			if e.validator != nil {
-				wa, err = runValidator(tc.InputPath, outPath, tc.OutputPath, e)
-				if err != nil {
-					return time, verdict, err
-				}
-			} else {
-				wa, err = diffOutput(tc.OutputPath, outPath)
-				if err != nil {
-					return time, verdict, err
-				}
-			}
-			if wa {
-				results <- &Result{TestCaseVerdict: runpb.Verdict_WRONG_ANSWER, TimeUsageMs: exit.TimeUsageMs}
-				verdict = runpb.Verdict_WRONG_ANSWER
-			} else {
-				results <- &Result{TestCaseVerdict: runpb.Verdict_ACCEPTED, TimeUsageMs: exit.TimeUsageMs}
-			}
-		}
-		if exit.TimeUsageMs > time {
-			time = exit.TimeUsageMs
+		results <- &Result{TestCaseVerdict: res.verdict, TimeUsageMs: res.time}
+		if res.time > groupTime {
+			groupTime = res.time
 		}
 
-		e.linker.Clear()
+		if err := e.linker.Clear(); err != nil {
+			return groupTime, verdict, err
+		}
 		if e.valLinker != nil {
-			e.valLinker.Clear()
+			if err := e.valLinker.Clear(); err != nil {
+				return groupTime, verdict, err
+			}
 		}
-		if verdict != runpb.Verdict_ACCEPTED && !e.EvaluateAll {
-			break
+		if res.verdict != runpb.Verdict_ACCEPTED {
+			if verdict == runpb.Verdict_ACCEPTED {
+				verdict = res.verdict
+			}
+			if !e.EvaluateAll {
+				break
+			}
 		}
 	}
-	return time, verdict, nil
+	return groupTime, verdict, nil
+}
+
+func evaluateCase(e *Evaluator, tc *runpb.TestCase, outPath string) (outcome, error) {
+	cacheKey := tc.InputPath + " " + tc.OutputPath
+	if res, ok := e.EvalCache[cacheKey]; ok {
+		return res, nil
+	}
+	res := outcome{
+		time:    int32(0),
+		verdict: runpb.Verdict_VERDICT_UNSPECIFIED,
+	}
+	tcPath := filepath.Join(e.root, tc.Name)
+	fb := files.NewFileBase(tcPath)
+	fb.Gid = users.OmogenClientsID()
+	fb.GroupWritable = true
+	if err := os.MkdirAll(tcPath, 0755); err != nil {
+		return res, err
+	}
+
+	if err := e.linker.LinkFile(tc.InputPath, "input", false); err != nil {
+		return res, err
+	}
+	if err := fb.WriteFile("output", []byte{}); err != nil {
+		return res, err
+	}
+	if err := e.linker.LinkFile(tcPath+"/output", "output", true); err != nil {
+		return res, err
+	}
+	if err := fb.WriteFile("error", []byte{}); err != nil {
+		return res, err
+	}
+	if err := e.linker.LinkFile(tcPath+"/error", "error", true); err != nil {
+		return res, err
+	}
+
+	exit, err := e.program.Execute()
+	if err != nil {
+		return res, err
+	}
+	if err := e.resetPermissions(); err != nil {
+		return res, err
+	}
+
+	if exit.Crashed() {
+		res.verdict = runpb.Verdict_RUN_TIME_ERROR
+	} else if exit.TimedOut() {
+		res.verdict = runpb.Verdict_TIME_LIMIT_EXCEEDED
+	} else {
+		wa := false
+		if e.validator != nil {
+			wa, err = runValidator(tc.InputPath, outPath, tc.OutputPath, e)
+			if err != nil {
+				return res, err
+			}
+		} else {
+			wa, err = diffOutput(tc.OutputPath, outPath)
+			if err != nil {
+				return res, err
+			}
+		}
+		if wa {
+			res.verdict = runpb.Verdict_WRONG_ANSWER
+		} else {
+			res.verdict = runpb.Verdict_ACCEPTED
+		}
+	}
+	e.EvalCache[cacheKey] = res
+	return res, nil
 }
 
 func runValidator(inpath, teampath, anspath string, e *Evaluator) (bool, error) {

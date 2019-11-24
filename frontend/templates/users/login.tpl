@@ -1,13 +1,10 @@
 {{ define "users_login" }}
 	<section>
 		<article>
-			<header class="article-header">
-				<div class="row">
-					<h1 class="display">Logga in</h1>
-				</div>
-			</header>
+			{{ template "helper_contest_banner" .C.Contest }}
 			<div class="row">
 				<form style="width: 500px; margin: auto" method="post">
+					<h1 class="display">Logga in</h1>
 					{{ with .D.Error }}
 						<div class="alert alert-error">{{ . }}</div>
 					{{ end }}

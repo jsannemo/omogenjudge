@@ -194,7 +194,7 @@ func (fb *FileBase) Mkdir(subPath string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.Mkdir(npath, 0750); err != nil {
+	if err := os.MkdirAll(npath, 0750); err != nil {
 		if !os.IsExist(err) {
 			return err
 		}

@@ -13,13 +13,13 @@ type Params struct {
 
 // ListHandler is the request handler for the problem list.
 func ListHandler(r *request.Request) (request.Response, error) {
-	if r.Context.Contest != nil && !r.Context.Contest.Started() {
+	if !r.Context.Contest.Started() {
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
 
-	problems, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{})
+	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{})
 	if err != nil {
 		return nil, err
 	}
-	return request.Template("problems_list", &Params{problems}), nil
+	return request.Template("problems_list", &Params{probs}), nil
 }

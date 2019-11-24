@@ -15,7 +15,7 @@ type RegisterParams struct {
 
 func RegisterHandler(r *request.Request) (request.Response, error) {
 	root := paths.Route(paths.Home)
-	if r.Context.UserID != 0 {
+	if r.Context.UserID != 0 || r.Context.Contest.Over() {
 		return request.Redirect(root), nil
 	}
 	if r.Request.Method == http.MethodPost {

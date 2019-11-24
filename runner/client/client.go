@@ -13,9 +13,10 @@ var (
 	serverAddr = flag.String("run_server_addr", "127.0.0.1:61811", "The runner server address to listen to in the format of host:port")
 )
 
-// Returns a new client for the RunService.
+// NewClient creates a client for the RunService.
 func NewClient() (runpb.RunServiceClient, error) {
 	var opts []grpc.DialOption
+	// TODO(jsannemo): don't use insecure auth
 	opts = append(opts, grpc.WithInsecure())
 	conn, err := grpc.Dial(*serverAddr, opts...)
 	if err != nil {

@@ -6,6 +6,7 @@ go_library(
         "create.go",
         "doc.go",
         "list.go",
+        "update.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/storage/problems",
     visibility = ["//visibility:public"],

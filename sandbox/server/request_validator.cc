@@ -9,7 +9,7 @@ namespace sandbox {
 
 Status ValidateExecuteRequest(const ExecuteRequest& request,
                               const ContainerSpec& previous_spec) {
-  // TODO: implement
+  // TODO(jsannemo): implement
   // Verify command:
   // - exists
   // - is executable

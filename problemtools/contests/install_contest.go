@@ -14,13 +14,13 @@ import (
 )
 
 type config struct {
-	Title string `yaml:"title"`
-	ShortName string `yaml:"shortname"`
-	HostName string `yaml:"hostname"`
-	ProblemSet map[string]string `yaml:"problemset"`
-	Duration string `yaml:"duration"`
-	Start *time.Time `yaml:"start"`
-	HiddenScoreboard bool `yaml:"hidden_scoreboard"`
+	Title            string            `yaml:"title"`
+	ShortName        string            `yaml:"shortname"`
+	HostName         string            `yaml:"hostname"`
+	ProblemSet       map[string]string `yaml:"problemset"`
+	Duration         string            `yaml:"duration"`
+	Start            *time.Time        `yaml:"start"`
+	HiddenScoreboard bool              `yaml:"hidden_scoreboard"`
 }
 
 func InstallContest(ctx context.Context, req *toolspb.InstallContestRequest) (*toolspb.InstallContestResponse, error) {

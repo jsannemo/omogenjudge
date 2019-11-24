@@ -32,9 +32,15 @@ func main() {
 	if err != nil {
 		logger.Fatalf("failed to create server: %v", err)
 	}
-	toolservice.Register(grpcServer)
-	runnerservice.Register(grpcServer)
+	if err := toolservice.Register(grpcServer); err != nil {
+		logger.Fatalf("failed registering tool service :%v")
+	}
+	if err := runnerservice.Register(grpcServer); err != nil {
+		logger.Fatalf("failed registering runner service :%v")
+	}
 	fileservice.Register(grpcServer)
 	logger.Infof("serving on %v", *listenAddr)
-	grpcServer.Serve(lis)
+	if err := grpcServer.Serve(lis); err != nil {
+		logger.Fatalf("could not listen: %v", err)
+	}
 }

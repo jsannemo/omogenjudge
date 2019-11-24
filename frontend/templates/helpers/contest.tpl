@@ -2,9 +2,11 @@
     {{ if . }}
         <header class="article-header">
             <div class="row">
-                {{ if .Started }}
+                {{ if .Over }}
+                    <h1 class="display">Tävlingen är avslutad</h1>
+                {{ else if .Started }}
                     <h1 class="display">Tävlingen slutar om {{ .UntilEnd | interval }}</h1>
-                    {{ else  }}
+                {{ else  }}
                     <h1 class="display">Tävlingen börjar om {{ .UntilStart | interval }}</h1>
                 {{ end }}
             </div>

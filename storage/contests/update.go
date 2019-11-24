@@ -3,14 +3,15 @@ package contests
 import (
 	"context"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 
 	"github.com/jsannemo/omogenjudge/storage/db"
 	"github.com/jsannemo/omogenjudge/storage/models"
 )
 
-// UpdateContestTx updates a contest within a transaction.
+// UpdateContest updates a contest within a transaction.
 func UpdateContest(ctx context.Context, contest *models.Contest) error {
 	if err := db.InTransaction(ctx, func(tx *sqlx.Tx) error {
 		query := `

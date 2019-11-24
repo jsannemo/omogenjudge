@@ -1,4 +1,4 @@
-// paths is used to give static typing to paths served by the application.
+// Package paths is used to give static typing to paths served by the application.
 package paths
 
 import (
@@ -9,19 +9,21 @@ import (
 )
 
 const (
-	Home                 = "home"
-	Login                = "login"
-	Logout               = "logout"
-	Register             = "register"
-	ProblemList          = "problem_list"
-	Problem              = "problem"
-	ProblemNameArg       = "problem_name"
-	SubmitProblem        = "submit_problem"
-	Submission           = "submission"
-	SubmissionIdArg      = "submission_id"
-	User                 = "user"
-	UserNameArg          = "user_name"
-	ContestTeams         = "contest_teams"
+	Home                = "home"
+	Login               = "login"
+	Logout              = "logout"
+	Register            = "register"
+	ProblemList         = "problem_list"
+	Problem             = "problem"
+	ProblemNameArg      = "problem_name"
+	SubmitProblem       = "submit_problem"
+	Submission          = "submission"
+	SubmissionIdArg     = "submission_id"
+	User                = "user"
+	UserNameArg         = "user_name"
+	ContestTeams        = "contest_teams"
+	ContestTeamRegister = "contest_team_register"
+	ContestScoreboard   = "contest_scoreboard"
 )
 
 var router = mux.NewRouter()
@@ -30,6 +32,7 @@ func GetRouter() *mux.Router {
 	return router
 }
 
+// Route resolves a route name together with arguments into a URL that can be used to invoke that route.
 func Route(name string, args ...interface{}) string {
 	var stringified []string
 	for _, arg := range args {

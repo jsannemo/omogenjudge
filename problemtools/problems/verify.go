@@ -41,7 +41,7 @@ func VerifyProblem(ctx context.Context, req *toolspb.VerifyProblemRequest, runne
 
 	return &toolspb.VerifyProblemResponse{
 		VerifiedProblem: problem,
-		Infos:        verifyReporter.Infos(),
+		Infos:           verifyReporter.Infos(),
 		Warnings:        verifyReporter.Warnings(),
 		Errors:          verifyReporter.Errors(),
 	}, nil

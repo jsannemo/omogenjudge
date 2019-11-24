@@ -35,7 +35,7 @@ func verifySubmissions(ctx context.Context, path string, problem *toolspb.Proble
 	}
 	// If we had no time limit specified, set it to multiplier * max time rounded upwards.
 	if problem.Metadata.Limits.TimeLimitMs == 0 {
-		problem.Metadata.Limits.TimeLimitMs = (problem.Metadata.Limits.TimeLimitMultiplier * maxTime + 999) / 1000 * 1000
+		problem.Metadata.Limits.TimeLimitMs = (problem.Metadata.Limits.TimeLimitMultiplier*maxTime + 999) / 1000 * 1000
 	}
 	for _, submission := range problem.Submissions {
 		if submission.UseForTiming {
@@ -137,7 +137,7 @@ func verifySubmission(ctx context.Context, submission *toolspb.Submission, timel
 			if res.Submission.Score != submission.Constraint.ExpectedScore {
 				reporter.Err("Submission %s expected score %d got %d", submission.Name, submission.Constraint.ExpectedScore, res.Submission.Score)
 			}
-			reporter.Info("Submission %s took time %f s, got score %d", submission.Name, float32(res.Submission.TimeUsageMs) / 1000.0, res.Submission.Score)
+			reporter.Info("Submission %s took time %f s, got score %d", submission.Name, float32(res.Submission.TimeUsageMs)/1000.0, res.Submission.Score)
 			time = res.Submission.TimeUsageMs
 		default:
 		}

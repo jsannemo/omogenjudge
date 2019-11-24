@@ -14,12 +14,12 @@ type Contest struct {
 	// Short name of the contest, for use in e.g. URLs.
 	ShortName string `db:"short_name"`
 	// A host name for the contest. Web requests to this hostname will resolve to this contest.
-	HostName sql.NullString `db:"host_name"`
-	StartTime sql.NullTime `db:"start_time"`
-	Duration time.Duration `db:"duration"`
+	HostName  sql.NullString `db:"host_name"`
+	StartTime sql.NullTime   `db:"start_time"`
+	Duration  time.Duration  `db:"duration"`
 	// Whether the scoreboard should be hidden for contestants during the contest.
 	HiddenScoreboard bool `db:"hidden_scoreboard"`
-	Problems []*ContestProblem
+	Problems         []*ContestProblem
 }
 
 func (c *Contest) Started() bool {
@@ -28,6 +28,10 @@ func (c *Contest) Started() bool {
 	} else {
 		return false
 	}
+}
+
+func (c *Contest) Over() bool {
+	return c.EndTime().Before(time.Now())
 }
 
 func (c *Contest) EndTime() time.Time {
@@ -46,14 +50,15 @@ func (c *Contest) UntilEnd() time.Duration {
 type ContestProblem struct {
 	ContestID int32 `db:"contest_id"`
 	ProblemID int32 `db:"problem_id"`
-	Label string
+	Problem   *Problem
+	Label     string
 }
 
 type Team struct {
-	TeamID int32 `db:"team_id"`
-	ContestID int32 `db:"contest_id"`
-	TeamName sql.NullString `db:"team_name"`
-	Members TeamMemberList
+	TeamID    int32          `db:"team_id"`
+	ContestID int32          `db:"contest_id"`
+	TeamName  sql.NullString `db:"team_name"`
+	Members   TeamMemberList
 }
 
 func (t *Team) DisplayName() string {
@@ -70,9 +75,9 @@ func (t *Team) DisplayName() string {
 type TeamList []*Team
 
 type TeamMember struct {
-	TeamID int32 `db:"team_id"`
-	AccountID int32 `db:"account_id"`
-	Account Account `db:"account"`
+	TeamID    int32   `db:"team_id"`
+	AccountID int32   `db:"account_id"`
+	Account   Account `db:"account"`
 }
 
 type TeamMemberList []*TeamMember

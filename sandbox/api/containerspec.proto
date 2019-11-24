@@ -5,7 +5,7 @@ package omogen.sandbox;
 // A container spec describes the sandbox environment that commands should
 // be executed in.
 message ContainerSpec {
-  // The directory mounts that should apply in he container.
+  // The directory mounts that should apply in the container.
   repeated DirectoryMount mounts = 1;
 
   // The maximum disk usage that is allowed, measured in kilobytes.
@@ -27,7 +27,7 @@ message DirectoryMount {
   string path_outside_container = 1;
 
   // The path inside the container the directory from outside should be made
-  // availabe as.
+  // available as.
   string path_inside_container = 2;
 
   // Whether the directory should be mounted read-only or not.

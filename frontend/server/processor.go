@@ -30,7 +30,7 @@ func executeMiddlewares(req *request.Request, middlewares []middleware.Middlewar
 		resp, err := middleware.Processor(req)
 		if err != nil {
 			logger.Errorf("Error during request handling: %v", err)
-			// TODO(jsannemo): only display actual errors for admins
+			// TODO(jsannemo): display actual errors for admins
 			req.Response = request.Error(err)
 			break
 		}

@@ -36,21 +36,21 @@ func UpdateRun(ctx context.Context, run *models.SubmissionRun, args UpdateRunArg
 	for _, field := range args.Fields {
 		switch field {
 		case RunFieldVerdict:
-			updates = append(updates, db.SetParam("verdict = %s", &params, run.Verdict))
+			updates = append(updates, db.SetParam("verdict = $%d", &params, run.Verdict))
 		case RunFieldTimeUsageMs:
-			updates = append(updates, db.SetParam("time_usage_ms = %s", &params, run.TimeUsageMS))
+			updates = append(updates, db.SetParam("time_usage_ms = $%d", &params, run.TimeUsageMS))
 		case RunFieldScore:
-			updates = append(updates, db.SetParam("score = %s", &params, run.Score))
+			updates = append(updates, db.SetParam("score = $%d", &params, run.Score))
 		case RunFieldStatus:
-			updates = append(updates, db.SetParam("status = %s", &params, run.Status))
+			updates = append(updates, db.SetParam("status = $%d", &params, run.Status))
 		case RunFieldCompileError:
-			updates = append(updates, db.SetParam("compile_error = %s", &params, run.CompileError))
+			updates = append(updates, db.SetParam("compile_error = $%d", &params, run.CompileError))
 		}
 	}
 	query := `
-		UPDATE submission_run` +
-		fmt.Sprintf(`SET %s`, strings.Join(updates, ", ")+
-			`WHERE `+db.SetParam(`submission_run_id = %s`, &params, run.SubmissionRunID))
+		UPDATE submission_run ` +
+		fmt.Sprintf(` SET %s `, strings.Join(updates, ", ")+
+			` WHERE `+db.SetParam(` submission_run_id = $%d `, &params, run.SubmissionRunID))
 	if _, err := conn.ExecContext(ctx, query, params...); err != nil {
 		return fmt.Errorf("failed writing submission run update: %v", err)
 	}

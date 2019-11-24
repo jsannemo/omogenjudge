@@ -25,8 +25,6 @@ message Termination {
 
     // If the process was terminated by the sandbox because it exceeded a
     // resource, it is set here.
-    // Note that neither signal nor exit is set in case of an exceeded
-    // resource.
     ResourceType resource_exceeded = 3;
   }
 
@@ -43,11 +41,13 @@ message Command {
   repeated string flags = 2;
 }
 
+// Mappings of file descriptors for the executing command.
+//
 // File descriptors (in particular stdin, stdout, stderr) are not inherited
 // from the forking process when executing the commands, but can instead be
 // remapped to a file or an empty stream.
 message Streams {
-  // The mapping of a file descriptor to a stream
+  // The mapping of a file descriptor to a stream.
   message Mapping {
     // A mapping to a file inside the container.
     message File {
@@ -64,8 +64,7 @@ message Streams {
   }
 
   // The mappings of the file descriptors. Mappings are given for each file
-  // descriptor in order (meaning that hte . Mappings for stdin, stdout and
-  // stderr must be given.
+  // descriptor in order. Mappings for stdin, stdout and stderr must be given.
   repeated Mapping mappings = 1;
 }
 

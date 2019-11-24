@@ -1,3 +1,4 @@
+// Package main contains a binary for installing contests.
 package main
 
 import (
@@ -8,7 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	//"os"
+	"os"
 	"path/filepath"
 
 	"github.com/google/logger"
@@ -38,7 +39,7 @@ func main() {
 	}
 }
 
-func toStorageOutputValidator(ctx context.Context, val *runpb.Program) (*models.OutputValidator, error) {
+func getOutputValidator(ctx context.Context, val *runpb.Program) (*models.OutputValidator, error) {
 	if val == nil {
 		return nil, nil
 	}
@@ -73,7 +74,7 @@ func toStorageOutputValidator(ctx context.Context, val *runpb.Program) (*models.
 	}, nil
 }
 
-func toStorageStatements(statements []*toolspb.ProblemStatement) []*models.ProblemStatement {
+func getStatements(statements []*toolspb.ProblemStatement) []*models.ProblemStatement {
 	var storage []*models.ProblemStatement
 	for _, s := range statements {
 		storage = append(storage,
@@ -102,7 +103,7 @@ func insertFile(ctx context.Context, path string) (*models.StoredFile, error) {
 	return storedFile, nil
 }
 
-func toStorageTest(ctx context.Context, tc *toolspb.TestCase) (*models.TestCase, error) {
+func getTestCase(ctx context.Context, tc *toolspb.TestCase) (*models.TestCase, error) {
 	inputFile, err := insertFile(ctx, tc.InputPath)
 	if err != nil {
 		return nil, err
@@ -118,10 +119,10 @@ func toStorageTest(ctx context.Context, tc *toolspb.TestCase) (*models.TestCase,
 	}, nil
 }
 
-func toStorageTestGroup(ctx context.Context, tc *toolspb.TestGroup) (*models.TestGroup, error) {
+func getTestGroup(ctx context.Context, tc *toolspb.TestGroup) (*models.TestGroup, error) {
 	var tests []*models.TestCase
 	for _, test := range tc.Tests {
-		storageTest, err := toStorageTest(ctx, test)
+		storageTest, err := getTestCase(ctx, test)
 		if err != nil {
 			return nil, err
 		}
@@ -129,15 +130,15 @@ func toStorageTestGroup(ctx context.Context, tc *toolspb.TestGroup) (*models.Tes
 	}
 	return &models.TestGroup{
 		Name:             tc.Name,
-		Score: tc.Score,
+		Score:            tc.Score,
 		PublicVisibility: tc.PublicSamples,
 		Tests:            tests}, nil
 }
 
-func toStorageTestGroups(ctx context.Context, testGroups []*toolspb.TestGroup) ([]*models.TestGroup, error) {
+func getTestGroups(ctx context.Context, testGroups []*toolspb.TestGroup) ([]*models.TestGroup, error) {
 	var groups []*models.TestGroup
 	for _, group := range testGroups {
-		storageGroup, err := toStorageTestGroup(ctx, group)
+		storageGroup, err := getTestGroup(ctx, group)
 		if err != nil {
 			return nil, err
 		}
@@ -146,38 +147,40 @@ func toStorageTestGroups(ctx context.Context, testGroups []*toolspb.TestGroup) (
 	return groups, nil
 }
 
-func installProblem(path string) error {
-	logger.Infof("Installing problem %s", path)
-	problemName := filepath.Base(path)
-
-	tmp, err := ioutil.TempDir("/tmp", "omogeninstall")
-	if err != nil {
-		return fmt.Errorf("Could not create installation directory: %v", err)
-	}
-	//defer os.RemoveAll(tmp)
-	fb := futil.NewFileBase(tmp)
+func makeInstallationDirectory(tmpDir, problemPath, problemName string) (string, error) {
+	fb := futil.NewFileBase(tmpDir)
 	fb.Gid = users.OmogenClientsID()
 	fb.GroupWritable = true
 	if err := fb.FixOwners("."); err != nil {
-		return err
+		return "", err
 	}
 	if err := fb.FixModeExec("."); err != nil {
-		return err
+		return "", err
 	}
 	if err := fb.Mkdir(problemName); err != nil {
-		return fmt.Errorf("Could not create installation problem directory: %v", err)
+		return "", fmt.Errorf("could not create installation problem directory: %v", err)
 	}
 	installfb, err := fb.SubBase(problemName)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if err := installfb.CopyInto(path); err != nil {
-		return fmt.Errorf("Could not clone into installation problem directory: %v", err)
+	if err := installfb.CopyInto(problemPath); err != nil {
+		return "", fmt.Errorf("could not clone into installation problem directory: %v", err)
 	}
-	npath := installfb.Path()
+	return installfb.Path(), nil
+}
+
+func installProblem(path string) error {
+	logger.Infof("Installing problem %s", path)
+	tmp, err := ioutil.TempDir("/tmp", "omogeninstall")
+	if err != nil {
+		return fmt.Errorf("could not create installation directory: %v", err)
+	}
+	defer os.RemoveAll(tmp)
+	problemName := filepath.Base(path)
+	npath, err := makeInstallationDirectory(tmp, path, problemName)
 
 	ctx := context.Background()
-
 	client := ptclient.NewClient()
 	parsed, err := client.ParseProblem(ctx, &toolspb.ParseProblemRequest{
 		ProblemPath: npath,
@@ -195,7 +198,7 @@ func installProblem(path string) error {
 		logger.Errorln(errMsg)
 	}
 	if len(parsed.Errors) != 0 {
-		return fmt.Errorf("Problem had errors; will not install")
+		return fmt.Errorf("problem had errors; will not install")
 	}
 	hasWarnings := len(parsed.Warnings) > 0
 	problem := parsed.ParsedProblem
@@ -206,6 +209,7 @@ func installProblem(path string) error {
 	if err != nil {
 		return fmt.Errorf("VerifyProblem failed: %v", err)
 	}
+	problem = verified.VerifiedProblem
 	hasWarnings = hasWarnings || len(verified.Warnings) > 0
 	for _, infoMsg := range verified.Infos {
 		logger.Infoln(infoMsg)
@@ -225,11 +229,11 @@ func installProblem(path string) error {
 		}
 	}
 
-	storageTestGroups, err := toStorageTestGroups(ctx, problem.TestGroups)
+	storageTestGroups, err := getTestGroups(ctx, problem.TestGroups)
 	if err != nil {
 		return err
 	}
-	outputValidator, err := toStorageOutputValidator(ctx, problem.OutputValidator)
+	outputValidator, err := getOutputValidator(ctx, problem.OutputValidator)
 	if err != nil {
 		return err
 	}
@@ -239,13 +243,19 @@ func installProblem(path string) error {
 		MemLimKB:        problem.Metadata.Limits.MemoryLimitKb,
 		OutputValidator: outputValidator,
 	}
-	if err := problems.CreateProblem(ctx, &models.Problem{
+	storageProblem := &models.Problem{
 		ShortName:      problem.Metadata.ProblemId,
-		Statements:     toStorageStatements(problem.Statements),
+		Statements:     getStatements(problem.Statements),
 		License:        models.License(problem.Metadata.License.String()),
 		Author:         problem.Metadata.Author,
 		CurrentVersion: problemVersion,
-	}); err != nil {
+	}
+	if err := problems.CreateProblem(ctx, storageProblem); err != nil {
+		if err == problems.ErrDuplicateProblemName {
+			if cli.RequestConfirmation(fmt.Sprintf("A problem named %s is already installed; update?", problem.Metadata.ProblemId)) {
+				return problems.UpdateProblem(ctx, storageProblem)
+			}
+		}
 		return err
 	}
 	return nil

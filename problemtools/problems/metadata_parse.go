@@ -14,8 +14,8 @@ import (
 
 type problemLimits struct {
 	Multiplier int32
-	Time   float64
-	Memory int32
+	Time       float64
+	Memory     int32
 }
 
 type problemJudging struct {
@@ -76,8 +76,8 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 	return &toolspb.Metadata{
 		ProblemId: filepath.Base(path),
 		Limits: &toolspb.Limits{
-			TimeLimitMs:   int32(1000 * timeLimit),
-			MemoryLimitKb: int32(1000 * memLimit),
+			TimeLimitMs:         int32(1000 * timeLimit),
+			MemoryLimitKb:       int32(1000 * memLimit),
 			TimeLimitMultiplier: timeMultiplier,
 		},
 		Author:  md.Author,

@@ -15,7 +15,7 @@ type RunListArgs struct {
 type RunListFilter struct {
 	// Whether only unprocessed runs should be included.
 	OnlyUnjudged bool
-	RunID []int32
+	RunID        []int32
 }
 
 // ListRuns searches for a list of runs.
@@ -29,9 +29,9 @@ func ListRuns(ctx context.Context, args RunListArgs, filterArgs RunListFilter) (
 	if filterArgs.OnlyUnjudged {
 		filters = append(filters, `status = 'new'`)
 	}
-	filter := strings.Join(filters, ", ")
+	filter := strings.Join(filters, " AND ")
 	if filter != "" {
-		filter = "WHERE = " + filter
+		filter = "WHERE " + filter
 	}
 	query := fmt.Sprintf(`SELECT * FROM submission_run %s ORDER BY submission_run_id ASC`, filter)
 	var runs []*models.SubmissionRun

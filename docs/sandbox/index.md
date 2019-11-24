@@ -9,7 +9,7 @@ The execution flow if a contained program consists of several steps.
 1. An execution request is received by the gRPC server (`omogenjudge-sandbox`).
 1. A container is allocated for the execution request.
 1. The container starts up the container init process (`omogenjudge-sandboxr`).
-1. An execution in the request is sent to the container.
+1. An execution from the request is sent to the container.
 1. The container forwards the request to the init process.
 1. The init process is moved into one of the sandbox users, and quota for it is set.
 1. The init process forks, set up an environment and execve()s's the requested command.
@@ -25,6 +25,7 @@ If the executed program exceeds some resource limit, it is killed and a new cont
 ## Resource usage measurement
 Resource usage (time and memory) are measured through the use of cgroups.
 Wall-time is measured by a monitoring process in the container.
+Disk usage is not measured.
 
 ## Containment mechanisms
 There are three aspects of containment:
@@ -39,7 +40,7 @@ Memory limits is enforced by the group.
 Processes are restriced using rlimits -- cgroup counting of PIDs is very asynchronous, and can sometimes count processes that have already died.
 This makes cgroups unsuitable for restricting processes for us, since we execute many processes in the same container.
 
-Information leakage is mainly done by restricting file access through a chroot jail, only allowing a view of a restricted section of the file system.
+Information leakage is mainly prevented by restricting file access through a chroot jail, only allowing a view of a restricted section of the file system.
 The container has many new namespaces (for example networks) that restrict information leakage about existing users, network services, running processes.
 
 Interference with the system is prevented by the use of several own namespaces, running the program as a low-privileged user, and restricting most parts of the file system as read-only.

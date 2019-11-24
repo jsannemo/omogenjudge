@@ -9,40 +9,30 @@ import "runner/api/eval.proto";
 message Problem {
   // Metadata about the problem.
   Metadata metadata = 1;
-
   // All statements that were present in the problem.
   // They have no particular order.
   repeated ProblemStatement statements = 2;
-
   // All test groups that were present in the problem.
   // They have no particular order.
   repeated TestGroup test_groups = 3;
-
   repeated omogen.runner.Program input_validators = 4;
-
   omogen.runner.Program output_validator = 5;
-
   repeated Submission submissions = 6;
 }
 
 // Problem metadata is things relating to the problem, such as judging limits,
 // sources, etc.
 message Metadata {
-  // The problem ID of the problem.
   string problem_id = 1;
-
-  // All the judging limits used for the problem.
   Limits limits = 2;
-
   string author = 3;
-
   License license = 4;
 }
 
 // A parsed problem statement, possibly in any language.
 message ProblemStatement {
   // A language code, either just a language ("en") or a language with a
-  // variatoin ("en-US")
+  // variation ("en-US")
   string language_code = 1;
 
   // The title of the problem statement.
@@ -56,30 +46,25 @@ message ProblemStatement {
 message TestGroup {
   // The test group name of the group, for example "samples".
   string name = 1;
-
   // Whether the cases of this group should be publically displayed in the
   // judge.
   bool public_samples = 2;
-
   // The test cases that this group consists of.
   repeated TestCase tests = 3;
-
+  // The score given for this group.
   int32 score = 4;
-
+  // Flags to be given to the input validator for cases in this group.
   map<string, string> input_flags = 5;
 }
 
-// A single test case
+// A single test case.
 message TestCase {
   // The name of the test case, for example "001-random".
   string name = 1;
-
   // The full name of the test case, for example "samples/001-random"
   string full_name = 4;
-
   // An absolute path to the input file of the case.
   string input_path = 2;
-
   // An absolute path to the output file of the case.
   string output_path = 3;
 }
@@ -88,22 +73,28 @@ message TestCase {
 message Limits {
   // The time limit for executing a test case in milliseconds.
   int32 time_limit_ms = 1;
-
   // The memory limit for executing a test case in megabytes.
   int32 memory_limit_kb = 2;
-
+  // A multiplier used when setting the time limit. If time_limit_ms is unset,
+  // the time limit is instead set to be the slowest solution used for timing
+  // times this multiplier.
   int32 time_limit_multiplier = 3;
 }
 
+// Constraints that a submission must fulfill.
 message SubmissionConstraint {
   int32 expected_score = 1;
+  // Verdicts that a submission must display in at least one test case.
   repeated omogen.runner.Verdict required_failures = 2;
+  // Verdicts that a submission is allowed to receive. Accepted is
+  // always implicitly allowed.
   repeated omogen.runner.Verdict allowed_failures = 3;
 }
 
 message Submission {
   omogen.runner.Program submission = 1;
   SubmissionConstraint constraint = 2;
+  // Whether this submission should be used for setting time limits or not.
   bool use_for_timing = 3;
   string name = 4;
 }

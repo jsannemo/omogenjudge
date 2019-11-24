@@ -173,35 +173,35 @@ func toResult(termination *execpb.Termination) (*ExecResult, error) {
 	switch termination.Termination.(type) {
 	case *execpb.Termination_Signal_:
 		return &ExecResult{
-			ExitType: Signaled,
-			Signal: termination.GetSignal().Signal,
-			TimeUsageMs: time,
+			ExitType:      Signaled,
+			Signal:        termination.GetSignal().Signal,
+			TimeUsageMs:   time,
 			MemoryUsageKb: memory,
 		}, nil
 	case *execpb.Termination_Exit_:
 		return &ExecResult{
-			ExitType: Exited,
-			ExitCode: termination.GetExit().Code,
-			TimeUsageMs: time,
+			ExitType:      Exited,
+			ExitCode:      termination.GetExit().Code,
+			TimeUsageMs:   time,
 			MemoryUsageKb: memory,
 		}, nil
 	case *execpb.Termination_ResourceExceeded:
 		if termination.GetResourceExceeded() == execpb.ResourceType_CPU_TIME {
 			return &ExecResult{
-				ExitType: TimedOut,
-				TimeUsageMs: time,
+				ExitType:      TimedOut,
+				TimeUsageMs:   time,
 				MemoryUsageKb: memory,
 			}, nil
 		} else if termination.GetResourceExceeded() == execpb.ResourceType_WALL_TIME {
 			return &ExecResult{
-				ExitType: TimedOut,
-				TimeUsageMs: time,
+				ExitType:      TimedOut,
+				TimeUsageMs:   time,
 				MemoryUsageKb: memory,
 			}, nil
 		} else if termination.GetResourceExceeded() == execpb.ResourceType_MEMORY {
 			return &ExecResult{
-				ExitType: MemoryExceeded,
-				TimeUsageMs: time,
+				ExitType:      MemoryExceeded,
+				TimeUsageMs:   time,
 				MemoryUsageKb: memory,
 			}, nil
 		} else {

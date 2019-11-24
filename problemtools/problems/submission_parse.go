@@ -16,7 +16,7 @@ import (
 type submissionMetadata struct {
 	RequiredFailures  []string `yaml:"required_failures"`
 	AllowedFailures   []string `yaml:"allowed_failures"`
-	ExpectedScore     int32 `yaml:"expected_score"`
+	ExpectedScore     int32    `yaml:"expected_score"`
 	ExcludeFromTiming bool     `yaml:"exclude_from_timing"`
 }
 
@@ -74,7 +74,7 @@ func toConstraint(metadata submissionMetadata, rep util.Reporter) *toolspb.Submi
 	return &toolspb.SubmissionConstraint{
 		RequiredFailures: toVerdicts(metadata.RequiredFailures, rep),
 		AllowedFailures:  toVerdicts(metadata.AllowedFailures, rep),
-		ExpectedScore: metadata.ExpectedScore,
+		ExpectedScore:    metadata.ExpectedScore,
 	}
 }
 

@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
@@ -21,9 +22,8 @@ type Submission struct {
 	// The creation date of the submission.
 	Created time.Time `db:"date_created"`
 	// The files the submission consists of.
-	Files []*SubmissionFile
-
-	Runs []*SubmissionRun
+	Files      []*SubmissionFile
+	CurrentRun *SubmissionRun `db:"submission_run"`
 }
 
 // ToRunnerProgram serializes submission to a program that can be compiled by the RunService.
@@ -70,11 +70,35 @@ type SubmissionRun struct {
 	ProblemVersionID int32 `db:"problem_version_id"`
 	Evaluation
 	// The current judge workflow status of this run.
-	Status Status
-	// Whether the run is public or not. Runs can be private during a rejudge of a set of subimssions, for example.
-	Public       bool
+	Status       Status
 	CompileError sql.NullString `db:"compile_error"`
 	Created      time.Time      `db:"date_created"`
+}
+
+func (run *SubmissionRun) Accepted() bool {
+	return run.Status == StatusSuccessful && run.Verdict == VerdictAccepted
+}
+
+func (run *SubmissionRun) Rejected() bool {
+	return run.Status == StatusCompilationFailed ||
+		(run.Status == StatusSuccessful && run.Verdict != VerdictAccepted)
+}
+
+func (run *SubmissionRun) Waiting() bool {
+	return run.Status != StatusCompilationFailed && run.Status != StatusSuccessful
+}
+
+func (run *SubmissionRun) StatusString(filtered bool) string {
+	if run.Waiting() {
+		return run.Status.String()
+	} else if run.Accepted() {
+		return fmt.Sprintf("%s (%d)", run.Verdict.String(), run.Score)
+	} else {
+		if filtered {
+			return "Felaktig"
+		}
+		return run.Verdict.String()
+	}
 }
 
 // A TestGroupRun is a particular judge execution of a test group.

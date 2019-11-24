@@ -15,16 +15,17 @@ message ParseProblemResponse {
   // A parsed version of the problem.
   Problem parsed_problem = 1;
 
-  // Errors that occured during parsing.
+  // Errors that occurred during parsing.
   repeated string errors = 2;
 
-  // Warnings that occured during parsing.
+  // Warnings messages that were collected during parsing.
   repeated string warnings = 3;
 
+  // Info messages that were collected during parsing.
   repeated string infos = 4;
 }
 
-// A request to VerifyPRoblem.
+// A request to VerifyProblem.
 message VerifyProblemRequest {
   // A problem that was parsed by ParseProblem
   Problem problem_to_verify = 1;
@@ -32,7 +33,7 @@ message VerifyProblemRequest {
   string problem_path = 2;
 }
 
-// A response to VerifyPRoblem.
+// A response to VerifyProblem.
 message VerifyProblemResponse {
   // A the problem that was to be verified, possibly with additions.
   Problem verified_problem = 1;

@@ -20,4 +20,3 @@ func readUser(r *request.Request) (request.Response, error) {
 	}
 	return nil, nil
 }
-

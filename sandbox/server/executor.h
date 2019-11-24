@@ -16,9 +16,9 @@ namespace omogen {
 namespace sandbox {
 
 // Implementation of the ExecuteService. This server is stateful - it keeps a
-// list of use containers that have not yet been cleanedup.
+// list of use containers that have not yet been cleaned up.
 class ExecuteServiceImpl final : public ExecuteService::Service {
-  // The cleanup thread for this service, continously cleaning up old
+  // The cleanup thread for this service, continuously cleaning up old
   // containers.
   std::thread* cleanup_thread;
 

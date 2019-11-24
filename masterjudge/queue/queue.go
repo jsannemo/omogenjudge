@@ -40,9 +40,9 @@ func StartQueue(ctx context.Context, judge chan<- *models.SubmissionRun) error {
 				panic(err)
 			}
 			if len(unjudged) == 0 {
-				logger.Errorf("requested %d but was not present in DB", submissionId)
+				logger.Errorf("Requested %d but was not present in DB", submissionId)
 			} else if len(unjudged) > 1 {
-				logger.Errorf("requested %d but got %d submissions", submissionId, len(unjudged))
+				logger.Errorf("Requested %d but got %d submissions", submissionId, len(unjudged))
 			} else {
 				sub := unjudged[0]
 				// We may have read some of the newly delivered submissions in our list call,

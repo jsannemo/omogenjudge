@@ -118,6 +118,7 @@ CREATE TABLE submission(
 	account_id INTEGER NOT NULL REFERENCES account,
 	problem_id INTEGER NOT NULL REFERENCES problem,
 	language TEXT NOT NULL,
+	current_run INTEGER,
 	date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp
 );
 
@@ -136,16 +137,17 @@ CREATE INDEX submission_file_submission ON submission_file(submission_id);
 
 CREATE TABLE submission_run(
 	submission_run_id SERIAL PRIMARY KEY,
-	submission_id INTEGER NOT NULL REFERENCES submission ON DELETE CASCADE,
+    submission_id INTEGER NOT NULL REFERENCES submission ON DELETE CASCADE,
 	problem_version_id INTEGER NOT NULL REFERENCES problem_version ON DELETE SET NULL,
 	date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
 	status status NOT NULL,
     time_usage_ms INTEGER NOT NULL,
     score INTEGER NOT NULL,
 	verdict verdict NOT NULL,
-	compile_error TEXT,
-	public_run BOOLEAN NOT NULL
+	compile_error TEXT
 );
+
+ALTER TABLE submission ADD FOREIGN KEY (current_run) REFERENCES submission_run(submission_run_id) DEFERRABLE INITIALLY IMMEDIATE;
 
 CREATE FUNCTION notify_run() RETURNS TRIGGER AS $$
 BEGIN
@@ -159,7 +161,7 @@ CREATE TRIGGER "new_run"
     FOR EACH ROW EXECUTE PROCEDURE notify_run();
 
 CREATE INDEX submission_run_status ON submission_run(status);
-CREATE INDEX submission_run_submission ON submission_run(submission_id, public_run);
+CREATE INDEX submission_run_submission ON submission_run(submission_id);
 
 GRANT ALL ON submission_run TO omogenjudge;
 GRANT ALL ON submission_run_submission_run_id_seq TO omogenjudge;

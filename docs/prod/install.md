@@ -24,14 +24,10 @@ The other host should first create a database and execute the schema from `schem
 Then, the packages `omogenjudge-master.deb` and `omogenjudge-frontend.deb` should be installed (in that order).
 
 ## Configuring the judge
-Some parts of the judge now needs to be configured:
-
-- the addresses for the submission server, so the judging coordinator can find it
-- the database details for the postgres database for the judging coordinator and the frontend server.
-
-The first config is in `/etc/omogen/master/local.conf`, and the second in `/etc/omogen/master/db.conf` and `/etc/omogen/frontend/db.conf`.
-
-TODO: once the servers use authentication, this step will include copying encryption keys between hosts.
+TODO(jsannemo): add this section once judge can be configured
 
 ## Starting the judge
-Now, the judging services can be started using 
+To start the servers, run:
+- `systemctl start omogenjudge-frontend.service` for the frontend
+- `systemctl start omogenjudge-local.service` for the local judge
+- `systemctl start omogenjudge-master.service` for the judging coordinator

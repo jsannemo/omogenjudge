@@ -15,6 +15,7 @@ go_library(
     deps = [
         "//storage/db:go_default_library",
         "//storage/models:go_default_library",
+        "//storage/problems",
         "@com_github_jmoiron_sqlx//:go_default_library",
     ],
 )

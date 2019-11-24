@@ -14,7 +14,7 @@ type Reporter interface {
 }
 
 type reporter struct {
-	info []string
+	info     []string
 	warnings []string
 	errors   []string
 }
@@ -29,7 +29,6 @@ func (r *reporter) addTo(msgs *[]string, msg string, args ...interface{}) {
 	}
 	*msgs = append(*msgs, msg)
 }
-
 
 func (r *reporter) Info(msg string, args ...interface{}) {
 	r.addTo(&r.info, msg, args...)

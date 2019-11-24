@@ -34,8 +34,8 @@ func (s *StoredFile) ToNilable() *NilableStoredFile {
 
 // A NilableStoredFile is used to represent a file that may or may not be present.
 type NilableStoredFile struct {
-	Hash sql.NullString
-	Url  []byte
+	Hash sql.NullString `db:"hash"`
+	URL  []byte         `db:"url"`
 }
 
 // Nil checks if the stored file is absent.

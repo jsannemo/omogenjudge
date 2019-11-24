@@ -1,4 +1,4 @@
-// Init is the init process (PID 1) of a container. Its purpose is to recieve
+// Init is the init process (PID 1) of a container. Its purpose is to receive
 // execution requests from the outside container and fork of a process to
 // execute it.
 #include <grp.h>
@@ -39,9 +39,7 @@ namespace omogen {
 namespace sandbox {
 
 static const char* kContainerRoot = "/var/lib/omogen/sandbox";
-
 static const int kChildStackSize = 100 * 1000;  // 100 KB
-
 static const int kInodeLimit = 1000;
 
 static struct passwd* pw;
@@ -69,6 +67,7 @@ static ContainerTermination TerminationForError(const string& error_message) {
 
 static ContainerTermination Execute(const ContainerExecution& request) {
   // De-privilege now. We must do this before execing, to keep rlimits we set.
+  // They are cleared to default values if an elevated setuid execs.
   PCHECK(setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) != -1) << "Could not set gid";
   PCHECK(setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) != -1) << "Could not set uid";
   // Start a fork to set up the execution environment for the request.
@@ -132,7 +131,6 @@ static ContainerTermination Execute(const ContainerExecution& request) {
       // now become a child of us since we are init. Therefore, we make sure to
       // SIGKILL all of them before we return, in case we want to reuse our
       // sandbox.
-      // TODO: is kill(-pid) a race against a fork bomb?
       PCHECK(kill(-1, SIGKILL) != -1 || errno == ESRCH)
           << "Did not manage to kill all remaining processes in the container";
       while (true) {
@@ -261,6 +259,7 @@ int main(int argc, char** argv) {
                              CLONE_NEWPID | CLONE_NEWUTS,
                          nullptr)) != -1)
       << "Failed cloning new contained process";
+  // We must give up root now so our parent can kill is.
   struct passwd* sandbox_pw = getpwnam("omogenjudge-sandbox");
   PCHECK(setuid(sandbox_pw->pw_uid) != -1) << "Could not set uid to sandbox";
   wait(nullptr);

@@ -6,9 +6,10 @@ if ! id -u omogenjudge-local >/dev/null 2>&1; then
   useradd -s /usr/bin/nologin -r omogenjudge-local -G omogenjudge-clients
 fi
 
-mkdir -p /var/lib/omogen/{filecache,tmps,submissions}
+mkdir -p /var/lib/omogen/{filecache,tmps,submissions,filestore}
 
-chown omogenjudge-local:omogenjudge-local /var/lib/omogen/{filecache,tmps,submissions}
+chown omogenjudge-local:omogenjudge-local /var/lib/omogen/{filecache,tmps,submissions,filestore}
+chmod 777 /var/lib/omogen/filestore
 
 systemctl start omogenjudge-local
 

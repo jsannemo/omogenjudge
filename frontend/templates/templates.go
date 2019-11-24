@@ -2,6 +2,7 @@ package templates
 
 import (
 	"fmt"
+	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"html/template"
 	"net/http"
 	"time"
@@ -31,8 +32,13 @@ func templates() *template.Template {
 			"language": util.GetLanguage,
 			"interval": func(dur time.Duration) string {
 				secs := dur.Truncate(time.Second) / time.Second
-				return fmt.Sprintf("%02d:%02d:%02d", secs / 3600, (secs / 60) % 60, secs % 60)
+				return fmt.Sprintf("%02d:%02d:%02d", secs/3600, (secs/60)%60, secs%60)
 			},
+			"hhmm": func(dur time.Duration) string {
+				secs := dur.Truncate(time.Second) / time.Second
+				return fmt.Sprintf("%02d:%02d", secs/3600, (secs/60)%60)
+			},
+			"path": paths.Route,
 		})
 	for _, t := range tpls {
 		tpl = template.Must(tpl.ParseGlob(t))

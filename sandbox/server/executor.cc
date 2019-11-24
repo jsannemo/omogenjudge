@@ -47,7 +47,7 @@ Status ExecuteServiceImpl::Execute(
     first_request = false;
     // Reuse the old container unless it is considered invalid or has been
     // killed. It is only ever killed by calls to Execute, so it is not a race
-    // to check this here before the Execute call.
+    // to check this here before the new Execute call.
     bool needs_new_container = (container == nullptr) || container->IsDead() ||
                                request.has_container_spec();
     if (needs_new_container) {

@@ -126,8 +126,8 @@ var cacheLock sync.Mutex
 
 func (s *runServer) CompileCached(ctx context.Context, req *runpb.CompileCachedRequest) (*runpb.CompileCachedResponse, error) {
 	logger.Infof("/RunService.CompileCached: %v", req)
-	if status := ValidateCompileRequest(req.Request); status.Code() != codes.OK {
-		return nil, status.Err()
+	if validation := ValidateCompileRequest(req.Request); validation.Code() != codes.OK {
+		return nil, validation.Err()
 	}
 	cacheLock.Lock()
 	defer cacheLock.Unlock()
@@ -222,28 +222,28 @@ func (s *runServer) Evaluate(req *runpb.EvaluateRequest, stream runpb.RunService
 		for res := range results {
 			if res.TestCaseVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
 				if err = stream.Send(&runpb.EvaluateResponse{
-					Result: &runpb.EvaluateResponse_TestCase{&runpb.TestCaseResult{Verdict: res.TestCaseVerdict,
+					Result: &runpb.EvaluateResponse_TestCase{TestCase: &runpb.TestCaseResult{Verdict: res.TestCaseVerdict,
 						TimeUsageMs: res.TimeUsageMs,
-						Score: res.Score,
-						}},
+						Score:       res.Score,
+					}},
 				}); err != nil {
 					break
 				}
 			} else if res.TestGroupVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
 				if err = stream.Send(&runpb.EvaluateResponse{
-					Result: &runpb.EvaluateResponse_TestGroup{&runpb.TestGroupResult{Verdict: res.TestCaseVerdict,
+					Result: &runpb.EvaluateResponse_TestGroup{TestGroup: &runpb.TestGroupResult{Verdict: res.TestGroupVerdict,
 						TimeUsageMs: res.TimeUsageMs,
-						Score: res.Score,
-						}},
+						Score:       res.Score,
+					}},
 				}); err != nil {
 					break
 				}
 			} else if res.SubmissionVerdict != runpb.Verdict_VERDICT_UNSPECIFIED {
 				if err = stream.Send(&runpb.EvaluateResponse{
-					Result: &runpb.EvaluateResponse_Submission{&runpb.SubmissionResult{
-						Verdict: res.SubmissionVerdict,
+					Result: &runpb.EvaluateResponse_Submission{Submission: &runpb.SubmissionResult{
+						Verdict:     res.SubmissionVerdict,
 						TimeUsageMs: res.TimeUsageMs,
-						Score: res.Score,
+						Score:       res.Score,
 					}},
 				}); err != nil {
 					break
@@ -279,10 +279,11 @@ func newServer() (*runServer, error) {
 }
 
 // Register registers a new RunService with the given server.
-func Register(grpcServer *grpc.Server) {
+func Register(grpcServer *grpc.Server) error {
 	server, err := newServer()
 	if err != nil {
-		logger.Fatalf("failed to create server: %v", err)
+		return err
 	}
 	runpb.RegisterRunServiceServer(grpcServer, server)
+	return nil
 }

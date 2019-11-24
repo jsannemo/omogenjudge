@@ -18,6 +18,7 @@ go_library(
         "//storage/problems",
         "//storage/submissions:go_default_library",
         "//storage/users",
+        "@com_github_gorilla_mux//:go_default_library",
     ],
 )
 

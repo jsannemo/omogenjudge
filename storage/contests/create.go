@@ -15,8 +15,6 @@ import (
 var ErrShortNameExists = errors.New("the shortname is in use")
 
 // CreateContest persists a contest in the database.
-// If a contest with the given shortname already exists, it will be updated.
-// TODO(jsannemo): make update optional
 func CreateContest(ctx context.Context, contest *models.Contest) error {
 	return db.InTransaction(ctx, func(tx *sqlx.Tx) error {
 		query := `
@@ -45,7 +43,7 @@ func insertProblems(ctx context.Context, contest *models.Contest, tx *sqlx.Tx) e
 	if _, err := tx.ExecContext(ctx, `DELETE FROM contest_problem WHERE contest_id = $1`, contest.ContestID); err != nil {
 		return fmt.Errorf("failed clearing old problems: %v", err)
 	}
-	for _, problem := range contest.Problems{
+	for _, problem := range contest.Problems {
 		if _, err := tx.ExecContext(ctx, `INSERT INTO contest_problem(contest_id, problem_id, label) VALUES ($1, $2 ,$3)`,
 			contest.ContestID, problem.ProblemID, problem.Label); err != nil {
 			return err
@@ -53,4 +51,3 @@ func insertProblems(ctx context.Context, contest *models.Contest, tx *sqlx.Tx) e
 	}
 	return nil
 }
-

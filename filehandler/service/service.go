@@ -27,7 +27,7 @@ func ensureFile(handle *filepb.FileHandle) (string, error) {
 
 	stat, err := os.Stat(dir)
 	if err == nil && !stat.IsDir() {
-		return "", fmt.Errorf("File directory %s was an existing file", dir)
+		return "", fmt.Errorf("file directory %s was an existing file", dir)
 	} else if err != nil {
 		if os.IsNotExist(err) {
 			err = os.Mkdir(dir, 0707)
@@ -40,7 +40,7 @@ func ensureFile(handle *filepb.FileHandle) (string, error) {
 	}
 	stat, err = os.Stat(storagePath)
 	if err == nil && stat.IsDir() {
-		return "", fmt.Errorf("File cache was directory")
+		return "", fmt.Errorf("file cache was directory")
 	} else if err != nil {
 		if os.IsNotExist(err) {
 			contents, err := filestore.GetFile(handle.Url)

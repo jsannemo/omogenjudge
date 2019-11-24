@@ -23,7 +23,7 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	if err != nil {
 		return request.BadRequest("Non-numeric ID"), nil
 	}
-	subs, err := submissions.ListSubmissions(r.Request.Context(), submissions.ListArgs{WithFiles: true}, submissions.ListFilter{SubmissionID: []int32{int32(subId)}})
+	subs, err := submissions.ListSubmissions(r.Request.Context(), submissions.ListArgs{WithFiles: true, WithRun: true}, submissions.ListFilter{SubmissionID: []int32{int32(subId)}})
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,10 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	sub := subs[0]
-	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ProblemId: []int32{sub.ProblemID}})
+	if sub.AccountID != r.Context.UserID {
+		return request.NotFound(), nil
+	}
+	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ProblemID: []int32{sub.ProblemID}})
 	if err != nil {
 		return nil, err
 	}

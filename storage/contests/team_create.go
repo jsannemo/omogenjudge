@@ -51,4 +51,3 @@ func insertMember(ctx context.Context, contestID int32, member *models.TeamMembe
 	}
 	return nil
 }
-

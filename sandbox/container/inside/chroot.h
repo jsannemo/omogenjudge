@@ -23,7 +23,7 @@ class Chroot {
   // Creates a new mount point inside the chroot from the given rule.
   void AddDirectoryMount(const DirectoryMount& rule);
 
-  // Create a new chroot at the specified path, and initalize it with
+  // Create a new chroot at the specified path, and initialize it with
   // some default mount points.
   explicit Chroot(const string& new_root);
 

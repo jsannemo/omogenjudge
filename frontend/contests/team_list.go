@@ -11,10 +11,10 @@ type Params struct {
 	Teams []*models.Team
 }
 
-// ListHandler is the request handler for the team list.
-func ListHandler(r *request.Request) (request.Response, error) {
-	if r.Context.Contest == nil {
-		return request.Redirect(paths.Route(paths.Home)), nil
+// TeamListHandler is the request handler for the team list.
+func TeamListHandler(r *request.Request) (request.Response, error) {
+	if r.Context.Contest.Started() {
+		return request.Redirect(paths.Route(paths.ContestScoreboard)), nil
 	}
 
 	teams, err := contests.ListTeams(r.Request.Context(), contests.TeamFilter{ContestID: r.Context.Contest.ContestID})

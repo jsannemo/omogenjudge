@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/google/logger"
@@ -12,5 +13,6 @@ var (
 )
 
 func main() {
+	logger.Init("omogenjudge-frontend", true, false, ioutil.Discard)
 	logger.Fatal(http.ListenAndServe(*webAddress, configureRouter()))
 }

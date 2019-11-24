@@ -3,18 +3,18 @@ package middleware
 import (
 	"fmt"
 
-	"github.com/jsannemo/omogenjudge/storage/contests"
 	"github.com/jsannemo/omogenjudge/frontend/request"
+	"github.com/jsannemo/omogenjudge/storage/contests"
 )
 
 // readContest is a processor that stores the current contest data in the request context.
 func readContest(r *request.Request) (request.Response, error) {
 	hostname := r.Request.Header.Get("Host")
-	contests, err := contests.ListContests(r.Request.Context(), contests.ListFilter{HostName: hostname})
+	cs, err := contests.ListContests(r.Request.Context(), contests.ListArgs{WithProblems: true}, contests.ListFilter{HostName: hostname})
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve current contest: %v", err)
-	} else if len(contests) > 0 {
-		r.Context.Contest = contests.Latest()
+	} else if len(cs) > 0 {
+		r.Context.Contest = cs.Latest()
 	}
 	return nil, nil
 }

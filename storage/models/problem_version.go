@@ -11,7 +11,7 @@ type ProblemVersion struct {
 	ProblemID        int32            `db:"problem_id"`
 	TimeLimMS        int32            `db:"time_limit_ms"`
 	MemLimKB         int32            `db:"memory_limit_kb"`
-	OutputValidator  *OutputValidator `db:"problem_output_validator"`
+	OutputValidator  *OutputValidator `db:"validator"`
 	TestGroups       []*TestGroup
 }
 
@@ -34,16 +34,11 @@ func (p *ProblemVersion) TimeLimString() string {
 
 // TimeLimString returns a human formatted string of the memory limit.
 func (p *ProblemVersion) MemLimString() string {
-	return fmt.Sprintf("%.1g GB", float64(p.MemLimKB)/1000/1000)
+	return fmt.Sprintf("%d MB", int64(float64(p.MemLimKB)/1000))
 }
 
 // OutputValidator is a custom validator of the output from a submission problem.
 type OutputValidator struct {
 	ValidatorLanguageID sql.NullString     `db:"language_id"`
 	ValidatorSourceZIP  *NilableStoredFile `db:"validator_source_zip"`
-}
-
-// Nil checks whether the given validator is absent.
-func (ov *OutputValidator) Nil() bool {
-	return ov.ValidatorSourceZIP.Nil()
 }

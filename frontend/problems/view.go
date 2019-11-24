@@ -14,6 +14,9 @@ type ViewParams struct {
 }
 
 func ViewHandler(r *request.Request) (request.Response, error) {
+	if !r.Context.Contest.Started() {
+		return request.NotFound(), nil
+	}
 	vars := mux.Vars(r.Request)
 	problems, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamples}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
 	if err != nil {

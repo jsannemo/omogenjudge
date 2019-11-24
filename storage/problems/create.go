@@ -32,19 +32,10 @@ func CreateProblem(ctx context.Context, p *models.Problem) error {
 			return fmt.Errorf("could not set current problem version: %v", err)
 		}
 
-		if err := insertOutputValidator(ctx, p.CurrentVersion, tx); err != nil {
-			return fmt.Errorf("failed persisting output validator: %v", err)
-		}
 		for i, _ := range p.Statements {
 			p.Statements[i].ProblemID = p.ProblemID
 			if err := insertStatement(ctx, p.Statements[i], tx); err != nil {
 				return fmt.Errorf("failed persisting statement: %v", err)
-			}
-		}
-		for _, tg := range p.CurrentVersion.TestGroups {
-			tg.ProblemVersionID = p.CurrentVersion.ProblemVersionID
-			if err := insertTestGroup(ctx, tg, tx); err != nil {
-				return fmt.Errorf("failed persisting test group %v", err)
 			}
 		}
 		return nil
@@ -128,13 +119,24 @@ func setCurrentVersion(ctx context.Context, problem *models.Problem, tx *sqlx.Tx
 }
 
 func insertProblemVersion(ctx context.Context, version *models.ProblemVersion, tx *sqlx.Tx) error {
-	return tx.QueryRowContext(ctx,
-		`
+	if err := tx.QueryRowContext(ctx, `
     INSERT INTO
         problem_version(problem_id, time_limit_ms, memory_limit_kb)
     VALUES($1, $2, $3)
     RETURNING problem_version_id`,
 		version.ProblemID,
 		version.TimeLimMS,
-		version.MemLimKB).Scan(&version.ProblemVersionID)
+		version.MemLimKB).Scan(&version.ProblemVersionID); err != nil {
+		return err
+	}
+	if err := insertOutputValidator(ctx, version, tx); err != nil {
+		return fmt.Errorf("failed persisting output validator: %v", err)
+	}
+	for _, tg := range version.TestGroups {
+		tg.ProblemVersionID = version.ProblemVersionID
+		if err := insertTestGroup(ctx, tg, tx); err != nil {
+			return fmt.Errorf("failed persisting test group %v", err)
+		}
+	}
+	return nil
 }

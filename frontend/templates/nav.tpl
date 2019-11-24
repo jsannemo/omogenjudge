@@ -20,15 +20,16 @@
     <nav class="navbar-nav closed">
       <ul>
         <li><a href="/">Hem</a></li>
-        {{ if not (or .C.Contest .C.Contest.Started) }}
-          <li><a href="/problems">Problem</a></li>
-        {{ end }}
-        <li><a href="/teams">Lag</a></li>
+        {{ if .C.Contest.Started }}
+          <li><a href="/scoreboard">Poängställning</a></li>
+        {{ else }}
+          <li><a href="/teams">Lag</a></li>
+        {{ end}}
         {{ if .C.User }}
           <li class="navbar-dropdown closed">
             <a href="javascript:;"> <i class="material-icons">person</i> {{ .C.User.Username }}<span class="navbar-dropdown-caret"></span></a>
             <ul>
-              {{ if not (or .C.Contest .C.Contest.Started) }}
+              {{ if .C.Contest.Started }}
                 <li><a href="/users/{{ .C.User.Username}}">Inskickningar</a></li>
               {{ end }}
               <li><a href="/logout">Logga&nbsp;ut</a></li>

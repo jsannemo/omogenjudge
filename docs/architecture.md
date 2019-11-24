@@ -25,5 +25,6 @@ system.
 ## Reliability
 All servers are mostly stateless. The exception is the judging master, which keeps
 an in-memory queue of submissions that should be judged. However, this list is
-also stored in the database, and is reconstructed on startup. Judging is crash-tolerant,
-in that the judging master will automatically 
+also stored in the database, and is reconstructed on startup.
+
+TODO(jsannemo): describe crash safety guarantees once judging is crash safe.

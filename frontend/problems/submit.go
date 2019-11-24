@@ -19,21 +19,24 @@ type SubmitParams struct {
 }
 
 func SubmitHandler(r *request.Request) (request.Response, error) {
+	if !r.Context.Contest.Started() {
+		return request.Redirect(paths.Route(paths.Home)), nil
+	}
 	loginUrl := paths.Route(paths.Login)
-	// TODO save current page location
-	if r.Context.UserID == 0 {
+	// TODO(jsannemo) save current page location
+	if r.Context.User == nil {
 		return request.Redirect(loginUrl), nil
 	}
 
 	vars := mux.Vars(r.Request)
-	problems, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
+	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
 	if err != nil {
 		return nil, err
 	}
-	if len(problems) == 0 {
+	if len(probs) == 0 {
 		return request.NotFound(), nil
 	}
-	problem := problems[0]
+	problem := probs[0]
 
 	if r.Request.Method == http.MethodPost {
 		submit := r.Request.FormValue("submission")
@@ -52,14 +55,13 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 					Contents: submit,
 				},
 			},
-			Runs: []*models.SubmissionRun{&models.SubmissionRun{
+			CurrentRun: &models.SubmissionRun{
 				ProblemVersionID: problem.CurrentVersion.ProblemVersionID,
 				Status:           models.StatusNew,
 				Evaluation: models.Evaluation{
 					Verdict: models.VerdictUnjudged,
 				},
-				Public: true,
-			}},
+			},
 		}
 		err := submissions.CreateSubmission(r.Request.Context(), s, problem.CurrentVersion.ProblemVersionID)
 		if err != nil {

@@ -1,3 +1,4 @@
+// Package main contains a binary for installing contests.
 package main
 
 import (
@@ -14,7 +15,7 @@ import (
 
 func main() {
 	flag.Parse()
-	defer logger.Init("addproblem", true, false, ioutil.Discard).Close()
+	defer logger.Init("addcontest", true, false, ioutil.Discard).Close()
 	path := flag.Arg(0)
 	path, err := filepath.Abs(path)
 	if err != nil {
@@ -25,7 +26,7 @@ func main() {
 		logger.Fatal(err)
 	}
 	client := ptclient.NewClient()
-	response, err := client.InstallContest(context.Background(),&toolspb.InstallContestRequest{ContestYaml: string(config)})
+	response, err := client.InstallContest(context.Background(), &toolspb.InstallContestRequest{ContestYaml: string(config)})
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -36,4 +37,3 @@ func main() {
 		logger.Errorln(errs)
 	}
 }
-

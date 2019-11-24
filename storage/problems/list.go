@@ -9,11 +9,12 @@ import (
 	"github.com/jsannemo/omogenjudge/storage/models"
 )
 
-// ListFilter filters the problems to search for.
+// A ListFilter filters the problems to search for.
 // Only one filter may be set.
 type ListFilter struct {
 	ShortName string
-	ProblemId []int32
+	ProblemID []int32
+	ContestID int32
 }
 
 type TestOpt byte
@@ -39,7 +40,17 @@ type ListArgs struct {
 }
 
 func List(ctx context.Context, args ListArgs, filter ListFilter) (ProblemList, error) {
-	if filter.ShortName != "" && len(filter.ProblemId) != 0 {
+	filters := 0
+	if filter.ShortName != "" {
+		filters++
+	}
+	if len(filter.ProblemID) != 0 {
+		filters++
+	}
+	if filter.ContestID != 0 {
+		filters++
+	}
+	if filters > 1 {
 		return nil, fmt.Errorf("only one filter is allowed when listing problems")
 	}
 	conn := db.Conn()
@@ -80,15 +91,18 @@ func problemQuery(args ListArgs, filterArgs ListFilter) (string, []interface{}) 
     `
 	if filterArgs.ShortName != "" {
 		filter = db.SetParam("WHERE short_name = $%d", &params, filterArgs.ShortName)
-	} else if len(filterArgs.ProblemId) != 0 {
-		filter = db.SetInParamInt("WHERE problem.problem_id IN (%s)", &params, filterArgs.ProblemId)
+	} else if len(filterArgs.ProblemID) != 0 {
+		filter = db.SetInParamInt("WHERE problem.problem_id IN (%s)", &params, filterArgs.ProblemID)
+	} else if filterArgs.ContestID != 0 {
+		joins += " LEFT JOIN contest_problem USING (problem_id) "
+		filter = db.SetParam("WHERE contest_id = $%d", &params, filterArgs.ContestID)
 	}
 
 	if args.WithTests == TestsAll {
-		joins = "LEFT JOIN problem_output_validator USING(problem_version_id)"
-		fields = `, validator_source_zip "problem_version.problem_output_validator.validator_source_zip.hash",
-                    file_url(validator_source_zip) "problem.version.problem_output_validator.validator_source_zip.url",
-                    validator_language_id "problem_output_validator.language_id"`
+		joins += " LEFT JOIN problem_output_validator USING(problem_version_id) "
+		fields = `, validator_source_zip "problem_version.validator.validator_source_zip.hash",
+                    file_url(validator_source_zip) "problem_version.validator.validator_source_zip.url",
+                    validator_language_id "problem_version.validator.language_id"`
 	}
 	return fmt.Sprintf(query, fields, joins, filter), params
 }
@@ -98,7 +112,7 @@ func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) e
 	if opt == TestsSamples {
 		filter = filter + " AND public_visibility = true"
 	}
-	query := "SELECT problem_version_id, problem_testgroup_id, testgroup_name, public_visibility FROM problem_testgroup " + filter + " ORDER BY testgroup_name"
+	query := "SELECT problem_version_id, problem_testgroup_id, testgroup_name, score, public_visibility FROM problem_testgroup " + filter + " ORDER BY testgroup_name"
 	var groups TestGroupList
 	if err := db.Conn().SelectContext(ctx, &groups, query, pv.ProblemVersionID); err != nil {
 		return err
