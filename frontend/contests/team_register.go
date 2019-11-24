@@ -14,8 +14,12 @@ func RegisterHandler(r *request.Request) (request.Response, error) {
 	if r.Context.User == nil {
 		return request.Redirect(paths.Route(paths.Login)), nil
 	}
-	// User was alreayd registered.
+	// User was already registered.
 	if r.Context.Team != nil {
+		return request.Redirect(paths.Route(paths.Home)), nil
+	}
+	// Don't allow registration after the contest ends.
+	if r.Context.Contest.Over() {
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
 	if r.Request.Method == http.MethodPost {
