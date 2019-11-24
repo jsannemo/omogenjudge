@@ -9,8 +9,8 @@ After adding the option, remount the device.
 Then, quota needs to be enabled on the system with the commands
 
 ```bash
-sudo quotaon -v /
 sudo quotacheck -ugm /
+sudo quotaon -v /
 ```
 
 If the `/var/lib/omogen/submissions` directory is not mounted on the root device, be sure to replace `/` in the commands with the correct mount point.

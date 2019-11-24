@@ -224,6 +224,7 @@ func evaluateCase(e *Evaluator, tc *runpb.TestCase, outPath string) (outcome, er
 			res.verdict = runpb.Verdict_ACCEPTED
 		}
 	}
+	res.time = exit.TimeUsageMs
 	e.EvalCache[cacheKey] = res
 	return res, nil
 }
