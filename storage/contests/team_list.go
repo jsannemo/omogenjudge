@@ -24,7 +24,7 @@ func ListTeams(ctx context.Context, filter TeamFilter) (models.TeamList, error) 
 		if err := tx.SelectContext(ctx, &teams, query, params...); err != nil {
 			return fmt.Errorf("failed team list query: %v", err)
 		}
-		if err := includeTeams(ctx, filter.ContestID, teams, tx); err != nil {
+		if err := includeTeams(ctx, teams, tx); err != nil {
 			return err
 		}
 		return nil
@@ -34,7 +34,15 @@ func ListTeams(ctx context.Context, filter TeamFilter) (models.TeamList, error) 
 	return teams, nil
 }
 
-func includeTeams(ctx context.Context, contestID int32, lists models.TeamList, tx *sqlx.Tx) error {
+func includeTeams(ctx context.Context, teams models.TeamList, tx *sqlx.Tx) error {
+	if len(teams) == 0 {
+		return nil
+	}
+	var teamIDs []int32
+	for _, t := range teams {
+		teamIDs = append(teamIDs, t.TeamID)
+	}
+	var params []interface{}
 	query := `
 		SELECT
 			team_id, account_id,
@@ -43,13 +51,14 @@ func includeTeams(ctx context.Context, contestID int32, lists models.TeamList, t
 		FROM team
 		LEFT JOIN team_member USING(team_id)
 		LEFT JOIN account USING(account_id)
-		WHERE team.contest_id = $1`
+		WHERE team.team_id IN (%s)`
+	query = db.SetInParamInt(query, &params, teamIDs)
 	var memberList []*models.TeamMember
-	if err := tx.SelectContext(ctx, &memberList, query, contestID); err != nil {
+	if err := tx.SelectContext(ctx, &memberList, query, params...); err != nil {
 		return fmt.Errorf("failed team member query: %v", err)
 	}
 	teamMap := make(map[int32]*models.Team)
-	for _, t := range lists {
+	for _, t := range teams {
 		teamMap[t.TeamID] = t
 	}
 	for _, m := range memberList {
@@ -63,12 +72,13 @@ func teamListQuery(filterArgs TeamFilter) (string, []interface{}) {
 	var params []interface{}
 	if filterArgs.ContestID != 0 {
 		filters = append(filters, db.SetParam("contest_id = $%d", &params, filterArgs.ContestID))
-	} else if filterArgs.AccountID != 0 {
+	}
+	if filterArgs.AccountID != 0 {
 		filters = append(filters, db.SetParam("account_id = $%d", &params, filterArgs.AccountID))
 	}
 	filter := ""
 	if len(filters) > 0 {
-		filter = "WHERE " + strings.Join(filters, ",")
+		filter = "WHERE " + strings.Join(filters, " AND ")
 	}
-	return fmt.Sprintf(`SELECT team_id, contest_id, team_name FROM team %s`, filter), params
+	return fmt.Sprintf(`SELECT team_id, contest_id, team_name FROM team LEFT JOIN team_member USING(team_id) %s`, filter), params
 }
