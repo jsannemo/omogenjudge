@@ -26,7 +26,7 @@
 					<div class="form-group">
 						<div class="input-field">
 							<label>Email-address</label>
-							<input type="email" required name="username" placeholder="Fyll i email-address">
+							<input type="email" required name="email" placeholder="Fyll i email-address">
 						</div>
 					</div>
 
