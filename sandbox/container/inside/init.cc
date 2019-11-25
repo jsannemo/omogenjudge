@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
       << "Could not chmod container root";
   struct passwd* sandbox_pw = getpwnam("omogenjudge-sandbox");
 
-  PCHECK(unshare(CLONE_NEWNS != -1)) << "Failed unsharing mount namespace";
+  PCHECK(unshare(CLONE_NEWNS) != -1) << "Failed unsharing mount namespace";
   PCHECK(unshare(CLONE_NEWIPC) != -1) << "Failed unsharing IPC namespace";
   PCHECK(unshare(CLONE_NEWNET) != -1) << "Failed unsharing network namespace";
   PCHECK(unshare(CLONE_NEWPID) != -1) << "Failed unsharing PID namespace";
