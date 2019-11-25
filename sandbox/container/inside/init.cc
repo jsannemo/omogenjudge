@@ -80,14 +80,6 @@ static ContainerTermination Execute(const ContainerExecution& request) {
   // automatically killed if the parent is killed.
   pid_t which = fork();
   if (which == 0) {
-    // De-privilege now. We must do this before execing, to keep rlimits we set.
-    // They are cleared to default values if an elevated setuid execs.
-    PCHECK(setresgid(omogen::sandbox::pw->pw_gid, omogen::sandbox::pw->pw_gid,
-                     omogen::sandbox::pw->pw_gid) != -1)
-        << "Could not set gid";
-    PCHECK(setresuid(omogen::sandbox::pw->pw_uid, omogen::sandbox::pw->pw_uid,
-                     omogen::sandbox::pw->pw_uid) != -1)
-        << "Could not set uid";
     VLOG(2) << "Container child started";
     close(error_pipe[0]);                 // We only write to the error pipe
     SetupAndRun(request, error_pipe[1]);  // Will either execve or crash
@@ -161,14 +153,6 @@ static string container_root;
 static gid_t omogenclients_gid;
 
 int startSandbox() {
-  // Kill us if the main sandbox is killed, to prevent our child from possibly
-  // keep running. This is not a race with the parent death, since the read
-  // later will crash us in case our parent dies after the prctl call.
-  // Furthermore, as a result of our death we will take with us any processes
-  // running in the sandbox since we are PID 1 in a PID namespace.
-  CHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
-      << "Could not set PR_SET_PDEATHSIG";
-
   LOG(INFO) << "S" << sandbox_id << " Started up container";
   // Keep reading execution requests in a loop in case we want to run more
   // commands in the same sandbox. Requests are written in the format
@@ -248,11 +232,11 @@ int main(int argc, char** argv) {
       << "Could not chmod container root";
   struct passwd* sandbox_pw = getpwnam("omogenjudge-sandbox");
 
-  unshare(CLONE_NEWNS);
-  unshare(CLONE_NEWIPC);
-  unshare(CLONE_NEWNET);
-  unshare(CLONE_NEWPID);
-  unshare(CLONE_NEWUTS);
+  PCHECK(unshare(CLONE_NEWNS != -1)) << "Failed unsharing mount namespace";
+  PCHECK(unshare(CLONE_NEWIPC) != -1) << "Failed unsharing IPC namespace";
+  PCHECK(unshare(CLONE_NEWNET) != -1) << "Failed unsharing network namespace";
+  PCHECK(unshare(CLONE_NEWPID) != -1) << "Failed unsharing PID namespace";
+  PCHECK(unshare(CLONE_NEWUTS) != -1) << "Failed unsharing UTS namespace";
   omogen::sandbox::ContainerSpec spec;
   int length;
   CHECK(ReadIntFromFd(&length, in_id)) << "Failed reading length";
@@ -264,7 +248,13 @@ int main(int argc, char** argv) {
   chroot.ApplyContainerSpec(spec);
   chroot.SetRoot();
 
-  PCHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
-      << "Could not set PR_SET_PDEATHSIG";
+  // De-privilege now. We must do this before execing, to keep rlimits we set.
+  // They are cleared to default values if an elevated setuid execs.
+  PCHECK(setresgid(omogen::sandbox::pw->pw_gid, omogen::sandbox::pw->pw_gid,
+                   omogen::sandbox::pw->pw_gid) != -1)
+      << "Could not set gid";
+  PCHECK(setresuid(omogen::sandbox::pw->pw_uid, omogen::sandbox::pw->pw_uid,
+                   omogen::sandbox::pw->pw_uid) != -1)
+      << "Could not set uid";
   startSandbox();
 }
