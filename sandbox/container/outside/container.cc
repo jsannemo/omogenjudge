@@ -90,10 +90,6 @@ Container::Container(std::unique_ptr<ContainerId> container_id_,
 Container::~Container() {
   VLOG(3) << "Destroying container";
   KillInit();
-  VLOG(3) << "Going to wait";
-  while (WaitInit() == -1)
-    ;
-  init_pid = 0;
   VLOG(3) << "Removing container root";
   std::string cmd =
       absl::StrCat("/usr/bin/omogenjudge-sandboxc ", container_id->Get());
@@ -102,10 +98,15 @@ Container::~Container() {
 }
 
 void Container::KillInit() {
-  // Since we immediately move the contained process out of our process group,
-  // it is fine to do kill(-init_pid)
-  PCHECK(kill(-init_pid, SIGKILL) != -1) << "Could not kill child group";
-  PCHECK(kill(init_pid, SIGKILL) != -1) << "Could not kill child";
+  if (init_pid != 0) {
+    // Since we immediately move the contained process out of our process group,
+    // it is fine to do kill(-init_pid)
+    PCHECK(kill(init_pid, SIGKILL) != -1) << "Could not kill child";
+    VLOG(3) << "Going to wait";
+    while (WaitInit() == -1)
+      ;
+    init_pid = 0;
+  }
 }
 
 int Container::WaitInit() {
