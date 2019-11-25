@@ -66,10 +66,6 @@ static ContainerTermination TerminationForError(const string& error_message) {
 }
 
 static ContainerTermination Execute(const ContainerExecution& request) {
-  // De-privilege now. We must do this before execing, to keep rlimits we set.
-  // They are cleared to default values if an elevated setuid execs.
-  PCHECK(setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) != -1) << "Could not set gid";
-  PCHECK(setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) != -1) << "Could not set uid";
   // Start a fork to set up the execution environment for the request.
   // In the parent, we will wait for the request to finish. Since an error
   // may occur during setup of the contained process, we keep a pipe open
@@ -84,6 +80,14 @@ static ContainerTermination Execute(const ContainerExecution& request) {
   // automatically killed if the parent is killed.
   pid_t which = fork();
   if (which == 0) {
+    // De-privilege now. We must do this before execing, to keep rlimits we set.
+    // They are cleared to default values if an elevated setuid execs.
+    PCHECK(setresgid(omogen::sandbox::pw->pw_gid, omogen::sandbox::pw->pw_gid,
+                     omogen::sandbox::pw->pw_gid) != -1)
+        << "Could not set gid";
+    PCHECK(setresuid(omogen::sandbox::pw->pw_uid, omogen::sandbox::pw->pw_uid,
+                     omogen::sandbox::pw->pw_uid) != -1)
+        << "Could not set uid";
     VLOG(2) << "Container child started";
     close(error_pipe[0]);                 // We only write to the error pipe
     SetupAndRun(request, error_pipe[1]);  // Will either execve or crash
@@ -156,17 +160,7 @@ static int sandbox_id;
 static string container_root;
 static gid_t omogenclients_gid;
 
-int startSandbox(void* arg) {
-  omogen::sandbox::ContainerSpec spec;
-  int length;
-  CHECK(ReadIntFromFd(&length, in_id)) << "Failed reading length";
-  string spec_bytes = ReadFromFd(length, in_id);
-  CHECK(spec.ParseFromString(spec_bytes))
-      << "Could not read complete request: " << spec.DebugString();
-  omogen::sandbox::Chroot chroot =
-      omogen::sandbox::Chroot::ForNewRoot(container_root);
-  chroot.ApplyContainerSpec(spec);
-  chroot.SetRoot();
+int startSandbox() {
   // Kill us if the main sandbox is killed, to prevent our child from possibly
   // keep running. This is not a race with the parent death, since the read
   // later will crash us in case our parent dies after the prctl call.
@@ -174,12 +168,14 @@ int startSandbox(void* arg) {
   // running in the sandbox since we are PID 1 in a PID namespace.
   CHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
       << "Could not set PR_SET_PDEATHSIG";
+
   LOG(INFO) << "S" << sandbox_id << " Started up container";
   // Keep reading execution requests in a loop in case we want to run more
   // commands in the same sandbox. Requests are written in the format
   // <number of bytes><request bytes>.
   while (true) {
     // Read execution request from the parent.
+    int length;
     ContainerExecution request;
     if (!ReadIntFromFd(&length, in_id)) {
       LOG(ERROR) << "S" << sandbox_id << " Failed reading length";
@@ -250,17 +246,25 @@ int main(int argc, char** argv) {
       << "Could not chown container root";
   PCHECK(chmod(container_root.c_str(), 0775) != -1)
       << "Could not chmod container root";
-
-  pid_t clone_pid;
-  // Clone and create new namespaces for the contained process
-  PCHECK(
-      (clone_pid = clone(startSandbox, stack.data() + stack.size(),
-                         SIGCHLD | CLONE_NEWIPC | CLONE_NEWNET | CLONE_NEWNS |
-                             CLONE_NEWPID | CLONE_NEWUTS,
-                         nullptr)) != -1)
-      << "Failed cloning new contained process";
-  // We must give up root now so our parent can kill is.
   struct passwd* sandbox_pw = getpwnam("omogenjudge-sandbox");
-  PCHECK(setuid(sandbox_pw->pw_uid) != -1) << "Could not set uid to sandbox";
-  wait(nullptr);
+
+  unshare(CLONE_NEWNS);
+  unshare(CLONE_NEWIPC);
+  unshare(CLONE_NEWNET);
+  unshare(CLONE_NEWPID);
+  unshare(CLONE_NEWUTS);
+  omogen::sandbox::ContainerSpec spec;
+  int length;
+  CHECK(ReadIntFromFd(&length, in_id)) << "Failed reading length";
+  string spec_bytes = ReadFromFd(length, in_id);
+  CHECK(spec.ParseFromString(spec_bytes))
+      << "Could not read complete request: " << spec.DebugString();
+  omogen::sandbox::Chroot chroot =
+      omogen::sandbox::Chroot::ForNewRoot(container_root);
+  chroot.ApplyContainerSpec(spec);
+  chroot.SetRoot();
+
+  PCHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
+      << "Could not set PR_SET_PDEATHSIG";
+  startSandbox();
 }

@@ -104,8 +104,8 @@ Container::~Container() {
 void Container::KillInit() {
   // Since we immediately move the contained process out of our process group,
   // it is fine to do kill(-init_pid)
-  kill(-init_pid, SIGKILL);
-  kill(init_pid, SIGKILL);
+  PCHECK(kill(-init_pid, SIGKILL) != -1) << "Could not kill child group";
+  PCHECK(kill(init_pid, SIGKILL) != -1) << "Could not kill child";
 }
 
 int Container::WaitInit() {
