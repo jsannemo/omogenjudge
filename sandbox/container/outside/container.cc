@@ -49,6 +49,7 @@ void Container::startSandbox(const ContainerSpec& spec, int sandboxId) {
   PCHECK(init_pid != -1) << "Failed forking";
   if (init_pid != 0) {
     cgroup = std::make_unique<Cgroup>(init_pid);
+    VLOG(3) << "Returning in PID " << getpid();
     return;
   }
   close(command_pipe[1]);
@@ -99,8 +100,7 @@ Container::~Container() {
 
 void Container::KillInit() {
   if (init_pid != 0) {
-    // Since we immediately move the contained process out of our process group,
-    // it is fine to do kill(-init_pid)
+    VLOG(3) << "Killing container";
     PCHECK(kill(init_pid, SIGKILL) != -1) << "Could not kill child";
     VLOG(3) << "Going to wait";
     while (WaitInit() == -1)

@@ -192,12 +192,12 @@ int startSandbox() {
 }
 
 int main(int argc, char** argv) {
+  CHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
+      << "Could not set PR_SET_PDEATHSIG";
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
   google::InstallFailureSignalHandler();
   setpgid(getpid(), getpid());
-  CHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
-      << "Could not set PR_SET_PDEATHSIG";
 
   CHECK(argc == 6) << "Incorrect number of arguments";
   CHECK(absl::SimpleAtoi(string(argv[1]), &sandbox_id))
@@ -230,7 +230,6 @@ int main(int argc, char** argv) {
       << "Could not chown container root";
   PCHECK(chmod(container_root.c_str(), 0775) != -1)
       << "Could not chmod container root";
-  struct passwd* sandbox_pw = getpwnam("omogenjudge-sandbox");
 
   PCHECK(unshare(CLONE_NEWNS) != -1) << "Failed unsharing mount namespace";
   PCHECK(unshare(CLONE_NEWIPC) != -1) << "Failed unsharing IPC namespace";
@@ -247,14 +246,19 @@ int main(int argc, char** argv) {
       omogen::sandbox::Chroot::ForNewRoot(container_root);
   chroot.ApplyContainerSpec(spec);
   chroot.SetRoot();
-
-  // De-privilege now. We must do this before execing, to keep rlimits we set.
-  // They are cleared to default values if an elevated setuid execs.
-  PCHECK(setresgid(omogen::sandbox::pw->pw_gid, omogen::sandbox::pw->pw_gid,
-                   omogen::sandbox::pw->pw_gid) != -1)
-      << "Could not set gid";
-  PCHECK(setresuid(omogen::sandbox::pw->pw_uid, omogen::sandbox::pw->pw_uid,
-                   omogen::sandbox::pw->pw_uid) != -1)
-      << "Could not set uid";
-  startSandbox();
+  if (fork() == 0) {
+    // De-privilege now. We must do this before execing, to keep rlimits we set.
+    // They are cleared to default values if an elevated setuid execs.
+    PCHECK(setresgid(omogen::sandbox::pw->pw_gid, omogen::sandbox::pw->pw_gid,
+                     omogen::sandbox::pw->pw_gid) != -1)
+        << "Could not set gid";
+    PCHECK(setresuid(omogen::sandbox::pw->pw_uid, omogen::sandbox::pw->pw_uid,
+                     omogen::sandbox::pw->pw_uid) != -1)
+        << "Could not set uid";
+    CHECK(prctl(PR_SET_PDEATHSIG, SIGKILL) != -1)
+        << "Could not set PR_SET_PDEATHSIG";
+    startSandbox();
+  } else {
+    wait(nullptr);
+  }
 }
