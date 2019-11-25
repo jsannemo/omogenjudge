@@ -28,3 +28,14 @@ func CreateRunTx(ctx context.Context, run *models.SubmissionRun, tx *sqlx.Tx) er
 	}
 	return nil
 }
+
+func CreateGroupRun(ctx context.Context, run *models.TestGroupRun) error {
+	query := `
+			INSERT INTO
+			    submission_group_run(submission_run_id, problem_testgroup_id, time_usage_ms, score, verdict)
+			VALUES($1, $2, $3, $4, $5)`
+	if _, err := db.Conn().ExecContext(ctx, query, run.SubmissionRunID, run.TestGroupID, run.TimeUsageMS, run.Score, run.Verdict); err != nil {
+		return fmt.Errorf("failed inserting submission run: %v", err)
+	}
+	return nil
+}

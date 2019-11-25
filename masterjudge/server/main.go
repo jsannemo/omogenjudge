@@ -7,15 +7,14 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/google/logger"
 	"github.com/jsannemo/omogenjudge/masterjudge/queue"
+	"google.golang.org/grpc"
 	"io"
 	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
-
-	"github.com/google/logger"
-	"google.golang.org/grpc"
 
 	filepb "github.com/jsannemo/omogenjudge/filehandler/api"
 	fhclient "github.com/jsannemo/omogenjudge/filehandler/client"
@@ -188,7 +187,7 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 	if err != nil {
 		return err
 	}
-	logger.Infof("eval: %v", evalReq)
+	atGroup := 0
 	for {
 		verdict, err := stream.Recv()
 		if err == io.EOF {
@@ -202,7 +201,19 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		case *runpb.EvaluateResponse_TestCase:
 			// TODO(jsannemo): report this
 		case *runpb.EvaluateResponse_TestGroup:
-			// TODO(jsannemo): report this
+				groupRun := &models.TestGroupRun{
+				SubmissionRunID: run.SubmissionRunID,
+				TestGroupID:     problem.CurrentVersion.TestGroups[atGroup].TestGroupID,
+				Evaluation:      models.Evaluation{
+					Score:       res.TestGroup.Score,
+					TimeUsageMS: res.TestGroup.TimeUsageMs,
+					Verdict:     models.VerdictFromRunVerdict(res.TestGroup.Verdict),
+				},
+			}
+			if err := submissions.CreateGroupRun(ctx, groupRun); err != nil {
+				return err
+			}
+			atGroup++
 		case *runpb.EvaluateResponse_Submission:
 			run.Verdict = models.VerdictFromRunVerdict(res.Submission.Verdict)
 			run.Status = models.StatusSuccessful
