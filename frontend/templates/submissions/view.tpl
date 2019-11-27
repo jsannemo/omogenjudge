@@ -12,24 +12,27 @@
         </tr>
         </thead>
         {{ range $_, $p := .D.Problems }}
-        {{ range $i, $g := $p.CurrentVersion.TestGroups }}
+          {{ range $i, $g := $p.CurrentVersion.TestGroups }}
             <tr>
-                <td>
-                  {{ if $g.PublicVisibility }}
-                    <strong>Exempelfall</strong>
-                  {{ else }}
-                    <strong>Grupp {{ $i }}</strong>
-                  {{ end }}
-                </td>
-                <td>
-                  {{ $.D.Submission.CurrentRun.GroupVerdict $g.TestGroupID }}
-                </td>
-                <td>
+              <td>
+                {{ if $g.PublicVisibility }}
+                  <strong>Exempelfall</strong>
+                {{ else }}
+                  <strong>Grupp {{ $i }}</strong>
+                {{ end }}
+              </td>
+              {{ $verdict := $.D.Submission.CurrentRun.GroupVerdict $g.TestGroupID }}
+              <td>
+                {{ $verdict }}
+              </td>
+              <td>
+                {{ if $verdict }}
                   {{ $.D.Submission.CurrentRun.GroupScore $g.TestGroupID }}
-                </td>
+                {{ end }}
+              </td>
             </tr>
+          {{ end }}
         {{ end }}
-      {{ end }}
       </table>
       {{ if .D.Submission.CurrentRun.CompileError.Valid }}
         <table class="bordered" style="width: 100%; margin-top: 15px;">

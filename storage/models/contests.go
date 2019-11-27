@@ -46,6 +46,10 @@ func (c *Contest) UntilEnd() time.Duration {
 	return c.EndTime().Sub(time.Now())
 }
 
+func (c *Contest) Within(time time.Time) bool {
+	return !c.StartTime.Time.After(time) && !c.EndTime().Before(time)
+}
+
 // A ContestProblem is a problem with associated metadata that appears in a contest.
 type ContestProblem struct {
 	ContestID int32 `db:"contest_id"`

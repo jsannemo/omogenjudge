@@ -5,5 +5,9 @@ go_library(
     srcs = ["home.go"],
     importpath = "github.com/jsannemo/omogenjudge/frontend/home",
     visibility = ["//visibility:public"],
-    deps = ["//frontend/request"],
+    deps = [
+        "//frontend/request",
+        "//storage/models:go_default_library",
+        "//storage/submissions:go_default_library",
+    ],
 )

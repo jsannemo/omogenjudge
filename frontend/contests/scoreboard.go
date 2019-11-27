@@ -34,7 +34,7 @@ func ScoreboardHandler(r *request.Request) (request.Response, error) {
 	}
 	subs, err := submissions.ListSubmissions(
 		r.Request.Context(),
-		submissions.ListArgs{WithRun: true},
+		submissions.ListArgs{WithRun: true, WithGroupRuns: true},
 		submissions.ListFilter{ProblemID: probIDs, UserID: accountIDs})
 	if err != nil {
 		return nil, err
@@ -49,6 +49,7 @@ type scoreboardTeam struct {
 	Team        *models.Team
 	Rank        int
 	Scores      map[int32]int32
+	TgScores    map[int32]map[int32]int32
 	Submissions map[int32]int
 	TotalScore  int32
 	Times       map[int32]time.Duration
@@ -74,6 +75,7 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 			Label:   p.Label,
 			Problem: p.Problem,
 		})
+
 	}
 	sort.Slice(scp, func(i, j int) bool {
 		return scp[i].Label < scp[j].Label
@@ -85,36 +87,56 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 		sc[t.TeamID] = &scoreboardTeam{
 			Team:        t,
 			Scores:      make(map[int32]int32),
+			TgScores:    make(map[int32]map[int32]int32),
 			Submissions: make(map[int32]int),
 			Times:       make(map[int32]time.Duration),
 		}
 		for _, a := range t.Members {
 			accTeam[a.AccountID] = sc[t.TeamID]
 		}
+		for _, p := range contest.Problems {
+			sc[t.TeamID].TgScores[p.ProblemID] = make(map[int32]int32)
+		}
 	}
 
 	for i := len(subs) - 1; i >= 0; i-- {
 		sub := subs[i]
-		if sub.Created.Before(contest.StartTime.Time) || sub.Created.After(contest.EndTime()) {
+		if !contest.Within(sub.Created) || sub.CurrentRun.Waiting() {
 			continue
 		}
 		team := accTeam[sub.AccountID]
-		if sub.CurrentRun.Score <= team.Scores[sub.ProblemID] {
+		team.Submissions[sub.ProblemID]++
+		inc := false
+		for _, tg := range sub.CurrentRun.GroupRuns {
+			if tg.Score > team.TgScores[sub.ProblemID][tg.TestGroupID] {
+				inc = true
+				team.TgScores[sub.ProblemID][tg.TestGroupID] = tg.Score
+			}
+		}
+		if !inc && team.Submissions[sub.ProblemID] != 1 {
 			continue
 		}
-		team.Submissions[sub.ProblemID]++
-		team.Scores[sub.ProblemID] = sub.CurrentRun.Score
 		team.Times[sub.ProblemID] = sub.Created.Sub(contest.StartTime.Time)
 	}
 	var rankedTeams []*scoreboardTeam
 	for _, team := range sc {
+		for pid, p := range team.TgScores {
+			ppoints := int32(0)
+			for _, g := range p {
+				ppoints += g
+			}
+			team.Scores[pid] = ppoints
+		}
 		for _, v := range team.Scores {
 			team.TotalScore += v
 		}
 		rankedTeams = append(rankedTeams, team)
 	}
 	sort.Slice(rankedTeams, func(i, j int) bool {
-		return rankedTeams[i].TotalScore > rankedTeams[j].TotalScore
+		if rankedTeams[i].TotalScore != rankedTeams[j].TotalScore {
+			return rankedTeams[i].TotalScore > rankedTeams[j].TotalScore
+		}
+		return rankedTeams[i].Team.DisplayName() < rankedTeams[j].Team.DisplayName()
 	})
 	cur := int32(-1)
 	rank := -1

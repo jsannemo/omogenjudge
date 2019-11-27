@@ -93,7 +93,7 @@ func (run *SubmissionRun) GroupScore(id int32) int32 {
 			return g.Score
 		}
 	}
-	return -1
+	return 0
 }
 
 func (run *SubmissionRun) Accepted() bool {

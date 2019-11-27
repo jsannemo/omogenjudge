@@ -17,6 +17,41 @@
                     <div class="mdl-card__title">
                         <h2 class="mdl-card__title-text"><strong>{{ .Label }}</strong>&nbsp;{{ .Problem.LocalizedTitle $.C.Locales }}</h2>
                     </div>
+                    {{ if $.D }}
+                        {{ $p := index $.D.Problems .ProblemID }}
+                        <div class="mdl-card__supporting-text" style="width: 100%">
+                            <table style="margin: auto" class="mdl-data-table mdl-js-data-table mdl-data-table--selectable">
+                                <thead>
+                                <tr>
+                                    <td></td>
+                                    {{ range $i, $g := $p.Groups}}
+                                        {{ if not $g.PublicVisibility }}
+                                            <th>
+                                                G{{ $i }}
+                                                ({{$g.Score}})
+                                            </th>
+                                        {{ end }}
+                                    {{ end }}
+                                    <th>TOT ({{ .Problem.CurrentVersion.MaxScore }})</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <th>Din poäng</th>
+                                    {{ range $i, $g := $p.Groups}}
+                                        {{ if not $g.PublicVisibility }}
+                                            <td>
+                                                {{ index $p.Scores $g.TestGroupID }}
+                                            </td>
+                                        {{ end }}
+                                    {{ end }}
+                                    <td><strong>{{ $p.Score }}</strong></td>
+                                </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                    {{ end }}
                     <div class="mdl-card__actions mdl-card--border">
                         <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ .Problem.Link }}">
                             Öppna problemlydelsen

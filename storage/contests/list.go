@@ -39,7 +39,7 @@ func ListContests(ctx context.Context, args ListArgs, filter ListFilter) (Contes
 }
 
 func addProblems(ctx context.Context, contest *models.Contest, db *sqlx.DB) error {
-	if err := db.SelectContext(ctx, &contest.Problems, `SELECT contest_id, problem_id, label FROM contest_problem WHERE contest_id = $1`, contest.ContestID); err != nil {
+	if err := db.SelectContext(ctx, &contest.Problems, `SELECT contest_id, problem_id, label FROM contest_problem WHERE contest_id = $1 ORDER BY label`, contest.ContestID); err != nil {
 		return err
 	}
 	var pids []int32
