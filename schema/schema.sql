@@ -167,7 +167,7 @@ GRANT ALL ON submission_run TO omogenjudge;
 GRANT ALL ON submission_run_submission_run_id_seq TO omogenjudge;
 
 CREATE TABLE submission_group_run(
-	submission_run_id INTEGER NOT NULL REFERENCES submission_run,
+	submission_run_id INTEGER NOT NULL REFERENCES submission_run ON DELETE CASCADE,
 	problem_testgroup_id INTEGER NOT NULL REFERENCES problem_testgroup,
 	date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
     time_usage_ms INTEGER NOT NULL,
@@ -178,7 +178,7 @@ CREATE TABLE submission_group_run(
 GRANT ALL ON submission_group_run TO omogenjudge;
 
 CREATE TABLE submission_case_run(
-	submission_run_id INTEGER NOT NULL REFERENCES submission_run,
+	submission_run_id INTEGER NOT NULL REFERENCES submission_run ON DELETE CASCADE,
 	problem_testcase_id INTEGER NOT NULL REFERENCES problem_testcase,
 	date_created TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
     time_usage_ms INTEGER NOT NULL,

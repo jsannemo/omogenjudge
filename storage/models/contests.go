@@ -76,6 +76,10 @@ func (t *Team) DisplayName() string {
 	return strings.Join(names, ", ")
 }
 
+func (t *Team) Link() string {
+	return t.Members[0].Account.Link()
+}
+
 type TeamList []*Team
 
 type TeamMember struct {

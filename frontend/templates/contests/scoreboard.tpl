@@ -28,7 +28,11 @@
                     {{ range $_, $t := .D.Teams }}
                         <tr>
                             <td>{{ .Rank }}</td>
-                            <td class="mdl-data-table__cell--non-numeric">{{ .Team.DisplayName }}</td>
+                            <td class="mdl-data-table__cell--non-numeric">
+                                <a href="{{ .Team.Link }}">
+                                    {{ .Team.DisplayName }}
+                                </a>
+                            </td>
                             <td>
                                 <strong>{{ $t.TotalScore }}</strong>
                             </td>
