@@ -41,7 +41,7 @@
                                     {{ range $i, $g := $p.Groups}}
                                         {{ if not $g.PublicVisibility }}
                                             <td>
-                                                {{ index $p.Scores $g.TestGroupID }}
+                                                {{ index $p.Scores $g.Name }}
                                             </td>
                                         {{ end }}
                                     {{ end }}

@@ -7,7 +7,7 @@ import (
 )
 
 type problemData struct {
-	Scores map[int32]int32
+	Scores map[string]int32
 	Groups []*models.TestGroup
 	Score  int32
 }
@@ -24,7 +24,7 @@ func HomeHandler(r *request.Request) (request.Response, error) {
 			probIDs = append(probIDs, p.ProblemID)
 			points[p.ProblemID] = &problemData{
 				Groups: p.Problem.CurrentVersion.TestGroups,
-				Scores: make(map[int32]int32),
+				Scores: make(map[string]int32),
 			}
 		}
 		subs, err := submissions.ListSubmissions(r.Request.Context(), submissions.ListArgs{
@@ -43,8 +43,8 @@ func HomeHandler(r *request.Request) (request.Response, error) {
 			}
 			for _, run := range s.CurrentRun.GroupRuns {
 				data := points[s.ProblemID]
-				if run.Score > data.Scores[run.TestGroupID] {
-					data.Scores[run.TestGroupID] = run.Score
+				if run.Score > data.Scores[run.TestGroupName] {
+					data.Scores[run.TestGroupName] = run.Score
 				}
 			}
 		}
