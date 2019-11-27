@@ -78,18 +78,18 @@ type SubmissionRun struct {
 	GroupRuns TestGroupRunList `db:"group_runs"`
 }
 
-func (run *SubmissionRun) GroupVerdict(id int32) string {
+func (run *SubmissionRun) GroupVerdict(name string) string {
 	for _, g := range run.GroupRuns {
-		if g.TestGroupID == id {
+		if g.TestGroupName == name {
 			return g.Verdict.String()
 		}
 	}
 	return ""
 }
 
-func (run *SubmissionRun) GroupScore(id int32) int32 {
+func (run *SubmissionRun) GroupScore(name string) int32 {
 	for _, g := range run.GroupRuns {
-		if g.TestGroupID == id {
+		if g.TestGroupName == name {
 			return g.Score
 		}
 	}

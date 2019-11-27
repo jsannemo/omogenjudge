@@ -21,13 +21,13 @@
                   <strong>Grupp {{ $i }}</strong>
                 {{ end }}
               </td>
-              {{ $verdict := $.D.Submission.CurrentRun.GroupVerdict $g.TestGroupID }}
+              {{ $verdict := $.D.Submission.CurrentRun.GroupVerdict $g.Name }}
               <td>
                 {{ $verdict }}
               </td>
               <td>
                 {{ if $verdict }}
-                  {{ $.D.Submission.CurrentRun.GroupScore $g.TestGroupID }}
+                  {{ $.D.Submission.CurrentRun.GroupScore $g.Name }}
                 {{ end }}
               </td>
             </tr>
