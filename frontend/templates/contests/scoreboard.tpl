@@ -3,22 +3,22 @@
         <article>
             {{ template "helper_contest_banner" .C.Contest }}
             <div class="row">
-                <table style="margin: auto" class="mdl-data-table mdl-js-data-table mdl-data-table--selectable">
+                <table style="width: 100%; margin: auto" class="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp">
                     <thead>
                     <tr>
                         <th style="width: 60px">#</th>
-                        <th style="width: 220px" class="mdl-data-table__cell--non-numeric">Namn</th>
-                        <th style="width: 60px">
+                        <th style="width: auto" class="mdl-data-table__cell--non-numeric">Namn</th>
+                        <th style="width: 80px">
                             {{.D.MaxScore}}
                             <br>
                             Totalpoäng
                         </th>
                         {{ range .D.Problems }}
-                            <th style="width: 60px; text-align: center">
+                            <th style="width: 80px; text-align: center">
                                 {{.Problem.CurrentVersion.MaxScore}}
                                 <br>
                                 <a href="{{ .Problem.Link }}">
-                                {{ .Label }}
+                                    {{ .Label }}
                                 </a>
                             </th>
                         {{ end }}
@@ -44,7 +44,7 @@
                                             {{ index $t.Scores .Problem.ProblemID }}
                                         </div>
                                         <div style="font-size: 12px">
-                                                {{ index $t.Times .Problem.ProblemID | hhmm }}
+                                            {{ index $t.Times .Problem.ProblemID | hhmm }}
                                         </div>
                                     {{ else }}
                                     {{ end }}
