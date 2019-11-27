@@ -55,23 +55,24 @@ type scoreboardTeam struct {
 }
 
 type scoreboardProblem struct {
-	Label     string
-	Shortname string
-	ProblemID int32
+	Label   string
+	Problem *models.Problem
 }
 
 type scoreboard struct {
 	Teams    []*scoreboardTeam
 	Problems []*scoreboardProblem
+	MaxScore int32
 }
 
 func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, contest *models.Contest) interface{} {
+	maxScore := int32(0)
 	var scp []*scoreboardProblem
 	for _, p := range contest.Problems {
+		maxScore += p.Problem.CurrentVersion.MaxScore()
 		scp = append(scp, &scoreboardProblem{
-			Label:     p.Label,
-			Shortname: p.Problem.ShortName,
-			ProblemID: p.ProblemID,
+			Label:   p.Label,
+			Problem: p.Problem,
 		})
 	}
 	sort.Slice(scp, func(i, j int) bool {
@@ -127,5 +128,6 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 	return &scoreboard{
 		Teams:    rankedTeams,
 		Problems: scp,
+		MaxScore: maxScore,
 	}
 }

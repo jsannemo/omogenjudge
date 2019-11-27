@@ -7,10 +7,20 @@
                     <thead>
                     <tr>
                         <th style="width: 60px">#</th>
-                        <th style="width: 220px" class="mdl-data-table__cell--non-numeric">Name</th>
-                        <th style="width: 60px">Totalpoäng</th>
+                        <th style="width: 220px" class="mdl-data-table__cell--non-numeric">Namn</th>
+                        <th style="width: 60px">
+                            {{.D.MaxScore}}
+                            <br>
+                            Totalpoäng
+                        </th>
                         {{ range .D.Problems }}
-                            <th style="width: 60px">{{ .Label }}</th>
+                            <th style="width: 60px; text-align: center">
+                                {{.Problem.CurrentVersion.MaxScore}}
+                                <br>
+                                <a href="{{ .Problem.Link }}">
+                                {{ .Label }}
+                                </a>
+                            </th>
                         {{ end }}
                     </tr>
                     </thead>
@@ -24,13 +34,13 @@
                             </td>
                             {{ range $.D.Problems }}
                                 <td style="text-align: center">
-                                    {{ $subs := index $t.Submissions .ProblemID }}
+                                    {{ $subs := index $t.Submissions .Problem.ProblemID }}
                                     {{ if $subs }}
                                         <div>
-                                            {{ index $t.Scores .ProblemID }}
+                                            {{ index $t.Scores .Problem.ProblemID }}
                                         </div>
                                         <div style="font-size: 12px">
-                                                {{ index $t.Times .ProblemID | hhmm }}
+                                                {{ index $t.Times .Problem.ProblemID | hhmm }}
                                         </div>
                                     {{ else }}
                                     {{ end }}

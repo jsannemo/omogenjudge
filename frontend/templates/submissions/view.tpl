@@ -7,7 +7,7 @@
         <thead>
         <tr>
           <th> Testgrupp </th>
-          <th> Result </th>
+          <th> Resultat </th>
           <th> Poäng </th>
         </tr>
         </thead>

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/google/logger"
 	"time"
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
@@ -134,7 +133,6 @@ type TestGroupRun struct {
 type TestGroupRunList []*TestGroupRun
 
 func (m *TestGroupRunList) Scan(v interface{}) error {
-	logger.Infof("got %s", (string(v.([]byte))))
 	return json.Unmarshal(v.([]byte), &m)
 }
 
