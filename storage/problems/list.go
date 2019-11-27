@@ -24,6 +24,8 @@ const (
 	TestsNone TestOpt = iota
 	// Only load sample test groups.
 	TestsSamples
+	// Load only the test data structure.
+	TestsGroups
 	// Load test data and validators.
 	TestsAll
 
@@ -39,7 +41,7 @@ type ListArgs struct {
 	WithTests      TestOpt
 }
 
-func List(ctx context.Context, args ListArgs, filter ListFilter) (ProblemList, error) {
+func List(ctx context.Context, args ListArgs, filter ListFilter) (models.ProblemList, error) {
 	filters := 0
 	if filter.ShortName != "" {
 		filters++
@@ -54,7 +56,7 @@ func List(ctx context.Context, args ListArgs, filter ListFilter) (ProblemList, e
 		return nil, fmt.Errorf("only one filter is allowed when listing problems")
 	}
 	conn := db.Conn()
-	var probs ProblemList
+	var probs models.ProblemList
 	query, params := problemQuery(args, filter)
 	if err := conn.SelectContext(ctx, &probs, query, params...); err != nil {
 		return nil, fmt.Errorf("list query failed: %v", err)
@@ -108,17 +110,20 @@ func problemQuery(args ListArgs, filterArgs ListFilter) (string, []interface{}) 
 }
 
 func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) error {
+	if opt == TestsNone {
+		return nil
+	}
+	if err := includeTestGroups(ctx, pv, opt); err != nil {
+		return err
+	}
+	if opt == TestsGroups {
+		return nil
+	}
 	filter := "WHERE problem_version_id = $1"
 	if opt == TestsSamples {
 		filter = filter + " AND public_visibility = true"
 	}
-	query := "SELECT problem_version_id, problem_testgroup_id, testgroup_name, score, public_visibility FROM problem_testgroup " + filter + " ORDER BY testgroup_name"
-	var groups TestGroupList
-	if err := db.Conn().SelectContext(ctx, &groups, query, pv.ProblemVersionID); err != nil {
-		return err
-	}
-	pv.TestGroups = groups
-	query = `
+	query := `
 	SELECT
 	problem_testgroup_id,
 	problem_testcase_id,
@@ -133,7 +138,7 @@ func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) e
 	if err := db.Conn().SelectContext(ctx, &tests, query, pv.ProblemVersionID); err != nil {
 		return err
 	}
-	groupMap := groups.AsMap()
+	groupMap := pv.TestGroups.AsMap()
 	for _, t := range tests {
 		g := groupMap[t.TestGroupID]
 		g.Tests = append(g.Tests, t)
@@ -141,7 +146,23 @@ func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) e
 	return nil
 }
 
-func includeStatements(ctx context.Context, ps ProblemMap, arg StmtOpt) error {
+func includeTestGroups(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) error {
+	filter := "WHERE problem_version_id = $1"
+	if opt == TestsSamples {
+		filter = filter + " AND public_visibility = true"
+	}
+	query := "SELECT problem_version_id, problem_testgroup_id, testgroup_name, score, public_visibility FROM problem_testgroup " +
+		filter +
+		" ORDER BY public_visibility DESC, testgroup_name ASC"
+	var groups models.TestGroupList
+	if err := db.Conn().SelectContext(ctx, &groups, query, pv.ProblemVersionID); err != nil {
+		return err
+	}
+	pv.TestGroups = groups
+	return nil
+}
+
+func includeStatements(ctx context.Context, ps models.ProblemMap, arg StmtOpt) error {
 	if len(ps) == 0 || arg == StmtNone {
 		return nil
 	}
@@ -156,7 +177,7 @@ func includeStatements(ctx context.Context, ps ProblemMap, arg StmtOpt) error {
 	}
 	conn := db.Conn()
 	query = conn.Rebind(query)
-	var statements StatementList
+	var statements models.StatementList
 	if err := conn.SelectContext(ctx, &statements, query, args...); err != nil {
 		return err
 	}
@@ -165,39 +186,4 @@ func includeStatements(ctx context.Context, ps ProblemMap, arg StmtOpt) error {
 		p.Statements = append(p.Statements, s)
 	}
 	return nil
-}
-
-// ProblemMap maps problem IDs to problems.
-type ProblemMap map[int32]*models.Problem
-
-func (p ProblemMap) Ids() []int32 {
-	var ids []int32
-	for id, _ := range p {
-		ids = append(ids, id)
-	}
-	return ids
-}
-
-type ProblemList []*models.Problem
-
-func (pl ProblemList) AsMap() ProblemMap {
-	pm := make(ProblemMap)
-	for _, p := range pl {
-		pm[p.ProblemID] = p
-	}
-	return pm
-}
-
-type StatementList []*models.ProblemStatement
-
-type TestGroupMap map[int32]*models.TestGroup
-
-type TestGroupList []*models.TestGroup
-
-func (tl TestGroupList) AsMap() TestGroupMap {
-	tm := make(TestGroupMap)
-	for _, g := range tl {
-		tm[g.TestGroupID] = g
-	}
-	return tm
 }

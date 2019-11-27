@@ -1,20 +1,19 @@
 {{ define "submission_status" }}
+    {{ $status := .run.StatusString .version .filtered }}
     {{ if .run.Accepted }}
         <span class="text-col-green">
-            <i class="material-icons">done</i>
-            <strong>{{ .run.StatusString .filtered }}</strong>
+            <strong>{{ $status }}</strong>
         </span>
     {{ end }}
     {{ if .run.Rejected }}
         <span class="text-col-red">
-            <i class="material-icons">warning</i>
-            <strong>{{ .run.StatusString .filtered }}</strong>
+            <strong>{{ $status }}</strong>
         </span>
     {{ end }}
     {{ if .run.Waiting }}
         <span class="submission-waiting">
             <i class="material-icons">timer</i>
-            <strong>{{ .run.StatusString .filtered }}</strong>
+            <strong>{{ $status }}</strong>
         </span>
     {{ end }}
 {{ end }}
@@ -52,7 +51,7 @@
                     <td>{{ (language .Language).Name }}</td>
                 {{ end }}
                 <td align="center">
-                    {{ template "submission_status" dict "run" .CurrentRun "filtered" $.filtered}}
+                    {{ template "submission_status" dict "run" .CurrentRun "filtered" $.filtered "version" $prob.CurrentVersion}}
                 </td>
             </tr>
         {{end}}

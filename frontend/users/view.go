@@ -5,6 +5,7 @@ import (
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"github.com/jsannemo/omogenjudge/frontend/request"
+	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/problems"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
 	"github.com/jsannemo/omogenjudge/storage/users"
@@ -12,7 +13,7 @@ import (
 
 type ListParams struct {
 	Submissions submissions.SubmissionList
-	Problems    problems.ProblemMap
+	Problems    models.ProblemMap
 	Filtered    bool
 	Username    string
 }
@@ -43,7 +44,7 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles}, problems.ListFilter{ProblemID: cProbs})
+	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles, WithTests: problems.TestsGroups}, problems.ListFilter{ProblemID: cProbs})
 	if err != nil {
 		return nil, err
 	}

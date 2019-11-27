@@ -12,7 +12,7 @@ type ProblemVersion struct {
 	TimeLimMS        int32            `db:"time_limit_ms"`
 	MemLimKB         int32            `db:"memory_limit_kb"`
 	OutputValidator  *OutputValidator `db:"validator"`
-	TestGroups       []*TestGroup
+	TestGroups       TestGroupList
 }
 
 // Samples returns the test cases that should be publicly visible for the problem.
@@ -35,6 +35,14 @@ func (p *ProblemVersion) TimeLimString() string {
 // TimeLimString returns a human formatted string of the memory limit.
 func (p *ProblemVersion) MemLimString() string {
 	return fmt.Sprintf("%d MB", int64(float64(p.MemLimKB)/1000))
+}
+
+func (p *ProblemVersion) MaxScore() int32 {
+	res := int32(0)
+	for _, g := range p.TestGroups {
+		res += g.Score
+	}
+	return res
 }
 
 // OutputValidator is a custom validator of the output from a submission problem.

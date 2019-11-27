@@ -2,7 +2,9 @@ package models
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"github.com/google/logger"
 	"time"
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
@@ -73,6 +75,26 @@ type SubmissionRun struct {
 	Status       Status
 	CompileError sql.NullString `db:"compile_error"`
 	Created      time.Time      `db:"date_created"`
+
+	GroupRuns TestGroupRunList `db:"group_runs"`
+}
+
+func (run *SubmissionRun) GroupVerdict(id int32) string {
+	for _, g := range run.GroupRuns {
+		if g.TestGroupID == id {
+			return g.Verdict.String()
+		}
+	}
+	return ""
+}
+
+func (run *SubmissionRun) GroupScore(id int32) int32 {
+	for _, g := range run.GroupRuns {
+		if g.TestGroupID == id {
+			return g.Score
+		}
+	}
+	return -1
 }
 
 func (run *SubmissionRun) Accepted() bool {
@@ -88,11 +110,11 @@ func (run *SubmissionRun) Waiting() bool {
 	return run.Status != StatusCompilationFailed && run.Status != StatusSuccessful
 }
 
-func (run *SubmissionRun) StatusString(filtered bool) string {
+func (run *SubmissionRun) StatusString(p *ProblemVersion, filtered bool) string {
 	if run.Waiting() {
 		return run.Status.String()
 	} else if run.Accepted() {
-		return fmt.Sprintf("%s (%d)", run.Verdict.String(), run.Score)
+		return fmt.Sprintf("%s (%d/%d)", run.Verdict.String(), run.Score, p.MaxScore())
 	} else {
 		if filtered {
 			return "Felaktig"
@@ -104,9 +126,16 @@ func (run *SubmissionRun) StatusString(filtered bool) string {
 // A TestGroupRun is a particular judge execution of a test group.
 type TestGroupRun struct {
 	SubmissionRunID int32 `db:"submission_run_id"`
-	TestGroupID     int32 `db:"problem_testgroup_id"`
+	TestGroupID     int32 `db:"problem_testgroup_id" json:"problem_testgroup_id"`
 	Evaluation
 	Created time.Time `db:"date_created"`
+}
+
+type TestGroupRunList []*TestGroupRun
+
+func (m *TestGroupRunList) Scan(v interface{}) error {
+	logger.Infof("got %s", (string(v.([]byte))))
+	return json.Unmarshal(v.([]byte), &m)
 }
 
 // A TestCaseRun is a particular judge execution of a test case.

@@ -3,9 +3,10 @@ package submissions
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/jsannemo/omogenjudge/storage/db"
 	"github.com/jsannemo/omogenjudge/storage/models"
-	"strings"
 )
 
 // A ListArgs controls what data to include in submissions.
@@ -13,7 +14,8 @@ type ListArgs struct {
 	// Whether to include submission files in the query.
 	WithFiles bool
 	// Whether to include the current run in the query.
-	WithRun bool
+	WithRun       bool
+	WithGroupRuns bool
 }
 
 // A ListFilter controls what submissions to search for.  Only one of SubmissionID and UserID may be set.
@@ -60,6 +62,17 @@ func ListSubmissions(ctx context.Context, args ListArgs, filterArgs ListFilter) 
 			submission_run.verdict "submission_run.verdict",
 			submission_run.compile_error "submission_run.compile_error"
 `
+	}
+	if args.WithGroupRuns {
+		fields += `,
+			to_json(ARRAY(
+				SELECT json_build_object(
+					'problem_testgroup_id', g.problem_testgroup_id, 
+					'time_usage_ms', g.time_usage_ms, 
+					'score', g.score, 
+					'verdict', g.verdict)
+				FROM submission_group_run g
+				WHERE g.submission_run_id = submission_run.submission_run_id)) "submission_run.group_runs"`
 	}
 	query := fmt.Sprintf(`
 		SELECT

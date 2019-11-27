@@ -62,3 +62,38 @@ type ProblemStatement struct {
 	// The HTML template of the statement.
 	HTML string `db:"html"`
 }
+
+// ProblemMap maps problem IDs to problems.
+type ProblemMap map[int32]*Problem
+
+func (p ProblemMap) Ids() []int32 {
+	var ids []int32
+	for id, _ := range p {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+type ProblemList []*Problem
+
+func (pl ProblemList) AsMap() ProblemMap {
+	pm := make(ProblemMap)
+	for _, p := range pl {
+		pm[p.ProblemID] = p
+	}
+	return pm
+}
+
+type StatementList []*ProblemStatement
+
+type TestGroupMap map[int32]*TestGroup
+
+type TestGroupList []*TestGroup
+
+func (tl TestGroupList) AsMap() TestGroupMap {
+	tm := make(TestGroupMap)
+	for _, g := range tl {
+		tm[g.TestGroupID] = g
+	}
+	return tm
+}
