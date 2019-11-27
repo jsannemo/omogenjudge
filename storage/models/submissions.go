@@ -124,8 +124,9 @@ func (run *SubmissionRun) StatusString(p *ProblemVersion, filtered bool) string 
 
 // A TestGroupRun is a particular judge execution of a test group.
 type TestGroupRun struct {
-	SubmissionRunID int32 `db:"submission_run_id"`
-	TestGroupID     int32 `db:"problem_testgroup_id" json:"problem_testgroup_id"`
+	SubmissionRunID int32  `db:"submission_run_id"`
+	TestGroupID     int32  `db:"problem_testgroup_id" json:"problem_testgroup_id"`
+	TestGroupName   string `json:"testgroup_name"`
 	Evaluation
 	Created time.Time `db:"date_created"`
 }

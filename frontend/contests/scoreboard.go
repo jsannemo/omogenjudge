@@ -49,7 +49,7 @@ type scoreboardTeam struct {
 	Team        *models.Team
 	Rank        int
 	Scores      map[int32]int32
-	TgScores    map[int32]map[int32]int32
+	TgScores    map[int32]map[string]int32
 	Submissions map[int32]int
 	TotalScore  int32
 	Times       map[int32]time.Duration
@@ -69,7 +69,9 @@ type scoreboard struct {
 func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, contest *models.Contest) interface{} {
 	maxScore := int32(0)
 	var scp []*scoreboardProblem
+	probs := make(map[int32]*models.Problem)
 	for _, p := range contest.Problems {
+		probs[p.ProblemID] = p.Problem
 		maxScore += p.Problem.CurrentVersion.MaxScore()
 		scp = append(scp, &scoreboardProblem{
 			Label:   p.Label,
@@ -87,7 +89,7 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 		sc[t.TeamID] = &scoreboardTeam{
 			Team:        t,
 			Scores:      make(map[int32]int32),
-			TgScores:    make(map[int32]map[int32]int32),
+			TgScores:    make(map[int32]map[string]int32),
 			Submissions: make(map[int32]int),
 			Times:       make(map[int32]time.Duration),
 		}
@@ -95,7 +97,7 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 			accTeam[a.AccountID] = sc[t.TeamID]
 		}
 		for _, p := range contest.Problems {
-			sc[t.TeamID].TgScores[p.ProblemID] = make(map[int32]int32)
+			sc[t.TeamID].TgScores[p.ProblemID] = make(map[string]int32)
 		}
 	}
 
@@ -108,9 +110,9 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 		team.Submissions[sub.ProblemID]++
 		inc := false
 		for _, tg := range sub.CurrentRun.GroupRuns {
-			if tg.Score > team.TgScores[sub.ProblemID][tg.TestGroupID] {
+			if tg.Score > team.TgScores[sub.ProblemID][tg.TestGroupName] {
 				inc = true
-				team.TgScores[sub.ProblemID][tg.TestGroupID] = tg.Score
+				team.TgScores[sub.ProblemID][tg.TestGroupName] = tg.Score
 			}
 		}
 		if !inc && team.Submissions[sub.ProblemID] != 1 {

@@ -67,11 +67,13 @@ func ListSubmissions(ctx context.Context, args ListArgs, filterArgs ListFilter) 
 		fields += `,
 			to_json(ARRAY(
 				SELECT json_build_object(
-					'problem_testgroup_id', g.problem_testgroup_id, 
+					'testgroup_name', problem_testgroup.testgroup_name,
+					'problem_testgroup_id', g.problem_testgroup_id,
 					'time_usage_ms', g.time_usage_ms, 
 					'score', g.score, 
 					'verdict', g.verdict)
 				FROM submission_group_run g
+				LEFT JOIN problem_testgroup ON g.problem_testgroup_id = problem_testgroup.problem_testgroup_id
 				WHERE g.submission_run_id = submission_run.submission_run_id)) "submission_run.group_runs"`
 	}
 	query := fmt.Sprintf(`
