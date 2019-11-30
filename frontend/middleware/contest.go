@@ -9,7 +9,7 @@ import (
 
 // readContest is a processor that stores the current contest data in the request context.
 func readContest(r *request.Request) (request.Response, error) {
-	hostname := r.Request.Header.Get("Host")
+	hostname := r.Request.Host
 	cs, err := contests.ListContests(r.Request.Context(), contests.ListArgs{WithProblems: true}, contests.ListFilter{HostName: hostname})
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve current contest: %v", err)
