@@ -17,10 +17,10 @@
                 {{ else }}
                     {{ if .C.Contest.FullOver }}
                         <h1 class="display">Tävlingen är avslutad</h1>
-                    {{ else if .C.Contest.Started }}
-                        <h1 class="display">Tävlingen slutar om {{ .UntilFullEnd | interval }}</h1>
+                    {{ else if .C.Contest.FullStart }}
+                        <h1 class="display">Tävlingen slutar om {{ .C.Contest.UntilFullEnd | interval }}</h1>
                     {{ else  }}
-                        <h1 class="display">Tävlingen börjar om {{ .UntilFullStart | interval }}</h1>
+                        <h1 class="display">Tävlingen börjar om {{ .C.Contest.UntilFullStart | interval }}</h1>
                     {{ end }}
                 {{ end }}
             </h1>
@@ -30,20 +30,24 @@
 {{ end }}
 
 {{ define "helper_contest_register" }}
-    <form method="post" action="{{ path "contest_team_register" }}" method="POST">
+    <form method="post" action="{{ path "contest_team_register" }}" name="register">
         <div class="form-group">
             <div class="submit-field">
-                <input type="submit" value="{{ . }}" class="raised">
+                <a href="#" onclick="document.forms['register'].submit()" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
+                    {{ . }}
+                </a>
             </div>
         </div>
     </form>
 {{ end }}
 
 {{ define "helper_contest_start" }}
-    <form method="post" action="{{ path "contest_team_start" }}" method="POST">
+    <form method="post" action="{{ path "contest_team_start" }}" name="start">
         <div class="form-group">
             <div class="submit-field">
-                <input type="submit" value="{{ . }}" class="raised">
+                <a href="#" onclick="document.forms['start'].submit()" class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect">
+                    {{ . }}
+                </a>
             </div>
         </div>
     </form>

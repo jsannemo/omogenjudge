@@ -19,7 +19,7 @@ type HomeParams struct {
 func HomeHandler(r *request.Request) (request.Response, error) {
 	team := r.Context.Team
 	contest := r.Context.Contest
-	if contest.Started(team) {
+	if team != nil && contest.Started(team) {
 		var probIDs []int32
 		points := make(map[int32]*problemData)
 		for _, p := range contest.Problems {
