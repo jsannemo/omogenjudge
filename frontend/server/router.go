@@ -27,6 +27,7 @@ func configureRouter() *mux.Router {
 	r.HandleFunc(fmt.Sprintf("/users/{%s}", paths.UserNameArg), plain(users.ViewHandler)).Name(paths.User)
 	r.HandleFunc("/teams", plain(contests.TeamListHandler)).Name(paths.ContestTeams)
 	r.HandleFunc("/teams/register", plain(contests.RegisterHandler)).Name(paths.ContestTeamRegister)
+	r.HandleFunc("/teams/start", plain(contests.StartHandler)).Name(paths.ContestTeamStart)
 	r.HandleFunc("/scoreboard", plain(contests.ScoreboardHandler)).Name(paths.ContestScoreboard)
 	return r
 }

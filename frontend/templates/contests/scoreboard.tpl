@@ -1,7 +1,7 @@
 {{ define "contest_scoreboard" }}
     <section>
         <article>
-            {{ template "helper_contest_banner" .C.Contest }}
+            {{ template "helper_contest_banner" . }}
             <div class="row">
                 <table style="width: 100%; margin: auto" class="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp">
                     <thead>

@@ -13,7 +13,7 @@ type Params struct {
 
 // TeamListHandler is the request handler for the team list.
 func TeamListHandler(r *request.Request) (request.Response, error) {
-	if r.Context.Contest.Started() {
+	if r.Context.Contest.CanSeeScoreboard(r.Context.Team) {
 		return request.Redirect(paths.Route(paths.ContestScoreboard)), nil
 	}
 

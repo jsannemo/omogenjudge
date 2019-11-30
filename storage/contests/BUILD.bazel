@@ -8,6 +8,7 @@ go_library(
         "list.go",
         "team_create.go",
         "team_list.go",
+        "team_update.go",
         "update.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/storage/contests",

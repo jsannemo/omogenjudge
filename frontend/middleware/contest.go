@@ -15,6 +15,8 @@ func readContest(r *request.Request) (request.Response, error) {
 		return nil, fmt.Errorf("could not retrieve current contest: %v", err)
 	} else if len(cs) > 0 {
 		r.Context.Contest = cs.Latest()
+	} else {
+		return request.NotFound(), nil
 	}
 	return nil, nil
 }

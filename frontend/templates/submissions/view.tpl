@@ -1,6 +1,6 @@
 {{ define "submissions_view" }}
   <article>
-    {{ template "helper_contest_banner" .C.Contest }}
+    {{ template "helper_contest_banner" . }}
     <div class="row">
       {{ template "submission_list" dict "submissions" (list .D.Submission) "problems" .D.Problems "C" .C "filtered" false }}
       {{ if .D.Submission.CurrentRun.CompileError.Valid }}

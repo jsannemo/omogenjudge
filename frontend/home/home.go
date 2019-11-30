@@ -17,10 +17,12 @@ type HomeParams struct {
 }
 
 func HomeHandler(r *request.Request) (request.Response, error) {
-	if r.Context.User != nil && r.Context.Contest.Started() {
+	team := r.Context.Team
+	contest := r.Context.Contest
+	if contest.Started(team) {
 		var probIDs []int32
 		points := make(map[int32]*problemData)
-		for _, p := range r.Context.Contest.Problems {
+		for _, p := range contest.Problems {
 			probIDs = append(probIDs, p.ProblemID)
 			points[p.ProblemID] = &problemData{
 				Groups: p.Problem.CurrentVersion.TestGroups,
@@ -30,7 +32,7 @@ func HomeHandler(r *request.Request) (request.Response, error) {
 		subs, err := submissions.ListSubmissions(r.Request.Context(), submissions.ListArgs{
 			WithRun:       true,
 			WithGroupRuns: true,
-		}, submissions.ListFilter{UserID: []int32{r.Context.User.AccountID}, ProblemID: probIDs})
+		}, submissions.ListFilter{UserID: team.MemberIDs(), ProblemID: probIDs})
 		if err != nil {
 			return nil, err
 		}
@@ -38,7 +40,7 @@ func HomeHandler(r *request.Request) (request.Response, error) {
 			if s.CurrentRun.Waiting() {
 				continue
 			}
-			if !r.Context.Contest.Within(s.Created) {
+			if !r.Context.Contest.Within(s.Created, team) {
 				continue
 			}
 			for _, run := range s.CurrentRun.GroupRuns {

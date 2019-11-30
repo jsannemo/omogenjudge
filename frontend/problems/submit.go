@@ -19,13 +19,9 @@ type SubmitParams struct {
 }
 
 func SubmitHandler(r *request.Request) (request.Response, error) {
-	if !r.Context.Contest.Started() {
+	team := r.Context.Team
+	if !r.Context.Contest.Started(team) {
 		return request.Redirect(paths.Route(paths.Home)), nil
-	}
-	loginUrl := paths.Route(paths.Login)
-	// TODO(jsannemo) save current page location
-	if r.Context.User == nil {
-		return request.Redirect(loginUrl), nil
 	}
 
 	vars := mux.Vars(r.Request)

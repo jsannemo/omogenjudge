@@ -80,5 +80,5 @@ func teamListQuery(filterArgs TeamFilter) (string, []interface{}) {
 	if len(filters) > 0 {
 		filter = "WHERE " + strings.Join(filters, " AND ")
 	}
-	return fmt.Sprintf(`SELECT team_id, contest_id, team_name FROM team LEFT JOIN team_member USING(team_id) %s`, filter), params
+	return fmt.Sprintf(`SELECT team_id, contest_id, team_name, start_time FROM team LEFT JOIN team_member USING(team_id) %s`, filter), params
 }

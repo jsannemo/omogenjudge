@@ -1,7 +1,7 @@
 {{ define "problems_view" }}
   <section class="problem">
     <article>
-      {{ template "helper_contest_banner" .C.Contest }}
+      {{ template "helper_contest_banner" . }}
       <div class="wide-row mdl-grid">
         <div class="mdl-cell mdl-cell--3-col">
           <div class="mdl-card mdl-shadow--2dp" style="width: 100%; height: auto; min-height: 0">
@@ -21,9 +21,7 @@
             </strong>
             <div class="mdl-card__actions mdl-card--border">
                 {{ if not .C.Team }}
-                  <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ path "contest_team_register" }}">
-                    Anmäl dig för att skicka in lösningar
-                  </a>
+                  {{ template "helper_contest_register" "Anmäl dig för att skicka in lösningar"}}
                 {{ else }}
                   <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ .D.Problem.SubmitLink }}">
                     Skicka in

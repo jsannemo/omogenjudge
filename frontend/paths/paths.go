@@ -23,6 +23,7 @@ const (
 	UserNameArg         = "user_name"
 	ContestTeams        = "contest_teams"
 	ContestTeamRegister = "contest_team_register"
+	ContestTeamStart    = "contest_team_start"
 	ContestScoreboard   = "contest_scoreboard"
 )
 

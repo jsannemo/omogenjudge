@@ -14,7 +14,7 @@ type ViewParams struct {
 }
 
 func ViewHandler(r *request.Request) (request.Response, error) {
-	if !r.Context.Contest.Started() {
+	if !r.Context.Contest.Started(r.Context.Team) {
 		return request.NotFound(), nil
 	}
 	vars := mux.Vars(r.Request)

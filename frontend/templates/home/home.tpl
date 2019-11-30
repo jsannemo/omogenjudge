@@ -1,7 +1,7 @@
 {{ define "home_home" }}
     <article>
-        {{ template "helper_contest_banner" .C.Contest }}
-        {{ if not .C.Contest.Started}}
+        {{ template "helper_contest_banner" . }}
+        {{ if not (.C.Contest.Started .C.Team) }}
             {{ template "home_before_contest" . }}
         {{ else }}
             {{ template "home_during_contest" . }}
@@ -80,9 +80,7 @@
                             Öppna problemlydelsen
                         </a>
                         {{ if not $.C.Team }}
-                            <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ path "contest_team_register" }}">
-                                Anmäl dig för att skicka in lösningar
-                            </a>
+                            {{ template "helper_contest_register" "Anmäl dig för att skicka in lösningar"}}
                         {{ else }}
                             <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ .Problem.SubmitLink }}">
                                 Skicka in lösning
@@ -92,19 +90,13 @@
                 </div>
             </div>
         {{ end }}
-        {{ if and (not .C.Contest.Over) (not .C.Team) }}
+        {{ if and (not .C.Contest.FullOver) (not .C.Team) }}
             <h1>Anmälan</h1>
             {{ if not .C.User }}
                 Du måste <a href="/login">logga in</a> för att anmäla dig till tävlingen.
             {{ else }}
                 För att kunna delta i tävlingen måste du först anmäla dig.
-                <form method="post" action="{{ path "contest_team_register" }}" method="POST">
-                    <div class="form-group">
-                        <div class="submit-field">
-                            <input type="submit" value="Anmäl dig" class="raised">
-                        </div>
-                    </div>
-                </form>
+                {{ template "helper_contest_register" "Anmäl dig"}}
             {{ end }}
         {{ end }}
     </div>
@@ -124,7 +116,7 @@
                 </tr>
                 <tr>
                     <th>Sluttid:</th>
-                    <td>{{ .C.Contest.EndTime | date "2006-01-02 15:04" }}</td>
+                    <td>{{ .C.Contest.FullEndTime | date "2006-01-02 15:04" }}</td>
                 </tr>
                 <tr>
                     <th>Längd:</th>
@@ -133,22 +125,21 @@
             </table>
         </div>
         <div style="clear: both"></div>
-        {{ if or (not .C.Contest.Started) (not .C.Team) }}
+        {{ if not .C.Team }}
             <h1>Anmälan</h1>
             {{ if not .C.User }}
                 Du måste <a href="/login">logga in</a> för att anmäla dig till tävlingen.
             {{ else if not .C.Team }}
                 För att kunna delta i tävlingen måste du först anmäla dig.
-                <form method="post" action="{{ path "contest_team_register" }}" method="POST">
-                    <div class="form-group">
-                        <div class="submit-field">
-                            <input type="submit" value="Anmäl dig" class="raised">
-                        </div>
-                    </div>
-                </form>
-            {{ else }}
-                Du är redan anmäld till tävlingen.
+                {{ template "helper_contest_register" "Anmäl dig"}}
             {{ end }}
+        {{ else if .C.Contest.Flexible }}
+            <h1>Starta tävlingen</h1>
+            När du startar tävlingen har du {{ .C.Contest.Duration | interval }} på dig att slutföra tävlingen.
+            {{ template "helper_contest_start" "Starta tävlingen"}}
+        {{ else }}
+            <h1>Anmälan</h1>
+            Du är redan anmäld till tävlingen.
         {{ end }}
     </div>
 {{ end }}

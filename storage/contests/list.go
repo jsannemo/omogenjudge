@@ -63,7 +63,7 @@ func listQuery(filterArgs ListFilter) (string, []interface{}) {
 	if filterArgs.HostName != "" {
 		filter = db.SetParam("WHERE host_name = $%d", &params, filterArgs.HostName)
 	}
-	return fmt.Sprintf(`SELECT contest_id, short_name, host_name, start_time, (EXTRACT(EPOCH FROM duration) * 1000000000)::bigint "duration", title, hidden_scoreboard FROM contest %s`, filter), params
+	return fmt.Sprintf(`SELECT contest_id, short_name, host_name, start_time, selection_window_end_time, (EXTRACT(EPOCH FROM duration) * 1000000000)::bigint "duration", title, hidden_scoreboard FROM contest %s`, filter), params
 }
 
 // An ContestList is a slice of contests.

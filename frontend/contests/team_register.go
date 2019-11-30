@@ -19,7 +19,7 @@ func RegisterHandler(r *request.Request) (request.Response, error) {
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
 	// Don't allow registration after the contest ends.
-	if r.Context.Contest.Over() {
+	if r.Context.Contest.FullOver() {
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
 	if r.Request.Method == http.MethodPost {
@@ -32,5 +32,5 @@ func RegisterHandler(r *request.Request) (request.Response, error) {
 		}
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
-	return request.Template("contest_team_register", nil), nil
+	return request.Redirect(paths.Route(paths.Home)), nil
 }

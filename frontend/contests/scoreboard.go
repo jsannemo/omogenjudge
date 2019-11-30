@@ -15,7 +15,12 @@ import (
 
 // ScoreboardHandler is the request handler for the contest scoreboard.
 func ScoreboardHandler(r *request.Request) (request.Response, error) {
-	if !r.Context.Contest.Started() {
+	if r.Context.Contest == nil {
+		return request.NotFound(), nil
+	}
+	contest := r.Context.Contest
+	team := r.Context.Team
+	if !contest.CanSeeScoreboard(team) {
 		return request.Redirect(paths.Route(paths.ContestTeams)), nil
 	}
 
@@ -42,7 +47,7 @@ func ScoreboardHandler(r *request.Request) (request.Response, error) {
 		return nil, err
 	}
 
-	scoreboard := makeScoreboard(teams, subs, r.Context.Contest)
+	scoreboard := makeScoreboard(teams, subs, r.Context.Contest, team)
 
 	return request.Template("contest_scoreboard", scoreboard), nil
 }
@@ -69,7 +74,7 @@ type scoreboard struct {
 	MaxScore int32
 }
 
-func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, contest *models.Contest) interface{} {
+func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, contest *models.Contest, viewer *models.Team) interface{} {
 	maxScore := contest.MaxScore()
 	var scp []*scoreboardProblem
 	probs := make(map[int32]*models.Problem)
@@ -103,25 +108,38 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 			sc[t.TeamID].TgScores[p.ProblemID] = make(map[string]int32)
 		}
 	}
-
 	for i := len(subs) - 1; i >= 0; i-- {
 		sub := subs[i]
-		if !contest.Within(sub.Created) || sub.CurrentRun.Waiting() {
+		submitter := accTeam[sub.AccountID]
+		if sub.CurrentRun.Waiting() {
 			continue
 		}
-		team := accTeam[sub.AccountID]
-		team.Submissions[sub.ProblemID]++
+		if contest.FlexibleEndTime.Valid {
+			elapsed := contest.ElapsedFor(sub.Created, submitter.Team)
+			if elapsed >= contest.Duration {
+				continue
+			}
+			if viewer != nil {
+				now := contest.ElapsedFor(sub.Created, viewer)
+				if elapsed > now {
+					continue
+				}
+			}
+		} else if sub.Created.After(contest.FullEndTime()) {
+			continue
+		}
+		submitter.Submissions[sub.ProblemID]++
 		inc := false
 		for _, tg := range sub.CurrentRun.GroupRuns {
-			if tg.Score > team.TgScores[sub.ProblemID][tg.TestGroupName] {
+			if tg.Score > submitter.TgScores[sub.ProblemID][tg.TestGroupName] {
 				inc = true
-				team.TgScores[sub.ProblemID][tg.TestGroupName] = tg.Score
+				submitter.TgScores[sub.ProblemID][tg.TestGroupName] = tg.Score
 			}
 		}
-		if !inc && team.Submissions[sub.ProblemID] != 1 {
+		if !inc && submitter.Submissions[sub.ProblemID] != 1 {
 			continue
 		}
-		team.Times[sub.ProblemID] = sub.Created.Sub(contest.StartTime.Time)
+		submitter.Times[sub.ProblemID] = sub.Created.Sub(contest.StartTime.Time)
 	}
 	var rankedTeams []*scoreboardTeam
 	for _, team := range sc {

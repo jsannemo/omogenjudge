@@ -6,6 +6,7 @@ go_library(
         "scoreboard.go",
         "team_list.go",
         "team_register.go",
+        "team_start.go",
     ],
     importpath = "github.com/jsannemo/omogenjudge/frontend/contests",
     visibility = ["//visibility:public"],

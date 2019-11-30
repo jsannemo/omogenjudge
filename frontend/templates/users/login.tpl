@@ -1,7 +1,7 @@
 {{ define "users_login" }}
 	<section>
 		<article>
-			{{ template "helper_contest_banner" .C.Contest }}
+			{{ template "helper_contest_banner" . }}
 			<div class="row">
 				<form style="width: 500px; margin: auto" method="post">
 					<h1 class="display">Logga in</h1>

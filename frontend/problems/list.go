@@ -13,7 +13,7 @@ type Params struct {
 
 // ListHandler is the request handler for the problem list.
 func ListHandler(r *request.Request) (request.Response, error) {
-	if !r.Context.Contest.Started() {
+	if !r.Context.Contest.FullStart() {
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
 

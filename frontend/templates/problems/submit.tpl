@@ -1,7 +1,7 @@
 {{ define "problems_submit" }}
     <section>
         <article>
-            {{ template "helper_contest_banner" .C.Contest }}
+            {{ template "helper_contest_banner" . }}
             <div class="row">
                 <h1 class="display">Skicka in - {{ .D.Problem.LocalizedTitle $.C.Locales }}</h1>
                 <form method="POST" onsubmit="return onSubmit()">
