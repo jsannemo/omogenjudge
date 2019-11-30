@@ -25,6 +25,7 @@
                                 <tr>
                                     <td></td>
                                     {{ range $i, $g := $p.Groups}}
+
                                         {{ if not $g.PublicVisibility }}
                                             <th>
                                                 G{{ $i }}
@@ -41,11 +42,33 @@
                                     {{ range $i, $g := $p.Groups}}
                                         {{ if not $g.PublicVisibility }}
                                             <td>
-                                                {{ index $p.Scores $g.Name }}
+                                                {{ $score := index $p.Scores $g.Name }}
+                                                {{ $bg := ""}}
+                                                {{ if eq $score $g.Score }}
+                                                    {{ $bg = "text-col-green" }}
+                                                {{ else if eq $score 0}}
+                                                    {{ $bg = "text-col-red"}}
+                                                {{ else }}
+                                                    {{ $bg = "text-col-yellow"}}
+                                                {{ end }}
+                                                <span class="{{ $bg }}">
+                                                    {{ $score }}
+                                                </span>
                                             </td>
                                         {{ end }}
                                     {{ end }}
-                                    <td><strong>{{ $p.Score }}</strong></td>
+                                    <td>
+                                        {{ $score := index $p.Score }}
+                                        {{ $bg := ""}}
+                                        {{ if eq $score .Problem.CurrentVersion.MaxScore }}
+                                            {{ $bg = "text-col-green" }}
+                                        {{ else if eq $score 0}}
+                                            {{ $bg = "text-col-red"}}
+                                        {{ else }}
+                                            {{ $bg = "text-col-yellow"}}
+                                        {{ end }}
+                                        <strong class="{{ $bg }}">{{ $p.Score }}</strong>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>

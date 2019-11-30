@@ -50,6 +50,14 @@ func (c *Contest) Within(time time.Time) bool {
 	return !c.StartTime.Time.After(time) && !c.EndTime().Before(time)
 }
 
+func (c *Contest) MaxScore() int32 {
+	res := int32(0)
+	for _, p := range c.Problems {
+		res += p.Problem.CurrentVersion.MaxScore()
+	}
+	return res
+}
+
 // A ContestProblem is a problem with associated metadata that appears in a contest.
 type ContestProblem struct {
 	ContestID int32 `db:"contest_id"`

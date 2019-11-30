@@ -1,9 +1,14 @@
 {{ define "submission_status" }}
     {{ $status := .run.StatusString .version .filtered }}
-    {{ if .run.Accepted }}
+    {{ if .run.Accepted .version }}
         <span class="text-col-green">
             <strong>{{ $status }}</strong>
         </span>
+    {{ end }}
+    {{ if .run.PartialAccepted .version }}
+        <div class="text-col-yellow">
+            <strong>{{ $status }}</strong>
+        </div>
     {{ end }}
     {{ if .run.Rejected }}
         <span class="text-col-red">
@@ -19,16 +24,16 @@
 {{ end }}
 
 {{ define "submission_list" }}
-    <table class="bordered" style="width: 100%;">
+    <table class="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp" style="width: 100%;">
         <thead>
         <tr>
             <th>ID</th>
-            <th>Problem</th>
-            <th>Inskickningstid</th>
+            <th class="mdl-data-table__cell--non-numeric">Problem</th>
+            <th class="mdl-data-table__cell--non-numeric">Inskickningstid</th>
             {{ if not .filtered }}
-                <th>Språk</th>
+                <th class="mdl-data-table__cell--non-numeric">Språk</th>
             {{ end }}
-            <th>Resultat</th>
+            <th class="mdl-data-table__cell--non-numeric">Resultat</th>
         </tr>
         </thead>
         {{range .submissions }}
@@ -41,16 +46,16 @@
                         {{ .SubmissionID }}
                     {{ end }}
                 </td>
-                <td>
+                <td class="mdl-data-table__cell--non-numeric">
                     <a href="{{ $prob.Link }}">{{ $prob.LocalizedTitle $.C.Locales }}</a>
                 </td>
-                <td>
+                <td class="mdl-data-table__cell--non-numeric">
                     {{ .Created.Format "2006-01-02 15:04:05"  }}
                 </td>
                 {{ if not $.filtered }}
-                    <td>{{ (language .Language).Name }}</td>
+                    <td class="mdl-data-table__cell--non-numeric">{{ (language .Language).Name }}</td>
                 {{ end }}
-                <td align="center">
+                <td class="mdl-data-table__cell--non-numeric">
                     {{ template "submission_status" dict "run" .CurrentRun "filtered" $.filtered "version" $prob.CurrentVersion}}
                 </td>
             </tr>

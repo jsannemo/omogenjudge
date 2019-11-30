@@ -145,8 +145,8 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		return fmt.Errorf("Compilation crashed: %v", *compileErr)
 	}
 	if compileResponse.Program == nil {
-		run.Status = models.StatusSuccessful
-		run.Verdict = models.VerdictCompilationError
+		run.Status = models.StatusCompilationFailed
+		run.Verdict = models.VerdictUnjudged
 		run.CompileError = sql.NullString{compileResponse.CompilationError, true}
 		if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus, submissions.RunFieldVerdict, submissions.RunFieldCompileError}}); err != nil {
 			return err
@@ -201,10 +201,10 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		case *runpb.EvaluateResponse_TestCase:
 			// TODO(jsannemo): report this
 		case *runpb.EvaluateResponse_TestGroup:
-				groupRun := &models.TestGroupRun{
+			groupRun := &models.TestGroupRun{
 				SubmissionRunID: run.SubmissionRunID,
 				TestGroupID:     problem.CurrentVersion.TestGroups[atGroup].TestGroupID,
-				Evaluation:      models.Evaluation{
+				Evaluation: models.Evaluation{
 					Score:       res.TestGroup.Score,
 					TimeUsageMS: res.TestGroup.TimeUsageMs,
 					Verdict:     models.VerdictFromRunVerdict(res.TestGroup.Verdict),

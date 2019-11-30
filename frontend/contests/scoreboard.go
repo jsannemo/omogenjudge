@@ -1,6 +1,8 @@
 package contests
 
 import (
+	"fmt"
+	"html/template"
 	"sort"
 	"time"
 
@@ -49,6 +51,7 @@ type scoreboardTeam struct {
 	Team        *models.Team
 	Rank        int
 	Scores      map[int32]int32
+	ScoreCols   map[int32]template.CSS
 	TgScores    map[int32]map[string]int32
 	Submissions map[int32]int
 	TotalScore  int32
@@ -67,12 +70,11 @@ type scoreboard struct {
 }
 
 func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, contest *models.Contest) interface{} {
-	maxScore := int32(0)
+	maxScore := contest.MaxScore()
 	var scp []*scoreboardProblem
 	probs := make(map[int32]*models.Problem)
 	for _, p := range contest.Problems {
 		probs[p.ProblemID] = p.Problem
-		maxScore += p.Problem.CurrentVersion.MaxScore()
 		scp = append(scp, &scoreboardProblem{
 			Label:   p.Label,
 			Problem: p.Problem,
@@ -89,6 +91,7 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 		sc[t.TeamID] = &scoreboardTeam{
 			Team:        t,
 			Scores:      make(map[int32]int32),
+			ScoreCols:   make(map[int32]template.CSS),
 			TgScores:    make(map[int32]map[string]int32),
 			Submissions: make(map[int32]int),
 			Times:       make(map[int32]time.Duration),
@@ -128,6 +131,7 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 				ppoints += g
 			}
 			team.Scores[pid] = ppoints
+			team.ScoreCols[pid] = scoreCol(ppoints, probs[pid].CurrentVersion.MaxScore())
 		}
 		for _, v := range team.Scores {
 			team.TotalScore += v
@@ -154,4 +158,14 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 		Problems: scp,
 		MaxScore: maxScore,
 	}
+}
+
+func scoreCol(score int32, maxScore int32) template.CSS {
+	// background-color: hsl(111, 67%, 85%);
+	// background-color: hsl(2, 100%, 95%);
+	frac := float32(score) / float32(maxScore)
+	h := int32(frac*(111-2) + 2)
+	s := int32(frac*(67-100) + 100)
+	l := int32(frac*(85-95) + 95)
+	return template.CSS(fmt.Sprintf("hsl(%d, %d%%, %d%%)", h, s, l))
 }

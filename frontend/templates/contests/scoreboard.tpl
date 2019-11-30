@@ -37,11 +37,17 @@
                                 <strong>{{ $t.TotalScore }}</strong>
                             </td>
                             {{ range $.D.Problems }}
-                                <td style="text-align: center">
-                                    {{ $subs := index $t.Submissions .Problem.ProblemID }}
+                                {{ $subs := index $t.Submissions .Problem.ProblemID }}
+                                {{ $score := index $t.Scores .Problem.ProblemID }}
+                                {{ $scoreCol := "white"}}
+                                {{ if $subs }}
+                                    {{ $scoreCol = index $t.ScoreCols .Problem.ProblemID }}
+                                {{ end }}
+
+                                <td style="background-color: {{ $scoreCol }}; text-align: center; border: 1px solid rgba(0,0,0,.12); padding: 0">
                                     {{ if $subs }}
                                         <div>
-                                            {{ index $t.Scores .Problem.ProblemID }}
+                                            {{ $score }}
                                         </div>
                                         <div style="font-size: 12px">
                                             {{ index $t.Times .Problem.ProblemID | hhmm }}

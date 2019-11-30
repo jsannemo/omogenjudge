@@ -50,7 +50,6 @@ type Verdict string
 const (
 	VerdictUnjudged          Verdict = "unjudged"
 	VerdictAccepted          Verdict = "accepted"
-	VerdictCompilationError  Verdict = "compilation_error"
 	VerdictTimeLimitExceeded Verdict = "time_limit_exceeded"
 	VerdictRunTimeError      Verdict = "run_time_error"
 	VerdictWrongAnswer       Verdict = "wrong_answer"
@@ -86,4 +85,12 @@ func (v Verdict) String() string {
 		return "Tidsgräns överskriden"
 	}
 	panic(fmt.Errorf("unknown verdict: %s", string(v)))
+}
+
+func (v Verdict) Accepted() bool {
+	return v == VerdictAccepted
+}
+
+func (v Verdict) Waiting() bool {
+	return v == VerdictUnjudged
 }

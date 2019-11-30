@@ -78,13 +78,13 @@ type SubmissionRun struct {
 	GroupRuns TestGroupRunList `db:"group_runs"`
 }
 
-func (run *SubmissionRun) GroupVerdict(name string) string {
+func (run *SubmissionRun) GroupVerdict(name string) Verdict {
 	for _, g := range run.GroupRuns {
 		if g.TestGroupName == name {
-			return g.Verdict.String()
+			return g.Verdict
 		}
 	}
-	return ""
+	return VerdictUnjudged
 }
 
 func (run *SubmissionRun) GroupScore(name string) int32 {
@@ -96,8 +96,12 @@ func (run *SubmissionRun) GroupScore(name string) int32 {
 	return 0
 }
 
-func (run *SubmissionRun) Accepted() bool {
-	return run.Status == StatusSuccessful && run.Verdict == VerdictAccepted
+func (run *SubmissionRun) Accepted(pv *ProblemVersion) bool {
+	return run.Verdict == VerdictAccepted && run.Score == pv.MaxScore()
+}
+
+func (run *SubmissionRun) PartialAccepted(pv *ProblemVersion) bool {
+	return run.Score > 0 && run.Score < pv.MaxScore()
 }
 
 func (run *SubmissionRun) Rejected() bool {
@@ -110,10 +114,10 @@ func (run *SubmissionRun) Waiting() bool {
 }
 
 func (run *SubmissionRun) StatusString(p *ProblemVersion, filtered bool) string {
-	if run.Waiting() {
+	if run.Status != StatusSuccessful {
 		return run.Status.String()
-	} else if run.Accepted() {
-		return fmt.Sprintf("%s (%d/%d)", run.Verdict.String(), run.Score, p.MaxScore())
+	} else if run.Score > 0 {
+		return fmt.Sprintf("%d/%d", run.Score, p.MaxScore())
 	} else {
 		if filtered {
 			return "Felaktig"
