@@ -20,6 +20,7 @@ type config struct {
 	ProblemSet       map[string]string `yaml:"problemset"`
 	Duration         string            `yaml:"duration"`
 	Start            *time.Time        `yaml:"start"`
+	FlexibleEnd      *time.Time        `yaml:"flexible_end"`
 	HiddenScoreboard bool              `yaml:"hidden_scoreboard"`
 }
 
@@ -62,6 +63,9 @@ func InstallContest(ctx context.Context, req *toolspb.InstallContestRequest) (*t
 	}
 	if config.Start != nil {
 		contest.StartTime = sql.NullTime{Time: *config.Start, Valid: true}
+	}
+	if config.FlexibleEnd != nil {
+		contest.FlexibleEndTime = sql.NullTime{Time: *config.FlexibleEnd, Valid: true}
 	}
 	if !reporter.HasError() {
 		err := contests.CreateContest(ctx, contest)

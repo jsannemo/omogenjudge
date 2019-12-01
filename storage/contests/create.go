@@ -19,10 +19,10 @@ func CreateContest(ctx context.Context, contest *models.Contest) error {
 	return db.InTransaction(ctx, func(tx *sqlx.Tx) error {
 		query := `
     INSERT INTO
-      contest(short_name, host_name, start_time, duration, title, hidden_scoreboard)
-    VALUES($1, $2, $3, $4 * '1 microsecond'::interval, $5, $6)
+      contest(short_name, host_name, start_time, selection_window_end_time, duration, title, hidden_scoreboard)
+    VALUES($1, $2, $3, $4, $5 * '1 microsecond'::interval, $6, $7)
     RETURNING contest_id`
-		if err := tx.QueryRowContext(ctx, query, contest.ShortName, contest.HostName, contest.StartTime, contest.Duration/time.Microsecond, contest.Title, contest.HiddenScoreboard).Scan(&contest.ContestID); err != nil {
+		if err := tx.QueryRowContext(ctx, query, contest.ShortName, contest.HostName, contest.StartTime, contest.FlexibleEndTime, contest.Duration/time.Microsecond, contest.Title, contest.HiddenScoreboard).Scan(&contest.ContestID); err != nil {
 			if db.PgErrCode(err) == db.UniquenessViolation {
 				return ErrShortNameExists
 			} else {
