@@ -121,6 +121,15 @@ func (c *Contest) CanSeeScoreboard(team *Team) bool {
 	return true
 }
 
+func (c *Contest) HasProblem(problemID int32) bool {
+	for _, p := range c.Problems {
+		if p.ProblemID == problemID {
+			return true
+		}
+	}
+	return false
+}
+
 // A ContestProblem is a problem with associated metadata that appears in a contest.
 type ContestProblem struct {
 	ContestID int32 `db:"contest_id"`

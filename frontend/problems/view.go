@@ -18,13 +18,16 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	vars := mux.Vars(r.Request)
-	problems, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamples}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
+	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamples}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
 	if err != nil {
 		return nil, err
 	}
-	if len(problems) == 0 {
+	if len(probs) == 0 {
 		return request.NotFound(), nil
 	}
-	problem := problems[0]
+	problem := probs[0]
+	if !r.Context.Contest.HasProblem(problem.ProblemID) {
+		return request.NotFound(), nil
+	}
 	return request.Template("problems_view", &ViewParams{problem}), nil
 }

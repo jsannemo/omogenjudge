@@ -33,6 +33,9 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	problem := probs[0]
+	if !r.Context.Contest.HasProblem(problem.ProblemID) {
+		return request.NotFound(), nil
+	}
 
 	if r.Request.Method == http.MethodPost {
 		submit := r.Request.FormValue("submission")
