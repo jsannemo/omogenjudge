@@ -95,6 +95,8 @@
                 </div>
             </div>
         {{ end }}
+    </div>
+    <div class="row mdl-grid">
         {{ if and (not .C.Contest.FullOver) (not .C.Team) }}
             <h1>Anmälan</h1>
             {{ if not .C.User }}
