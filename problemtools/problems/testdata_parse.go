@@ -77,13 +77,14 @@ func configFor(group string, configs map[string]testGroupConfig) testGroupConfig
 			config.OutputFlags[k] = v
 		}
 	}
+	if group == "sample" || group == "samples" {
+		config.Visibility = "public"
+	}
 	if v, ok := configs[group]; ok {
 		config.Score = v.Score
 		config.Include = v.Include
 		if v.Visibility != "" {
 			config.Visibility = v.Visibility
-		} else if group == "sample" || group == "samples" {
-			config.Visibility = "public"
 		}
 		for k, v := range v.InputFlags {
 			config.InputFlags[k] = v
