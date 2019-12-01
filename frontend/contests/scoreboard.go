@@ -116,16 +116,16 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 		}
 		if contest.FlexibleEndTime.Valid {
 			elapsed := contest.ElapsedFor(sub.Created, submitter.Team)
-			if elapsed >= contest.Duration {
+			if elapsed >= contest.Duration || elapsed < 0 {
 				continue
 			}
 			if viewer != nil {
-				now := contest.ElapsedFor(sub.Created, viewer)
+				now := contest.ElapsedFor(time.Now(), viewer)
 				if elapsed > now {
 					continue
 				}
 			}
-		} else if sub.Created.After(contest.FullEndTime()) {
+		} else if sub.Created.After(contest.FullEndTime()) || sub.Created.Before(contest.StartTime.Time) {
 			continue
 		}
 		submitter.Submissions[sub.ProblemID]++

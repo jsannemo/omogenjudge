@@ -10,9 +10,9 @@
 {{ end }}
 
 {{ define "home_during_contest" }}
-    <div class="row">
+    <div class="row mdl-grid">
         {{ range .C.Contest.Problems }}
-            <div class="mdl-grid">
+                <div class="mdl-cell mdl-cell--6-col">
                 <div class="mdl-card mdl-shadow--2dp" style="width: 100%; height: auto; min-height: 0">
                     <div class="mdl-card__title">
                         <h2 class="mdl-card__title-text"><strong>{{ .Label }}</strong>&nbsp;{{ .Problem.LocalizedTitle $.C.Locales }}</h2>
@@ -23,25 +23,30 @@
                             <table style="margin: auto" class="mdl-data-table mdl-js-data-table mdl-data-table--selectable">
                                 <thead>
                                 <tr>
-                                    <td></td>
+                                    <th style="padding-left: 0px; line-height: 14px">
+                                        Maxpoäng<br>
+                                        Grupp
+                                    </th>
                                     {{ range $i, $g := $p.Groups}}
-
                                         {{ if not $g.PublicVisibility }}
-                                            <th>
+                                            <th style="padding-left: 0px; line-height: 14px">
+                                                {{$g.Score}}<br>
                                                 G{{ $i }}
-                                                ({{$g.Score}})
                                             </th>
                                         {{ end }}
                                     {{ end }}
-                                    <th>TOT ({{ .Problem.CurrentVersion.MaxScore }})</th>
+                                    <th style="padding-left: 0px; line-height: 14px">
+                                        {{ .Problem.CurrentVersion.MaxScore }}<br>
+                                        TOT
+                                    </th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr>
-                                    <th>Din poäng</th>
+                                    <td>Din poäng</td>
                                     {{ range $i, $g := $p.Groups}}
                                         {{ if not $g.PublicVisibility }}
-                                            <td>
+                                            <td style="padding-left: 0px">
                                                 {{ $score := index $p.Scores $g.Name }}
                                                 {{ $bg := ""}}
                                                 {{ if eq $score $g.Score }}
@@ -57,7 +62,7 @@
                                             </td>
                                         {{ end }}
                                     {{ end }}
-                                    <td>
+                                    <td style="padding-left: 0px">
                                         {{ $score := index $p.Score }}
                                         {{ $bg := ""}}
                                         {{ if eq $score .Problem.CurrentVersion.MaxScore }}
