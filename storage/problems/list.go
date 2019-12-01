@@ -151,7 +151,7 @@ func includeTestGroups(ctx context.Context, pv *models.ProblemVersion, opt TestO
 	if opt == TestsSamples {
 		filter = filter + " AND public_visibility = true"
 	}
-	query := "SELECT problem_version_id, problem_testgroup_id, testgroup_name, score, public_visibility FROM problem_testgroup " +
+	query := "SELECT problem_version_id, problem_testgroup_id, testgroup_name, score, public_visibility, output_validator_flags FROM problem_testgroup " +
 		filter +
 		" ORDER BY public_visibility DESC, testgroup_name ASC"
 	var groups models.TestGroupList

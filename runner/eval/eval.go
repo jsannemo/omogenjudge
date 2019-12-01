@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	_ "github.com/google/logger"
 
@@ -83,26 +85,29 @@ func (e *Evaluator) Evaluate(testGroups []*runpb.TestGroup, timeLimMs int32, mem
 		TimeLimitMs:   timeLimMs,
 		MemoryLimitKb: memLimitKb,
 	})
-	if e.validator != nil {
-		e.validator.SetArgs(&runners.ProgramArgs{
-			InputPath:  e.valLinker.PathFor("team_output", false),
-			OutputPath: e.valLinker.PathFor("output", true),
-			ErrorPath:  e.valLinker.PathFor("error", true),
-			// TODO make this configurable
-			TimeLimitMs:   60000,
-			MemoryLimitKb: 1000 * 1000,
-			ExtraArgs: []string{
-				e.valLinker.PathFor("input", false),
-				e.valLinker.PathFor("judge_answer", false),
-				filepath.Join(e.valLinker.PathFor("feedback", true)),
-			},
-		})
-	}
 
 	verdict := runpb.Verdict_ACCEPTED
 	time := int32(0)
 	score := int32(0)
 	for _, tg := range testGroups {
+		if e.validator != nil {
+			valArgs := []string{
+				e.valLinker.PathFor("input", false),
+				e.valLinker.PathFor("judge_answer", false),
+				filepath.Join(e.valLinker.PathFor("feedback", true)),
+			}
+			if tg.OutputValidatorFlags != nil {
+				valArgs = append(valArgs, tg.OutputValidatorFlags...)
+			}
+			e.validator.SetArgs(&runners.ProgramArgs{
+				InputPath:  e.valLinker.PathFor("team_output", false),
+				OutputPath: e.valLinker.PathFor("output", true),
+				ErrorPath:  e.valLinker.PathFor("error", true),
+				// TODO make this configurable
+				TimeLimitMs:   60000,
+				MemoryLimitKb: 1000 * 1000,
+			})
+		}
 		groupTime, groupVerdict, err := evaluateGroup(tg, outPath, e, results)
 		if err != nil {
 			return err
@@ -131,7 +136,7 @@ func evaluateGroup(tg *runpb.TestGroup, outPath string, e *Evaluator, results ch
 	groupTime := int32(0)
 	verdict := runpb.Verdict_ACCEPTED
 	for _, tc := range tg.Cases {
-		res, err := evaluateCase(e, tc, outPath)
+		res, err := evaluateCase(e, tc, tg.OutputValidatorFlags, outPath)
 		if err != nil {
 			return groupTime, verdict, err
 		}
@@ -160,7 +165,7 @@ func evaluateGroup(tg *runpb.TestGroup, outPath string, e *Evaluator, results ch
 	return groupTime, verdict, nil
 }
 
-func evaluateCase(e *Evaluator, tc *runpb.TestCase, outPath string) (outcome, error) {
+func evaluateCase(e *Evaluator, tc *runpb.TestCase, validatorFlags []string, outPath string) (outcome, error) {
 	cacheKey := tc.InputPath + " " + tc.OutputPath
 	if res, ok := e.EvalCache[cacheKey]; ok {
 		return res, nil
@@ -213,7 +218,7 @@ func evaluateCase(e *Evaluator, tc *runpb.TestCase, outPath string) (outcome, er
 				return res, err
 			}
 		} else {
-			wa, err = diffOutput(tc.OutputPath, outPath)
+			wa, err = diffOutput(tc.OutputPath, outPath, validatorFlags)
 			if err != nil {
 				return res, err
 			}
@@ -268,7 +273,7 @@ func runValidator(inpath, teampath, anspath string, e *Evaluator) (bool, error) 
 	return false, fmt.Errorf("output validator crashed: %v", string(dat)+" "+string(dat2))
 }
 
-func diffOutput(refPath, outPath string) (bool, error) {
+func diffOutput(refPath, outPath string, args []string) (bool, error) {
 	refFile, err := os.Open(refPath)
 	if err != nil {
 		return false, err
@@ -277,6 +282,18 @@ func diffOutput(refPath, outPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	res, err := diff.Diff(refFile, outFile)
+	diffArgs := diff.DiffArgs{}
+	for _, s := range args {
+		parts := strings.SplitN(s, "=", 2)
+		if parts[0] == "float_tolerance" {
+			tolerance, err := strconv.ParseFloat(parts[1], 64)
+			if err != nil {
+				return false, err
+			}
+			diffArgs.AbsolutePrec = tolerance
+			diffArgs.RelativePrec = tolerance
+		}
+	}
+	res, err := diff.Diff(refFile, outFile, diffArgs)
 	return !res.Match, err
 }

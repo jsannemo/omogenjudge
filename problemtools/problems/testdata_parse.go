@@ -1,6 +1,7 @@
 package problems
 
 import (
+	"github.com/google/logger"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,6 +27,8 @@ func parseTestdata(path string, reporter util.Reporter) (map[string]*toolspb.Tes
 		return nil, err
 	}
 
+	logger.Infof("testdata metadata: %v", config)
+
 	files, err := ioutil.ReadDir(testdataPath)
 	if err != nil {
 		return nil, err
@@ -47,25 +50,32 @@ func parseTestdata(path string, reporter util.Reporter) (map[string]*toolspb.Tes
 }
 
 type testGroupConfig struct {
-	Score      int32
-	Visibility string
-	InputFlags map[string]string
-	Include    string
+	Score       int32
+	Visibility  string
+	InputFlags  map[string]string `yaml:"input_flags"`
+	OutputFlags map[string]string `yaml:"output_flags"`
+	Include     string
 }
 
 func defaultConfig() testGroupConfig {
 	return testGroupConfig{
-		Score:      0,
-		Visibility: "hidden",
-		InputFlags: map[string]string{},
-		Include:    "",
+		Score:       0,
+		Visibility:  "hidden",
+		InputFlags:  map[string]string{},
+		OutputFlags: map[string]string{},
+		Include:     "",
 	}
 }
 
 func configFor(group string, configs map[string]testGroupConfig) testGroupConfig {
 	config := defaultConfig()
-	if v, ok := configs["default"]; ok {
-		config.InputFlags = v.InputFlags
+	if def, ok := configs["default"]; ok {
+		for k, v := range def.InputFlags {
+			config.InputFlags[k] = v
+		}
+		for k, v := range def.OutputFlags {
+			config.OutputFlags[k] = v
+		}
 	}
 	if v, ok := configs[group]; ok {
 		config.Score = v.Score
@@ -77,6 +87,9 @@ func configFor(group string, configs map[string]testGroupConfig) testGroupConfig
 		}
 		for k, v := range v.InputFlags {
 			config.InputFlags[k] = v
+		}
+		for k, v := range v.OutputFlags {
+			config.OutputFlags[k] = v
 		}
 	}
 	return config
@@ -184,6 +197,7 @@ func parseGroup(path string, config testGroupConfig, groups map[string]*toolspb.
 		PublicSamples: config.Visibility == "public",
 		Score:         config.Score,
 		InputFlags:    config.InputFlags,
+		OutputFlags:   config.OutputFlags,
 		Tests:         tests,
 	}, nil
 }

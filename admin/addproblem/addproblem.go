@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/logger"
 
@@ -129,10 +130,12 @@ func getTestGroup(ctx context.Context, tc *toolspb.TestGroup) (*models.TestGroup
 		tests = append(tests, storageTest)
 	}
 	return &models.TestGroup{
-		Name:             tc.Name,
-		Score:            tc.Score,
-		PublicVisibility: tc.PublicSamples,
-		Tests:            tests}, nil
+		Name:                 tc.Name,
+		Score:                tc.Score,
+		PublicVisibility:     tc.PublicSamples,
+		Tests:                tests,
+		OutputValidatorFlags: strings.Join(cli.FormatFlagMap(tc.OutputFlags), " "),
+	}, nil
 }
 
 func getTestGroups(ctx context.Context, testGroups []*toolspb.TestGroup) ([]*models.TestGroup, error) {

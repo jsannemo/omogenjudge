@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/google/logger"
 	"google.golang.org/grpc"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
@@ -21,6 +22,7 @@ func (s *toolServer) ParseProblem(ctx context.Context, req *toolspb.ParseProblem
 }
 
 func (s *toolServer) VerifyProblem(ctx context.Context, req *toolspb.VerifyProblemRequest) (*toolspb.VerifyProblemResponse, error) {
+	logger.Infof("ToolService.VerifyProblem: %v", req)
 	return problems.VerifyProblem(ctx, req, s.runner)
 }
 

@@ -17,6 +17,7 @@ enum Verdict {
 message TestGroup {
   repeated TestCase cases = 1;
   int32 score = 2;
+  repeated string output_validator_flags = 3;
 }
 
 message TestCase {

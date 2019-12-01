@@ -27,3 +27,11 @@ func RequestConfirmation(prompt string) bool {
 		}
 	}
 }
+
+func FormatFlagMap(flags map[string]string) []string {
+	var args []string
+	for k, v := range flags {
+		args = append(args, fmt.Sprintf("%s=%s", k, v))
+	}
+	return args
+}

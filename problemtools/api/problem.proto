@@ -55,6 +55,8 @@ message TestGroup {
   int32 score = 4;
   // Flags to be given to the input validator for cases in this group.
   map<string, string> input_flags = 5;
+  // Flags to be given to the output validator for cases in this group.
+  map<string, string> output_flags = 6;
 }
 
 // A single test case.

@@ -34,6 +34,7 @@ type runServer struct {
 
 // TODO: rewrite
 func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) (*runpb.SimpleRunResponse, error) {
+	logger.Infof("RunService.SimpleRun: %v", req)
 	execStream, err := s.exec.Execute(context.Background())
 	defer execStream.CloseSend()
 	if err != nil {
@@ -71,6 +72,7 @@ func (s *runServer) SimpleRun(ctx context.Context, req *runpb.SimpleRunRequest) 
 		InputPath:     env.PathFor("input", false),
 		OutputPath:    env.PathFor("output", true),
 		ErrorPath:     env.PathFor("error", true),
+		ExtraArgs:     req.Arguments,
 		TimeLimitMs:   5000,
 		MemoryLimitKb: 1000 * 1000,
 	})

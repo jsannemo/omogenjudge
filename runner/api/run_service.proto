@@ -84,6 +84,8 @@ message SimpleRunRequest {
   CompiledProgram program = 1;
 
   repeated string input_files = 2;
+
+  repeated string arguments = 3;
 }
 
 message SimpleRunResult {

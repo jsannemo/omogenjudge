@@ -4,8 +4,6 @@ import (
 	"errors"
 	"path/filepath"
 
-	"github.com/google/logger"
-
 	execpb "github.com/jsannemo/omogenjudge/sandbox/api"
 )
 
@@ -142,13 +140,11 @@ func Execute(exec execpb.ExecuteService_ExecuteClient, args *ExecArgs) (*ExecRes
 	if args.ReuseContainer {
 		req.ContainerSpec = nil
 	}
-	logger.Infof("Sending Execute: %v", req)
 	err := exec.Send(req)
 	if err != nil {
 		return nil, err
 	}
 	res, err := exec.Recv()
-	logger.Infof("Received Execute: %v", res)
 	if err != nil {
 		return nil, err
 	}

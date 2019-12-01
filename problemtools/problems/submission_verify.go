@@ -3,6 +3,7 @@ package problems
 import (
 	"context"
 	"fmt"
+	"github.com/jsannemo/omogenjudge/util/go/cli"
 	"io"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
@@ -84,8 +85,9 @@ func verifySubmission(ctx context.Context, submission *toolspb.Submission, timel
 				})
 		}
 		groups = append(groups, &runpb.TestGroup{
-			Cases: cases,
-			Score: g.Score,
+			Cases:                cases,
+			Score:                g.Score,
+			OutputValidatorFlags: cli.FormatFlagMap(g.OutputFlags),
 		})
 	}
 	req := &runpb.EvaluateRequest{

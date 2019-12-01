@@ -15,6 +15,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 
 	filepb "github.com/jsannemo/omogenjudge/filehandler/api"
 	fhclient "github.com/jsannemo/omogenjudge/filehandler/client"
@@ -168,9 +169,14 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 				OutputPath: testPathMap[test.OutputFile.Hash],
 			})
 		}
+		var flags []string
+		if group.OutputValidatorFlags != "" {
+			flags = strings.Split(" ", group.OutputValidatorFlags)
+		}
 		reqGroups = append(reqGroups, &runpb.TestGroup{
-			Cases: reqTests,
-			Score: group.Score,
+			Cases:                reqTests,
+			Score:                group.Score,
+			OutputValidatorFlags: flags,
 		})
 	}
 	evalReq := &runpb.EvaluateRequest{

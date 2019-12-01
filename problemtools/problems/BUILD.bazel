@@ -26,6 +26,7 @@ go_library(
         "//problemtools/util:go_default_library",
         "//runner/api:go_default_library",
         "//runner/language:go_default_library",
+        "//util/go/cli:go_default_library",
         "//util/go/files:go_default_library",
         "//util/go/strings:go_default_library",
         "//util/go/users:go_default_library",
