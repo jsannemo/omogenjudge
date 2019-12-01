@@ -139,7 +139,7 @@ func makeScoreboard(teams models.TeamList, subs submissions.SubmissionList, cont
 		if !inc && submitter.Submissions[sub.ProblemID] != 1 {
 			continue
 		}
-		submitter.Times[sub.ProblemID] = sub.Created.Sub(contest.StartTime.Time)
+		submitter.Times[sub.ProblemID] = sub.Created.Sub(contest.StartFor(submitter.Team))
 	}
 	var rankedTeams []*scoreboardTeam
 	for _, team := range sc {

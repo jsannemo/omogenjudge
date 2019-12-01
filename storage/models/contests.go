@@ -130,6 +130,13 @@ func (c *Contest) HasProblem(problemID int32) bool {
 	return false
 }
 
+func (c *Contest) StartFor(team *Team) time.Time {
+	if team.StartTime.Valid {
+		return team.StartTime.Time
+	}
+	return c.StartTime.Time
+}
+
 // A ContestProblem is a problem with associated metadata that appears in a contest.
 type ContestProblem struct {
 	ContestID int32 `db:"contest_id"`
