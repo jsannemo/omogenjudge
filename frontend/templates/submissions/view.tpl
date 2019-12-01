@@ -24,7 +24,7 @@
               {{ $verdict := $.D.Submission.CurrentRun.GroupVerdict $g.Name }}
               {{ $bg := "white "}}
               {{ if not $verdict.Waiting}}
-                {{ if eq $score $g.Score }}
+                {{ if and (eq $score $g.Score) $verdict.Accepted }}
                   {{ $bg = "bg-green-100" }}
                 {{ else if eq $score 0}}
                   {{ $bg = "bg-red-100"}}
@@ -41,7 +41,7 @@
                   {{ end }}
                 </td>
                 <td>
-                  {{ if $verdict.Accepted }}
+                  {{ if and $verdict.Accepted (not (eq $score 0)) }}
                     {{ $score }}
                   {{ else }}
                     {{ $verdict }}
