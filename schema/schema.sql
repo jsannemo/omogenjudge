@@ -193,7 +193,7 @@ CREATE TABLE contest(
 	short_name TEXT NOT NULL,
 	host_name TEXT,
 	start_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp,
-    select_window_end_time TIMESTAMP WITH TIME ZONE,
+    selection_window_end_time TIMESTAMP WITH TIME ZONE,
 	duration INTERVAL NOT NULL,
 	title TEXT NOT NULL,
 	hidden_scoreboard BOOLEAN NOT NULL
