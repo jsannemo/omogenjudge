@@ -13,8 +13,16 @@ import (
 // Only one filter may be set.
 type ListFilter struct {
 	ShortName string
-	ProblemID []int32
+	Problems  *ProblemFilter
 	ContestID int32
+}
+
+type ProblemFilter struct {
+	ProblemID []int32
+}
+
+func Problems(problemIDs ...int32) ListFilter {
+	return ListFilter{Problems: &ProblemFilter{problemIDs}}
 }
 
 type TestOpt byte
@@ -46,7 +54,7 @@ func List(ctx context.Context, args ListArgs, filter ListFilter) (models.Problem
 	if filter.ShortName != "" {
 		filters++
 	}
-	if len(filter.ProblemID) != 0 {
+	if filter.Problems != nil {
 		filters++
 	}
 	if filter.ContestID != 0 {
@@ -93,8 +101,8 @@ func problemQuery(args ListArgs, filterArgs ListFilter) (string, []interface{}) 
     `
 	if filterArgs.ShortName != "" {
 		filter = db.SetParam("WHERE short_name = $%d", &params, filterArgs.ShortName)
-	} else if len(filterArgs.ProblemID) != 0 {
-		filter = db.SetInParamInt("WHERE problem.problem_id IN (%s)", &params, filterArgs.ProblemID)
+	} else if filterArgs.Problems != nil {
+		filter = db.SetInParamInt("WHERE problem.problem_id IN (%s)", &params, filterArgs.Problems.ProblemID)
 	} else if filterArgs.ContestID != 0 {
 		joins += " LEFT JOIN contest_problem USING (problem_id) "
 		filter = db.SetParam("WHERE contest_id = $%d", &params, filterArgs.ContestID)

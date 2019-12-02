@@ -3,6 +3,8 @@ package middleware
 import (
 	"fmt"
 
+	"github.com/google/logger"
+
 	"github.com/jsannemo/omogenjudge/frontend/request"
 	"github.com/jsannemo/omogenjudge/storage/contests"
 )
@@ -15,8 +17,6 @@ func readContest(r *request.Request) (request.Response, error) {
 		return nil, fmt.Errorf("could not retrieve current contest: %v", err)
 	} else if len(cs) > 0 {
 		r.Context.Contest = cs.Latest()
-	} else {
-		return request.NotFound(), nil
 	}
 	return nil, nil
 }
@@ -34,6 +34,12 @@ func readTeam(r *request.Request) (request.Response, error) {
 		return nil, fmt.Errorf("could not retrieve current team: %v", err)
 	} else if len(teams) > 0 {
 		r.Context.Team = teams[0]
+	}
+	if len(teams) > 1 {
+		logger.Fatalf("Found too many teams for account %d in contest %d (%d)",
+			r.Context.User.AccountID,
+			r.Context.Contest.ContestID,
+			len(teams))
 	}
 	return nil, nil
 }

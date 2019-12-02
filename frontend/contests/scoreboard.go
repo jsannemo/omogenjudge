@@ -42,7 +42,9 @@ func ScoreboardHandler(r *request.Request) (request.Response, error) {
 	subs, err := submissions.ListSubmissions(
 		r.Request.Context(),
 		submissions.ListArgs{WithRun: true, WithGroupRuns: true},
-		submissions.ListFilter{ProblemID: probIDs, UserID: accountIDs})
+		submissions.ListFilter{
+			Problems: &submissions.ProblemFilter{probIDs},
+			Users:    &submissions.UserFilter{accountIDs}})
 	if err != nil {
 		return nil, err
 	}
