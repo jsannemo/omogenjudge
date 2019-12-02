@@ -46,7 +46,9 @@ func addProblems(ctx context.Context, contest *models.Contest, db *sqlx.DB) erro
 	for _, k := range contest.Problems {
 		pids = append(pids, k.ProblemID)
 	}
-	probs, err := problems.List(ctx, problems.ListArgs{WithStatements: problems.StmtTitles, WithTests: problems.TestsGroups}, problems.ListFilter{ProblemID: pids})
+	probs, err := problems.List(ctx,
+		problems.ListArgs{WithStatements: problems.StmtTitles, WithTests: problems.TestsGroups},
+		problems.ListFilter{Problems: &problems.ProblemFilter{pids}})
 	if err != nil {
 		return err
 	}

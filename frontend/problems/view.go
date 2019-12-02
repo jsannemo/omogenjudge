@@ -14,11 +14,14 @@ type ViewParams struct {
 }
 
 func ViewHandler(r *request.Request) (request.Response, error) {
-	if !r.Context.Contest.Started(r.Context.Team) {
+	contest := r.Context.Contest
+	if contest != nil && !contest.Started(r.Context.Team) {
 		return request.NotFound(), nil
 	}
 	vars := mux.Vars(r.Request)
-	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamples}, problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
+	probs, err := problems.List(r.Request.Context(),
+		problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamples},
+		problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +29,7 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	problem := probs[0]
-	if !r.Context.Contest.HasProblem(problem.ProblemID) {
+	if contest != nil && !contest.HasProblem(problem.ProblemID) {
 		return request.NotFound(), nil
 	}
 	return request.Template("problems_view", &ViewParams{problem}), nil

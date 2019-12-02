@@ -6,17 +6,28 @@ import (
 	"github.com/jsannemo/omogenjudge/storage/submissions"
 )
 
+func HomeHandler(r *request.Request) (request.Response, error) {
+	if r.Context.Contest != nil {
+		return contestHome(r)
+	}
+	return mainHome(r)
+}
+
+func mainHome(r *request.Request) (request.Response, error) {
+	return request.Template("home_home", nil), nil
+}
+
 type problemData struct {
 	Scores map[string]int32
 	Groups []*models.TestGroup
 	Score  int32
 }
 
-type HomeParams struct {
+type ContestHomeParams struct {
 	Problems map[int32]*problemData
 }
 
-func HomeHandler(r *request.Request) (request.Response, error) {
+func contestHome(r *request.Request) (request.Response, error) {
 	team := r.Context.Team
 	contest := r.Context.Contest
 	if team != nil && contest.Started(team) {
@@ -32,7 +43,9 @@ func HomeHandler(r *request.Request) (request.Response, error) {
 		subs, err := submissions.ListSubmissions(r.Request.Context(), submissions.ListArgs{
 			WithRun:       true,
 			WithGroupRuns: true,
-		}, submissions.ListFilter{UserID: team.MemberIDs(), ProblemID: probIDs})
+		}, submissions.ListFilter{
+			Users:    &submissions.UserFilter{team.MemberIDs()},
+			Problems: &submissions.ProblemFilter{probIDs}})
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +68,7 @@ func HomeHandler(r *request.Request) (request.Response, error) {
 				p.Score += s
 			}
 		}
-		return request.Template("home_home", HomeParams{points}), nil
+		return request.Template("home_contest", ContestHomeParams{points}), nil
 	}
-	return request.Template("home_home", nil), nil
+	return request.Template("home_contest", nil), nil
 }

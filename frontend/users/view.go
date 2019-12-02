@@ -19,7 +19,7 @@ type ListParams struct {
 }
 
 func ViewHandler(r *request.Request) (request.Response, error) {
-	if !r.Context.Contest.FullStart() {
+	if r.Context.Contest != nil && !r.Context.Contest.FullStart() {
 		return request.NotFound(), nil
 	}
 	vars := mux.Vars(r.Request)
@@ -32,19 +32,27 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), err
 	}
 	userID := user.Single().AccountID
+	subFilter := submissions.ListFilter{Users: &submissions.UserFilter{[]int32{userID}}}
 
-	var cProbs []int32
-	for _, p := range r.Context.Contest.Problems {
-		cProbs = append(cProbs, p.ProblemID)
+	if r.Context.Contest != nil {
+		var cProbs []int32
+		for _, p := range r.Context.Contest.Problems {
+			cProbs = append(cProbs, p.ProblemID)
+		}
+		subFilter.Problems = &submissions.ProblemFilter{cProbs}
 	}
 	subs, err := submissions.ListSubmissions(
 		r.Request.Context(),
 		submissions.ListArgs{WithRun: true},
-		submissions.ListFilter{UserID: []int32{userID}, ProblemID: cProbs})
+		subFilter)
 	if err != nil {
 		return nil, err
 	}
-	probs, err := problems.List(r.Request.Context(), problems.ListArgs{WithStatements: problems.StmtTitles, WithTests: problems.TestsGroups}, problems.ListFilter{ProblemID: cProbs})
+	probIDs := subs.ProblemIDs()
+
+	probs, err := problems.List(r.Request.Context(),
+		problems.ListArgs{WithStatements: problems.StmtTitles, WithTests: problems.TestsGroups},
+		problems.Problems(probIDs...))
 	if err != nil {
 		return nil, err
 	}

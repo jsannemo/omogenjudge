@@ -18,15 +18,39 @@ type ListArgs struct {
 	WithGroupRuns bool
 }
 
-// A ListFilter controls what submissions to search for.  Only one of SubmissionID and UserID may be set.
+// A ListFilter controls what submissions to search for.
 type ListFilter struct {
-	SubmissionID []int32
-	UserID       []int32
-	ProblemID    []int32
+	Submissions *SubmissionFilter
+	Users       *UserFilter
+	Problems    *ProblemFilter
+}
+
+type SubmissionFilter struct {
+	SubmissionIDs []int32
+}
+
+type UserFilter struct {
+	UserIDs []int32
+}
+
+type ProblemFilter struct {
+	ProblemIDs []int32
 }
 
 // A SubmissionList is a slice of Submissions.
 type SubmissionList []*models.Submission
+
+func (lists SubmissionList) ProblemIDs() []int32 {
+	ids := make(map[int32]bool)
+	for _, sub := range lists {
+		ids[sub.ProblemID] = true
+	}
+	var res []int32
+	for id, _ := range ids {
+		res = append(res, id)
+	}
+	return res
+}
 
 // ListSubmissions searches for a list of submissions.
 func ListSubmissions(ctx context.Context, args ListArgs, filterArgs ListFilter) (SubmissionList, error) {
@@ -35,14 +59,14 @@ func ListSubmissions(ctx context.Context, args ListArgs, filterArgs ListFilter) 
 	var filters []string
 	joins := ""
 	fields := ""
-	if len(filterArgs.SubmissionID) != 0 {
-		filters = append(filters, db.SetInParamInt(`submission.submission_id IN (%s)`, &params, filterArgs.SubmissionID))
+	if filterArgs.Submissions != nil {
+		filters = append(filters, db.SetInParamInt(`submission.submission_id IN (%s)`, &params, filterArgs.Submissions.SubmissionIDs))
 	}
-	if len(filterArgs.UserID) != 0 {
-		filters = append(filters, db.SetInParamInt(`account_id IN (%s)`, &params, filterArgs.UserID))
+	if filterArgs.Users != nil {
+		filters = append(filters, db.SetInParamInt(`account_id IN (%s)`, &params, filterArgs.Users.UserIDs))
 	}
-	if len(filterArgs.ProblemID) != 0 {
-		filters = append(filters, db.SetInParamInt(`problem_id IN (%s)`, &params, filterArgs.ProblemID))
+	if filterArgs.Problems != nil {
+		filters = append(filters, db.SetInParamInt(`problem_id IN (%s)`, &params, filterArgs.Problems.ProblemIDs))
 	}
 	filter := ""
 	if len(filters) > 0 {

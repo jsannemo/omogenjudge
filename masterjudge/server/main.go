@@ -76,7 +76,9 @@ func getValidatorProgram(val *models.OutputValidator) (*runpb.Program, error) {
 
 func judge(ctx context.Context, run *models.SubmissionRun) error {
 	logger.Infof("Judging run %d", run.SubmissionRunID)
-	subs, err := submissions.ListSubmissions(ctx, submissions.ListArgs{WithFiles: true}, submissions.ListFilter{SubmissionID: []int32{run.SubmissionID}})
+	subs, err := submissions.ListSubmissions(ctx,
+		submissions.ListArgs{WithFiles: true},
+		submissions.ListFilter{Submissions: &submissions.SubmissionFilter{[]int32{run.SubmissionID}}})
 	if err != nil {
 		return err
 	}
@@ -89,9 +91,9 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 	go compile(ctx, submission, compileOutput, &compileErr)
 	run.Status = models.StatusCompiling
 	if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus}}); err != nil {
-		return fmt.Errorf("failed settin run as compiling: %v", err)
+		return fmt.Errorf("failed setting run as compiling: %v", err)
 	}
-	probs, err := problems.List(ctx, problems.ListArgs{WithTests: problems.TestsAll}, problems.ListFilter{ProblemID: []int32{submission.ProblemID}})
+	probs, err := problems.List(ctx, problems.ListArgs{WithTests: problems.TestsAll}, problems.Problems(submission.ProblemID))
 	if err != nil {
 		return fmt.Errorf("failed retreiving problem info: %v", err)
 	}
