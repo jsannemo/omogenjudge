@@ -22,10 +22,11 @@ func UpdateContest(ctx context.Context, contest *models.Contest) error {
 	    start_time = $3,
 	    duration = $4 * '1 microsecond'::interval,
 	    title = $5,
-	    hidden_scoreboard = $6
+	    hidden_scoreboard = $6,
+	    selection_window_end_time = $7
     WHERE short_name = $1
 	RETURNING contest_id`
-		if err := tx.QueryRowContext(ctx, query, contest.ShortName, contest.HostName, contest.StartTime, contest.Duration/time.Microsecond, contest.Title, contest.HiddenScoreboard).Scan(&contest.ContestID); err != nil {
+		if err := tx.QueryRowContext(ctx, query, contest.ShortName, contest.HostName, contest.StartTime, contest.Duration/time.Microsecond, contest.Title, contest.HiddenScoreboard, contest.FlexibleEndTime).Scan(&contest.ContestID); err != nil {
 			return fmt.Errorf("failed update contest query: %v", err)
 		}
 		for _, p := range contest.Problems {
