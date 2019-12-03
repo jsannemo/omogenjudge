@@ -1,24 +1,28 @@
 {{ define "problems_list" }}
   <section>
     <article>
-      <div class="row">
-        <table class="bordered" style="margin: auto; width: 100%">
-          <thead>
-          <tr>
-            <th>ID</th>
-            <th>Title</th>
-          </tr>
-          </thead>
-          {{range .D.Problems}}
+      <div class="row mdl-griw">
+        <div class="mdl-cell mdl-cell--12-col">
+          <h1>Problem</h1>
+        </div>
+        <div class="mdl-cell mdl-cell--12-col">
+          <table class="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp">
+            <thead>
             <tr>
-              <td>{{ .ShortName }}</td>
-              <td>
-                <a href="{{ .Link }}">{{ .LocalizedTitle $.C.Locales }}</a>
-              </td>
+              <th class="mdl-data-table__cell--non-numeric">ID</th>
+              <th class="mdl-data-table__cell--non-numeric">Title</th>
             </tr>
-          {{end}}
-        </table>
-      </div>
+            </thead>
+            {{range .D.Problems}}
+              <tr>
+                <td class="mdl-data-table__cell--non-numeric">{{ .ShortName }}</td>
+                <td class="mdl-data-table__cell--non-numeric">
+                  <a href="{{ .Link }}">{{ .LocalizedTitle $.C.Locales }}</a>
+                </td>
+              </tr>
+            {{end}}
+          </table>
+        </div>
     </article>
   </section>
 {{ end }}

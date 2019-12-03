@@ -42,7 +42,7 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !r.Context.Contest.HasProblem(sub.ProblemID) {
+	if r.Context.Contest != nil && !r.Context.Contest.HasProblem(sub.ProblemID) {
 		return request.NotFound(), nil
 	}
 	return request.Template("submissions_view", &ViewParams{probs.AsMap(), sub}), nil

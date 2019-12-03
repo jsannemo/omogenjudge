@@ -60,7 +60,7 @@
 
 {{ define "nav_home" }}
     <li><a href="/">Hem</a></li>
-
+    <li><a href="/problems">Problemarkiv</a></li>
     {{ if .C.User }}
         <li class="navbar-dropdown closed">
             <a href="javascript:;"> <i class="material-icons">person</i> {{ .C.User.Username }}<span class="navbar-dropdown-caret"></span></a>
