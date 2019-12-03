@@ -1,0 +1,14 @@
+default:
+  input_flags:
+    maxp: 10000
+    maxq: 100
+
+subtask1:
+  score: 15
+  input_flags:
+    maxp: 100
+    maxq: 5
+
+subtask2:
+  score: 35
+  include: subtask1
