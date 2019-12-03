@@ -20,7 +20,11 @@
             <strong>
             </strong>
             <div class="mdl-card__actions mdl-card--border">
-                {{ if not .C.Team }}
+              {{ if not .C.User }}
+                <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ path "login" }}">
+                  Logga in för att skicka in lösningar
+                </a>
+              {{ else if and .C.Contest (not .C.Team) }}
                   {{ template "helper_contest_register" "Anmäl dig för att skicka in lösningar"}}
                 {{ else }}
                   <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ .D.Problem.SubmitLink }}">

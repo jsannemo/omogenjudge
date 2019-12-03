@@ -1,7 +1,8 @@
 {{ define "submissions_view" }}
   <article>
     {{ template "helper_contest_banner" . }}
-    <div class="row">
+    <div class="mdl-grid row">
+        <h1>Inskickning {{ .D.Submission.SubmissionID }}</h1>
       {{ template "submission_list" dict "submissions" (list .D.Submission) "problems" .D.Problems "C" .C "filtered" false }}
       {{ if .D.Submission.CurrentRun.CompileError.Valid }}
         <table class="mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp" style="width: 100%; margin-top: 15px">
