@@ -1,0 +1,6 @@
+full.cpp:
+  expected_score: 50
+partial.cpp:
+  allowed_failures:
+    - rte
+  expected_score: 15
