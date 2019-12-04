@@ -55,6 +55,9 @@ func List(ctx context.Context, args ListArgs, filter ListFilter) (models.Problem
 		filters++
 	}
 	if filter.Problems != nil {
+		if len(filter.Problems.ProblemID) == 0 {
+			return nil, nil
+		}
 		filters++
 	}
 	if filter.ContestID != 0 {
