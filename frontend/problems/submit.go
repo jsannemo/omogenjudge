@@ -20,7 +20,8 @@ type SubmitParams struct {
 
 func SubmitHandler(r *request.Request) (request.Response, error) {
 	team := r.Context.Team
-	if !r.Context.Contest.Started(team) {
+	contest := r.Context.Contest
+	if contest != nil && !r.Context.Contest.Started(team) {
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
 
@@ -33,7 +34,7 @@ func SubmitHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	problem := probs[0]
-	if !r.Context.Contest.HasProblem(problem.ProblemID) {
+	if contest != nil && !contest.HasProblem(problem.ProblemID) {
 		return request.NotFound(), nil
 	}
 
