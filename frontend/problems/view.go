@@ -1,6 +1,7 @@
 package problems
 
 import (
+
 	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"github.com/jsannemo/omogenjudge/frontend/request"
 	"github.com/jsannemo/omogenjudge/storage/models"
@@ -20,8 +21,10 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	}
 	vars := mux.Vars(r.Request)
 	probs, err := problems.List(r.Request.Context(),
-		problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamples},
+		problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamplesAndGroups},
 		problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
+
+
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +32,7 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	problem := probs[0]
+
 	if contest != nil && !contest.HasProblem(problem.ProblemID) {
 		return request.NotFound(), nil
 	}

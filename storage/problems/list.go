@@ -34,6 +34,8 @@ const (
 	TestsSamples
 	// Load only the test data structure.
 	TestsGroups
+	// Load only the sample test groups and the test data structure .
+	TestsSamplesAndGroups
 	// Load test data and validators.
 	TestsAll
 
@@ -131,7 +133,7 @@ func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) e
 		return nil
 	}
 	filter := "WHERE problem_version_id = $1"
-	if opt == TestsSamples {
+	if opt == TestsSamples || opt == TestsSamplesAndGroups {
 		filter = filter + " AND public_visibility = true"
 	}
 	query := `
