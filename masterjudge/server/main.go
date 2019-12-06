@@ -173,7 +173,7 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		}
 		var flags []string
 		if group.OutputValidatorFlags != "" {
-			flags = strings.Split(" ", group.OutputValidatorFlags)
+			flags = strings.Split(group.OutputValidatorFlags, " ")
 		}
 		reqGroups = append(reqGroups, &runpb.TestGroup{
 			Cases:                reqTests,
