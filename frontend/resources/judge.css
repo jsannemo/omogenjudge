@@ -10,6 +10,7 @@
   border-bottom: 1px solid black;
   padding: 7px;
   background: #efefef;
+  position: relative;
 }
 
 .statement .samplebox .samplebox-data {
@@ -17,6 +18,12 @@
   padding: 10px;
 }
 
+.statement .samplebox .copy-sample-btn {
+  position: absolute;
+  right: 10px;
+  top: 4px;
+  cursor: pointer;
+}
 
 
 .course pre.chroma,
