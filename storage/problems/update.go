@@ -17,10 +17,11 @@ func UpdateProblem(ctx context.Context, problem *models.Problem) error {
 			UPDATE problem
 			SET 
 			    author = $2,
-			    license = $3
+			    source = $3,
+			    license = $4
 			WHERE short_name = $1
 			RETURNING problem_id`
-		if err := tx.QueryRowContext(ctx, query, problem.ShortName, problem.Author, problem.License).Scan(&problem.ProblemID); err != nil {
+		if err := tx.QueryRowContext(ctx, query, problem.ShortName, problem.Author, problem.Source, problem.License).Scan(&problem.ProblemID); err != nil {
 			return fmt.Errorf("failed update problem query: %v", err)
 		}
 

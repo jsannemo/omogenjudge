@@ -27,6 +27,7 @@ message Metadata {
   Limits limits = 2;
   string author = 3;
   License license = 4;
+  string source = 5;
 }
 
 // A parsed problem statement, possibly in any language.

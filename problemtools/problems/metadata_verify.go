@@ -22,8 +22,8 @@ func verifyMetadata(problem *toolspb.Problem, reporter util.Reporter) error {
 		reporter.Err("No license set")
 	}
 
-	if problem.Metadata.Author == "" {
-		reporter.Err("No author set")
+	if problem.Metadata.Author == "" && problem.Metadata.Source == "" {
+		reporter.Err("No author or source set")
 	}
 
 	timeLimit := problem.Metadata.Limits.TimeLimitMs
