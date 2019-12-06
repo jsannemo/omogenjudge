@@ -61,18 +61,15 @@ func Diff(ref, out io.Reader, args DiffArgs) (*DiffResult, error) {
 
 		refTok := refSc.Text()
 		outTok := outSc.Text()
-		isOk := true
-		if !strings.EqualFold(refTok, outTok) {
-			isOk = true
-			// Check if tokens match as floats
-			if args.RelativePrec != 0 || args.AbsolutePrec != 0 {
-				refVal, err1 := strconv.ParseFloat(refTok, 64)
-				outVal, err2 := strconv.ParseFloat(outTok, 64)
-				if err1 == nil && err2 == nil {
-					relPrec := math.Abs(refVal-outVal) / refVal
-					if math.Abs(refVal-outVal) > args.AbsolutePrec && relPrec > args.RelativePrec {
-						isOk = true
-					}
+		isOk := strings.EqualFold(refTok, outTok)
+		// Check if tokens match as floats
+		if !isOk && (args.RelativePrec != 0 || args.AbsolutePrec != 0) {
+			refVal, err1 := strconv.ParseFloat(refTok, 64)
+			outVal, err2 := strconv.ParseFloat(outTok, 64)
+			if err1 == nil && err2 == nil {
+				relPrec := math.Abs(refVal-outVal) / math.Abs(refVal)
+				if math.Abs(refVal-outVal) <= args.AbsolutePrec || relPrec <= args.RelativePrec {
+					isOk = true
 				}
 			}
 		}
