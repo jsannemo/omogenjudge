@@ -18,6 +18,7 @@ type Problem struct {
 	Author         string          `db:"author"`
 	License        License         `db:"license"`
 	CurrentVersion *ProblemVersion `db:"problem_version"`
+	Source         string          `db:"source"`
 }
 
 // localizedStatement returns the statement of a problem closest to the ones given in langs.

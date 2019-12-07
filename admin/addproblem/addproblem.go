@@ -251,6 +251,7 @@ func installProblem(path string) error {
 		Statements:     getStatements(problem.Statements),
 		License:        models.License(problem.Metadata.License.String()),
 		Author:         problem.Metadata.Author,
+		Source:         problem.Metadata.Source,
 		CurrentVersion: problemVersion,
 	}
 	if err := problems.CreateProblem(ctx, storageProblem); err != nil {

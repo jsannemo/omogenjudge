@@ -31,6 +31,7 @@ CREATE TABLE problem(
 	problem_id SERIAL PRIMARY KEY,
 	short_name TEXT NOT NULL,
 	author TEXT NOT NULL,
+    source TEXT NOT NULL,
 	license TEXT NOT NULL,
 	current_version INTEGER
 );

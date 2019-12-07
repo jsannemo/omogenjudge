@@ -24,6 +24,7 @@ type problemJudging struct {
 
 type problemMetadata struct {
 	Author  string
+	Source  string
 	License string
 	Judging problemJudging
 }
@@ -81,6 +82,7 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 			TimeLimitMultiplier: timeMultiplier,
 		},
 		Author:  md.Author,
+		Source:  md.Source,
 		License: lic,
 	}, nil
 }
