@@ -12,7 +12,11 @@
   <link rel="stylesheet" href="/static/main.css">
   <link rel="stylesheet" href="/static/judge.css">
   <link rel="stylesheet" href="/static/editor.css">
+<<<<<<< HEAD
   <link rel="stylesheet" href="/static/clipboard/primer-css/primer.css">
+=======
+  <link rel="stylesheet" href="/static/clipboard/tooltips.css">
+>>>>>>> remove unnecessery css for sample copy button
   <link rel="stylesheet" href="/static/clipboard/highlightjs/styles/github.css">
   <link rel="icon" href="/static/kodsport/favicon.png" type="image/png">
   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,300i,400,400i,600,600i,700,700i" rel="stylesheet">
