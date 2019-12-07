@@ -84,6 +84,8 @@ CREATE TABLE problem_statement_file(
 	PRIMARY KEY(problem_id, language, file_path)
 );
 
+GRANT ALL ON problem_statement_file TO omogenjudge;
+
 CREATE TABLE problem_testgroup(
 	problem_testgroup_id SERIAL PRIMARY KEY,
 	problem_version_id INTEGER NOT NULL REFERENCES problem_version ON DELETE CASCADE,

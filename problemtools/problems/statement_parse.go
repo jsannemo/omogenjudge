@@ -9,8 +9,8 @@ import (
 	util "github.com/jsannemo/omogenjudge/problemtools/util"
 )
 
-type statementFilterFunc func(string) (bool, error)
-type statementParseFunc func(string, util.Reporter) (*toolspb.ProblemStatement, error)
+type statementFilterFunc func(path string) (bool, error)
+type statementParseFunc func(path string, problemName string, reporter util.Reporter) (*toolspb.ProblemStatement, error)
 
 type statementParser struct {
 	name   string
@@ -38,7 +38,7 @@ func parseStatements(path string, reporter util.Reporter) ([]*toolspb.ProblemSta
 
 	for _, f := range files {
 		if f.IsDir() {
-			statement, err := parseStatement(filepath.Join(statementPath, f.Name()), reporter)
+			statement, err := parseStatement(filepath.Join(statementPath, f.Name()), filepath.Base(path), reporter)
 			if err != nil {
 				return nil, err
 			}
@@ -51,7 +51,7 @@ func parseStatements(path string, reporter util.Reporter) ([]*toolspb.ProblemSta
 	return statements, nil
 }
 
-func parseStatement(path string, reporter util.Reporter) (*toolspb.ProblemStatement, error) {
+func parseStatement(path string, problemName string, reporter util.Reporter) (*toolspb.ProblemStatement, error) {
 	var found = false
 	var parsedStatement *toolspb.ProblemStatement
 	for _, p := range parsers {
@@ -65,7 +65,7 @@ func parseStatement(path string, reporter util.Reporter) (*toolspb.ProblemStatem
 				break
 			}
 			found = true
-			parsedStatement, err = p.parser(path, reporter)
+			parsedStatement, err = p.parser(path, problemName, reporter)
 		}
 	}
 	return parsedStatement, nil

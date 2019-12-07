@@ -147,7 +147,7 @@ func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) e
 	file_url(output_file_hash) "output_file.url"
 	FROM problem_testcase
 	NATURAL JOIN problem_testgroup ` + filter +
-	` ORDER BY testcase_name`
+		` ORDER BY testcase_name`
 	var tests []*models.TestCase
 	if err := db.Conn().SelectContext(ctx, &tests, query, pv.ProblemVersionID); err != nil {
 		return err
@@ -200,4 +200,20 @@ func includeStatements(ctx context.Context, ps models.ProblemMap, arg StmtOpt) e
 		p.Statements = append(p.Statements, s)
 	}
 	return nil
+}
+
+func GetStatementFile(ctx context.Context, problemShort string, lang string, path string) (*models.ProblemStatementFile, error) {
+	query := `
+		SELECT
+			problem_id, language, file_path,
+			file_hash "content.hash",
+			file_url(file_hash) "content.url"
+		FROM problem p
+		LEFT JOIN problem_statement_file ps USING(problem_id)
+		WHERE language = $1 AND short_name = $2 AND file_path = $3`
+	file := &models.ProblemStatementFile{}
+	if err := db.Conn().GetContext(ctx, file, query, lang, problemShort, path); err != nil {
+		return nil, fmt.Errorf("statement file query failed: %v", err)
+	}
+	return file, nil
 }

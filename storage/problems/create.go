@@ -81,6 +81,14 @@ func insertStatement(ctx context.Context, s *models.ProblemStatement, tx *sqlx.T
 		s.ProblemID, s.Language, s.Title, s.HTML); err != nil {
 		return err
 	}
+	for _, file := range s.Files {
+		if _, err := tx.ExecContext(
+			ctx,
+			`INSERT INTO problem_statement_file(problem_id, language, file_hash, file_path) VALUES($1, $2, $3, $4)`,
+			s.ProblemID, s.Language, file.Content.Hash, file.Path); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

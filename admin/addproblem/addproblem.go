@@ -75,17 +75,29 @@ func getOutputValidator(ctx context.Context, val *runpb.Program) (*models.Output
 	}, nil
 }
 
-func getStatements(statements []*toolspb.ProblemStatement) []*models.ProblemStatement {
+func getStatements(ctx context.Context, statements []*toolspb.ProblemStatement) ([]*models.ProblemStatement, error) {
 	var storage []*models.ProblemStatement
 	for _, s := range statements {
+		var statementFiles []*models.ProblemStatementFile
+		for name, path := range s.StatementFiles {
+			stored, err := insertFile(ctx, path)
+			if err != nil {
+				return nil, err
+			}
+			statementFiles = append(statementFiles, &models.ProblemStatementFile{
+				Path:    name,
+				Content: stored,
+			})
+		}
 		storage = append(storage,
 			&models.ProblemStatement{
 				Language: s.LanguageCode,
 				Title:    s.Title,
 				HTML:     s.StatementHtml,
+				Files:    statementFiles,
 			})
 	}
-	return storage
+	return storage, nil
 }
 
 func insertFile(ctx context.Context, path string) (*models.StoredFile, error) {
@@ -240,6 +252,10 @@ func installProblem(path string) error {
 	if err != nil {
 		return err
 	}
+	statements, err := getStatements(ctx, problem.Statements)
+	if err != nil {
+		return err
+	}
 	problemVersion := &models.ProblemVersion{
 		TestGroups:      storageTestGroups,
 		TimeLimMS:       problem.Metadata.Limits.TimeLimitMs,
@@ -248,7 +264,7 @@ func installProblem(path string) error {
 	}
 	storageProblem := &models.Problem{
 		ShortName:      problem.Metadata.ProblemId,
-		Statements:     getStatements(problem.Statements),
+		Statements:     statements,
 		License:        models.License(problem.Metadata.License.String()),
 		Author:         problem.Metadata.Author,
 		Source:         problem.Metadata.Source,
