@@ -8,6 +8,11 @@
             <div class="mdl-color-text--grey-600 mdl-card__supporting-text">
               <table>
                 <tr>
+                  <td><strong>Maxpoäng:</strong></td>
+                  <td>{{ .D.Problem.CurrentVersion.MaxScore }}</td>
+                </tr>
+                <tr>
+                <tr>
                   <td><strong>Tidsgräns:</strong></td>
                   <td>{{ .D.Problem.CurrentVersion.TimeLimString }}</td>
                 </tr>
