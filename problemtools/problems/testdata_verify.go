@@ -12,7 +12,7 @@ import (
 )
 
 var isTestGroupName = regexp.MustCompile(`^[a-z0-9]+$`).MatchString
-var isTestCaseName = regexp.MustCompile(`^[a-z0-9\-_]+$`).MatchString
+var isTestCaseName = regexp.MustCompile(`^[a-z0-9\-_\.]+$`).MatchString
 
 func verifyTestdata(ctx context.Context, problem *toolspb.Problem, validators []*runpb.CompiledProgram, runner runpb.RunServiceClient, reporter util.Reporter) error {
 	for _, g := range problem.TestGroups {
@@ -24,7 +24,7 @@ func verifyTestdata(ctx context.Context, problem *toolspb.Problem, validators []
 		}
 		for _, tc := range g.Tests {
 			if !isTestCaseName(tc.Name) {
-				reporter.Err("Invalid test case name: %v [a-z0-9\\-_]", tc.Name)
+				reporter.Err("Invalid test case name: %v [a-z0-9\\-_\\.]", tc.Name)
 			}
 		}
 		if err := verifyTestCaseFormats(ctx, g, validators, runner, reporter); err != nil {

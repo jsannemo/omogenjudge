@@ -7,10 +7,12 @@
           <div class="mdl-card mdl-shadow--2dp" style="width: 100%; height: auto; min-height: 0">
             <div class="mdl-color-text--grey-600 mdl-card__supporting-text">
               <table>
-                <tr>
-                  <td><strong>Maxpoäng:</strong></td>
-                  <td>{{ .D.Problem.CurrentVersion.MaxScore }}</td>
-                </tr>
+                {{ if .D.Problem.CurrentVersion.MaxScore }}
+                  <tr>
+                    <td><strong>Maxpoäng:</strong></td>
+                    <td>{{ .D.Problem.CurrentVersion.MaxScore }}</td>
+                  </tr>
+                {{ end }}
                 <tr>
                 <tr>
                   <td><strong>Tidsgräns:</strong></td>
@@ -30,12 +32,12 @@
                   Logga in för att skicka in lösningar
                 </a>
               {{ else if and .C.Contest (not .C.Team) }}
-                  {{ template "helper_contest_register" "Anmäl dig för att skicka in lösningar"}}
-                {{ else }}
-                  <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ .D.Problem.SubmitLink }}">
-                    Skicka in
-                  </a>
-                {{ end }}
+                {{ template "helper_contest_register" "Anmäl dig för att skicka in lösningar"}}
+              {{ else }}
+                <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ .D.Problem.SubmitLink }}">
+                  Skicka in
+                </a>
+              {{ end }}
             </div>
           </div>
 
@@ -57,12 +59,12 @@
       </div>
     </article>
     <script>
-    new ClipboardJS('.copy-sample-btn', {
-      target: function(trigger) {
+      new ClipboardJS('.copy-sample-btn', {
+        target: function(trigger) {
           showTooltip(trigger,'Copied!');
           return trigger.parentElement.nextElementSibling;
-      }
-    });
+        }
+      });
     </script>
   </section>
 {{ end }}
