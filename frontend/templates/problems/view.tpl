@@ -51,5 +51,13 @@
         </div>
       </div>
     </article>
+    <script>
+    new ClipboardJS('.copy-sample-btn', {
+      target: function(trigger) {
+          showTooltip(trigger,'Copied!');
+          return trigger.parentElement.nextElementSibling;
+      }
+    });
+    </script>
   </section>
 {{ end }}
