@@ -144,7 +144,8 @@ func includeTests(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) e
 	output_file_hash "output_file.hash",
 	file_url(output_file_hash) "output_file.url"
 	FROM problem_testcase
-	NATURAL JOIN problem_testgroup ` + filter
+	NATURAL JOIN problem_testgroup ` + filter +
+	` ORDER BY testcase_name`
 	var tests []*models.TestCase
 	if err := db.Conn().SelectContext(ctx, &tests, query, pv.ProblemVersionID); err != nil {
 		return err
