@@ -14,22 +14,13 @@ type ViewParams struct {
 }
 
 func ViewHandler(r *request.Request) (request.Response, error) {
-	contest := r.Context.Contest
-	if contest != nil && !contest.Started(r.Context.Team) {
-		return request.NotFound(), nil
-	}
 	vars := mux.Vars(r.Request)
-	probs, err := problems.List(r.Request.Context(),
-		problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamplesAndGroups},
-		problems.ListFilter{ShortName: vars[paths.ProblemNameArg]})
+	problem, err := getProblemIfVisible(r, vars[paths.ProblemNameArg],
+		problems.ListArgs{WithStatements: problems.StmtAll, WithTests: problems.TestsSamplesAndGroups})
 	if err != nil {
 		return nil, err
 	}
-	if len(probs) == 0 {
-		return request.NotFound(), nil
-	}
-	problem := probs[0]
-	if contest != nil && !contest.HasProblem(problem.ProblemID) {
+	if problem == nil {
 		return request.NotFound(), nil
 	}
 	return request.Template("problems_view", &ViewParams{problem}), nil

@@ -78,6 +78,15 @@ func (rawResponse) Code() int {
 	return http.StatusOK
 }
 
+type rawBytesResponse struct {
+	// The raw data that should be passed to the client
+	Content []byte
+}
+
+func (rawBytesResponse) Code() int {
+	return http.StatusOK
+}
+
 type redirectResponse struct {
 	// The path the client should be redirected to
 	Path string
@@ -134,6 +143,11 @@ func Raw(content string) Response {
 	return &rawResponse{content}
 }
 
+// Raw returns a Response that renders raw content to the client.
+func RawBytes(content []byte) Response {
+	return &rawBytesResponse{content}
+}
+
 // Write writes the Response currently stored in the request to the client.
 func (req *Request) Write(w http.ResponseWriter) {
 	switch r := req.Response.(type) {
@@ -144,7 +158,14 @@ func (req *Request) Write(w http.ResponseWriter) {
 		w.Header().Set("Location", r.Path)
 		w.WriteHeader(r.Code())
 	case *rawResponse:
-		w.Write([]byte(r.Content))
+		if _, err := w.Write([]byte(r.Content)); err != nil {
+			logger.Errorf("Failed writing content: %v", err)
+		}
+		w.WriteHeader(r.Code())
+	case *rawBytesResponse:
+		if _, err := w.Write(r.Content); err != nil {
+			logger.Errorf("Failed writing content: %v", err)
+		}
 		w.WriteHeader(r.Code())
 	case *templateResponse:
 		err := templates.ExecuteTemplates(w, r.Name,

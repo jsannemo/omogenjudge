@@ -41,6 +41,8 @@ message ProblemStatement {
 
   // The parsed HTML of the problem statement.
   string statement_html = 3;
+
+  map<string, string> statement_files = 4;
 }
 
 // A test case group containing a set of testcases.
