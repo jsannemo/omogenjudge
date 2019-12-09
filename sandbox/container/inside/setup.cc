@@ -140,9 +140,9 @@ static vector<const char*> GetEnv(
     ReplaceStreams(new_fds);
     execve(argv[0], const_cast<char**>(argv), const_cast<char**>(env.data()));
     exit(255);
-  } catch (InitException e) {
-    RAW_LOG(ERROR, "Caught exception: %s", e.what());
-    WriteToFd(error_pipe, e.what());
+  } catch (InitException* e) {
+    RAW_LOG(ERROR, "Caught exception: %s", e->what());
+    WriteToFd(error_pipe, e->what());
     close(error_pipe);
     abort();
   }

@@ -26,7 +26,7 @@ std::unique_ptr<ContainerId> ContainerIds::Get() {
   LOG(INFO) << "Claiming container ID " << ret->Get();
   container_ids.pop_back();
   mutex.Unlock();
-  return std::move(ret);
+  return ret;
 }
 
 ContainerId& ContainerId::operator=(ContainerId&& other) {
