@@ -161,12 +161,10 @@ func (req *Request) Write(w http.ResponseWriter) {
 		if _, err := w.Write([]byte(r.Content)); err != nil {
 			logger.Errorf("Failed writing content: %v", err)
 		}
-		w.WriteHeader(r.Code())
 	case *rawBytesResponse:
 		if _, err := w.Write(r.Content); err != nil {
 			logger.Errorf("Failed writing content: %v", err)
 		}
-		w.WriteHeader(r.Code())
 	case *templateResponse:
 		err := templates.ExecuteTemplates(w, r.Name,
 			struct {

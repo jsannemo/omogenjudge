@@ -24,8 +24,6 @@
                 </tr>
               </table>
             </div>
-            <strong>
-            </strong>
             <div class="mdl-card__actions mdl-card--border">
               {{ if not .C.User }}
                 <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="{{ path "login" }}">
@@ -40,7 +38,14 @@
               {{ end }}
             </div>
           </div>
-
+          {{ if .D.Problem.StatementFiles }}
+            <div class="mdl-card mdl-shadow--2dp" style="margin-top: 25px; padding: 10px 25px; width: auto; height: auto; min-height: 0">
+                <strong>Bifogade filer</strong>
+                {{ range .D.Problem.StatementFiles }}
+                  <a href="{{ path "problem_file" "problem_name" $.D.Problem.ShortName "problem_file_name" .Path }}">{{ .Path }}</a>
+                {{ end }}
+            </div>
+          {{ end }}
         </div>
         <div class="mdl-shadow--2dp mdl-cell mdl-cell--7-col" style="padding: 0 25px">
           <h1 class="display">{{ .D.Problem.LocalizedTitle $.C.Locales }}</h1>
