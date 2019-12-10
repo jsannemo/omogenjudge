@@ -31,10 +31,8 @@ func templates() *template.Template {
 		map[string]interface{}{
 			"language": util.GetLanguage,
 			"durationToSeconds": func(dur time.Duration) string {
-				//fmt.Println(dir)
 				secs := dur.Truncate(time.Second) / time.Second
 				return fmt.Sprintf("%d",secs)
-				//return fmt.Sprintf("%d",secs)
 			},
 			"interval": func(dur time.Duration) string {
 				secs := dur.Truncate(time.Second) / time.Second
