@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package omogen.problemtools;
 
-import "runner/api/program.proto";
 import "runner/api/eval.proto";
+import "runner/api/program.proto";
 
 // A problem parsed from a folder.
 message Problem {
@@ -16,6 +16,12 @@ message Problem {
   repeated omogen.runner.Program input_validators = 4;
   omogen.runner.Program output_validator = 5;
   repeated Submission submissions = 6;
+  repeated IncludedFiles included_files = 7;
+}
+
+message IncludedFiles {
+  string language_id = 1;
+  map<string, string> file_contents = 2;
 }
 
 // Problem metadata is things relating to the problem, such as judging limits,

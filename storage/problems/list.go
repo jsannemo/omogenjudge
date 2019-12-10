@@ -82,6 +82,9 @@ func List(ctx context.Context, args ListArgs, filter ListFilter) (models.Problem
 		if err := includeTests(ctx, p.CurrentVersion, args.WithTests); err != nil {
 			return nil, err
 		}
+		if err := includeIncludedCode(ctx, p.CurrentVersion, args.WithTests); err != nil {
+			return nil, err
+		}
 	}
 	return probs, nil
 }
@@ -212,6 +215,22 @@ func includeStatements(ctx context.Context, ps models.ProblemMap, arg StmtOpt) e
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+func includeIncludedCode(ctx context.Context, pv *models.ProblemVersion, opt TestOpt) error {
+	if opt != TestsAll {
+		return nil
+	}
+	query := `
+		SELECT
+			language_id,
+			inclusion_files
+		FROM problem_included_files
+		WHERE problem_version_id = $1`
+	if err := db.Conn().SelectContext(ctx, &pv.IncludedFiles, query, pv.ProblemVersionID); err != nil {
+		return err
 	}
 	return nil
 }

@@ -3,6 +3,8 @@ package models
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/jmoiron/sqlx/types"
 )
 
 // A ProblemVersion contains the judging-specific information of a problem that affect submission evaluation.
@@ -13,6 +15,7 @@ type ProblemVersion struct {
 	MemLimKB         int32            `db:"memory_limit_kb"`
 	OutputValidator  *OutputValidator `db:"validator"`
 	TestGroups       TestGroupList
+	IncludedFiles    []*IncludedFiles
 }
 
 // Samples returns the test cases that should be publicly visible for the problem.
@@ -49,4 +52,9 @@ func (p *ProblemVersion) MaxScore() int32 {
 type OutputValidator struct {
 	ValidatorLanguageID sql.NullString     `db:"language_id"`
 	ValidatorSourceZIP  *NilableStoredFile `db:"validator_source_zip"`
+}
+
+type IncludedFiles struct {
+	LanguageId     string         `db:"language_id"`
+	InclusionFiles types.JSONText `db:"inclusion_files"`
 }

@@ -3,6 +3,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "included_files_parse.go",
+        "included_files_verify.go",
         "input_validator_parse.go",
         "input_validator_verify.go",
         "metadata_parse.go",

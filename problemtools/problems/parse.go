@@ -48,6 +48,11 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 		return nil, err
 	}
 
+	includedFiles, err := parseIncludedFiles(path, parseReporter)
+	if err != nil {
+		return nil, err
+	}
+
 	problem := &toolspb.Problem{
 		Statements:      statements,
 		Metadata:        metadata,
@@ -55,6 +60,7 @@ func ParseProblem(path string) (*toolspb.ParseProblemResponse, error) {
 		OutputValidator: outputValidator,
 		InputValidators: inputValidators,
 		Submissions:     submissions,
+		IncludedFiles:   includedFiles,
 	}
 	return &toolspb.ParseProblemResponse{
 		ParsedProblem: problem,
