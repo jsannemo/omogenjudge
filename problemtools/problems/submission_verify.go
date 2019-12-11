@@ -3,18 +3,20 @@ package problems
 import (
 	"context"
 	"fmt"
-	"github.com/jsannemo/omogenjudge/util/go/cli"
 	"io"
+	"os"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
 	"github.com/jsannemo/omogenjudge/problemtools/util"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
+	"github.com/jsannemo/omogenjudge/runner/language"
+	"github.com/jsannemo/omogenjudge/util/go/cli"
 	"github.com/jsannemo/omogenjudge/util/go/files"
 	"github.com/jsannemo/omogenjudge/util/go/strings"
 	"github.com/jsannemo/omogenjudge/util/go/users"
 )
 
-func verifySubmissions(ctx context.Context, path string, problem *toolspb.Problem, outputValidator *runpb.CompiledProgram, runner runpb.RunServiceClient, reporter util.Reporter) error {
+func verifySubmissions(ctx context.Context, problem *toolspb.Problem, outputValidator *runpb.CompiledProgram, runner runpb.RunServiceClient, reporter util.Reporter) error {
 	// If a time limit is specified, use it. Otherwise, we set a high value so we can determine time limit from the
 	// submissions.
 	tl := problem.Metadata.Limits.TimeLimitMs
@@ -53,6 +55,7 @@ func verifySubmission(ctx context.Context, submission *toolspb.Submission, timel
 	// TODO(jsannemo): remove the submission directory afterwards
 	id := strings.RandStr(8) // 8*6 = 48 bits of entropy
 	root := files.NewFileBase(fmt.Sprintf("/var/lib/omogen/submissions/%s", id))
+	defer os.RemoveAll(root.Path())
 	root.Gid = users.OmogenClientsID()
 	root.GroupWritable = true
 	if err := root.Mkdir("."); err != nil {
@@ -61,6 +64,17 @@ func verifySubmission(ctx context.Context, submission *toolspb.Submission, timel
 	path, err := root.FullPath("compiled")
 	if err != nil {
 		panic(err)
+	}
+	for _, include := range problem.IncludedFiles {
+		submissionLang, ok := language.GetLanguage(submission.Submission.LanguageId)
+		if ok && language.TagName(submissionLang.LanguageGroup) == include.LanguageId {
+			for name, contents := range include.FileContents {
+				submission.Submission.Sources = append(submission.Submission.Sources, &runpb.SourceFile{
+					Path:     name,
+					Contents: contents,
+				})
+			}
+		}
 	}
 	resp, err := runner.Compile(ctx, &runpb.CompileRequest{
 		Program:    submission.Submission,

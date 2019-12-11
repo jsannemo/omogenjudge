@@ -59,3 +59,24 @@ func registerLanguage(language *Language) {
 	logger.Infof("Registering language: %v", *language)
 	languages[language.Id] = language
 }
+
+func TagName(group runpb.LanguageGroup) string {
+	switch group {
+	case runpb.LanguageGroup_CPP_11:
+		fallthrough
+	case runpb.LanguageGroup_CPP_14:
+		fallthrough
+	case runpb.LanguageGroup_CPP_17:
+		return "cpp"
+	case runpb.LanguageGroup_PYTHON_2:
+		fallthrough
+	case runpb.LanguageGroup_PYTHON_2_PYPY:
+		return "python2"
+	case runpb.LanguageGroup_PYTHON_3:
+		fallthrough
+	case runpb.LanguageGroup_PYTHON_3_PYPY:
+		return "python3"
+	default:
+		return ""
+	}
+}

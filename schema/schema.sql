@@ -65,6 +65,14 @@ CREATE TABLE problem_output_validator(
 
 GRANT ALL ON problem_output_validator TO omogenjudge;
 
+CREATE TABLE problem_included_files(
+   problem_version_id INTEGER NOT NULL REFERENCES problem_version ON DELETE CASCADE,
+   language_id TEXT NOT NULL,
+   inclusion_files json NOT NULL
+);
+
+GRANT ALL ON problem_included_files TO omogenjudge;
+
 CREATE TABLE problem_statement(
 	problem_id INTEGER NOT NULL REFERENCES problem ON DELETE CASCADE,
 	language TEXT NOT NULL,

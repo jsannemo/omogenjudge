@@ -27,11 +27,13 @@ func VerifyProblem(ctx context.Context, req *toolspb.VerifyProblemRequest, runne
 		return nil, err
 	}
 
+	verifyIncludedFiles(problem.IncludedFiles, verifyReporter)
+
 	if err := verifyTestdata(ctx, problem, inputValidators, runner, verifyReporter); err != nil {
 		return nil, err
 	}
 
-	if err := verifySubmissions(ctx, path, problem, outputValidator, runner, verifyReporter); err != nil {
+	if err := verifySubmissions(ctx, problem, outputValidator, runner, verifyReporter); err != nil {
 		return nil, err
 	}
 

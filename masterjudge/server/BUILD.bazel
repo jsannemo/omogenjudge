@@ -12,6 +12,7 @@ go_library(
         "//masterjudge/service:go_default_library",
         "//runner/api:go_default_library",
         "//runner/client:go_default_library",
+        "//runner/language:go_default_library",
         "//storage/models:go_default_library",
         "//storage/problems",
         "//storage/submissions:go_default_library",

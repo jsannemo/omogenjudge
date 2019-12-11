@@ -136,6 +136,21 @@ func setCurrentVersion(ctx context.Context, problem *models.Problem, tx *sqlx.Tx
 	return err
 }
 
+func insertIncludedFiles(ctx context.Context, version *models.ProblemVersion, tx *sqlx.Tx) error {
+	for _, include := range version.IncludedFiles {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO
+				problem_included_files(problem_version_id, inclusion_files, language_id)
+			VALUES($1, $2, $3)`,
+			version.ProblemVersionID,
+			include.InclusionFiles,
+			include.LanguageId); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func insertProblemVersion(ctx context.Context, version *models.ProblemVersion, tx *sqlx.Tx) error {
 	if err := tx.QueryRowContext(ctx, `
     INSERT INTO
@@ -149,6 +164,9 @@ func insertProblemVersion(ctx context.Context, version *models.ProblemVersion, t
 	}
 	if err := insertOutputValidator(ctx, version, tx); err != nil {
 		return fmt.Errorf("failed persisting output validator: %v", err)
+	}
+	if err := insertIncludedFiles(ctx, version, tx); err != nil {
+		return fmt.Errorf("failed persisting included files: %v", err)
 	}
 	for _, tg := range version.TestGroups {
 		tg.ProblemVersionID = version.ProblemVersionID

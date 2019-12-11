@@ -37,8 +37,10 @@
                 <td class="mdl-data-table__cell--non-numeric">
                   {{ if $g.PublicVisibility }}
                     Exempelfall
-                  {{ else }}
+                  {{ else if not (eq $g.Score 0) }}
                     Grupp {{ $i }}
+                  {{ else }}
+                    Testdata
                   {{ end }}
                 </td>
                 <td>

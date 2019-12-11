@@ -48,10 +48,10 @@ func (l Language) Name() string {
 		return "C++ 17"
 	case runpb.LanguageGroup_PYTHON_2:
 		return "Python 2"
-	case runpb.LanguageGroup_PYTHON_3:
-		return "Python 3"
 	case runpb.LanguageGroup_PYTHON_2_PYPY:
 		return "Python 2 - PyPy"
+	case runpb.LanguageGroup_PYTHON_3:
+		return "Python 3"
 	case runpb.LanguageGroup_PYTHON_3_PYPY:
 		return "Python 3 - PyPy"
 	}
@@ -68,9 +68,11 @@ func (l Language) DefaultFile() string {
 		return "main.cpp"
 	case runpb.LanguageGroup_PYTHON_2:
 		fallthrough
+	case runpb.LanguageGroup_PYTHON_2_PYPY:
+		fallthrough
 	case runpb.LanguageGroup_PYTHON_3:
 		fallthrough
-	case runpb.LanguageGroup_PYTHON_2_PYPY:
+	case runpb.LanguageGroup_PYTHON_3_PYPY:
 		return "main.py"
 	default:
 		return "main"
@@ -87,9 +89,11 @@ func (l Language) VsName() string {
 		return "cpp"
 	case runpb.LanguageGroup_PYTHON_2:
 		fallthrough
+	case runpb.LanguageGroup_PYTHON_2_PYPY:
+		fallthrough
 	case runpb.LanguageGroup_PYTHON_3:
 		fallthrough
-	case runpb.LanguageGroup_PYTHON_2_PYPY:
+	case runpb.LanguageGroup_PYTHON_3_PYPY:
 		return "python"
 	default:
 		return ""

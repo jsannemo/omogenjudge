@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -176,6 +177,21 @@ func getTestGroups(ctx context.Context, testGroups []*toolspb.TestGroup) ([]*mod
 	return groups, nil
 }
 
+func getIncludedFiles(includedFiles []*toolspb.IncludedFiles) ([]*models.IncludedFiles, error) {
+	var res []*models.IncludedFiles
+	for _, include := range includedFiles {
+		filesJson, err := json.Marshal(include.FileContents)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, &models.IncludedFiles{
+			LanguageId:     include.LanguageId,
+			InclusionFiles: filesJson,
+		})
+	}
+	return res, nil
+}
+
 func makeInstallationDirectory(tmpDir, problemPath, problemName string) (string, error) {
 	fb := futil.NewFileBase(tmpDir)
 	fb.Gid = users.OmogenClientsID()
@@ -208,6 +224,9 @@ func installProblem(path string) error {
 	defer os.RemoveAll(tmp)
 	problemName := filepath.Base(path)
 	npath, err := makeInstallationDirectory(tmp, path, problemName)
+	if err != nil {
+		return err
+	}
 
 	ctx := context.Background()
 	client := ptclient.NewClient()
@@ -274,11 +293,16 @@ func installProblem(path string) error {
 	if err != nil {
 		return err
 	}
+	includedFiles, err := getIncludedFiles(problem.IncludedFiles)
+	if err != nil {
+		return err
+	}
 	problemVersion := &models.ProblemVersion{
 		TestGroups:      storageTestGroups,
 		TimeLimMS:       problem.Metadata.Limits.TimeLimitMs,
 		MemLimKB:        problem.Metadata.Limits.MemoryLimitKb,
 		OutputValidator: outputValidator,
+		IncludedFiles:   includedFiles,
 	}
 	storageProblem := &models.Problem{
 		ShortName:      problem.Metadata.ProblemId,

@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/google/logger"
-	"github.com/jsannemo/omogenjudge/masterjudge/queue"
 	"google.golang.org/grpc"
 	"io"
 	"io/ioutil"
@@ -19,9 +18,11 @@ import (
 
 	filepb "github.com/jsannemo/omogenjudge/filehandler/api"
 	fhclient "github.com/jsannemo/omogenjudge/filehandler/client"
+	"github.com/jsannemo/omogenjudge/masterjudge/queue"
 	"github.com/jsannemo/omogenjudge/masterjudge/service"
 	runpb "github.com/jsannemo/omogenjudge/runner/api"
 	rclient "github.com/jsannemo/omogenjudge/runner/client"
+	"github.com/jsannemo/omogenjudge/runner/language"
 	"github.com/jsannemo/omogenjudge/storage/models"
 	"github.com/jsannemo/omogenjudge/storage/problems"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
@@ -78,7 +79,7 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 	logger.Infof("Judging run %d", run.SubmissionRunID)
 	subs, err := submissions.ListSubmissions(ctx,
 		submissions.ListArgs{WithFiles: true},
-		submissions.ListFilter{Submissions: &submissions.SubmissionFilter{[]int32{run.SubmissionID}}})
+		submissions.ListFilter{Submissions: &submissions.SubmissionFilter{SubmissionIDs: []int32{run.SubmissionID}}})
 	if err != nil {
 		return err
 	}
@@ -86,13 +87,6 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		return fmt.Errorf("could not find submission %d", run.SubmissionID)
 	}
 	submission := subs[0]
-	var compileErr *error = nil
-	compileOutput := make(chan *runpb.CompileResponse)
-	go compile(ctx, submission, compileOutput, &compileErr)
-	run.Status = models.StatusCompiling
-	if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus}}); err != nil {
-		return fmt.Errorf("failed setting run as compiling: %v", err)
-	}
 	probs, err := problems.List(ctx, problems.ListArgs{WithTests: problems.TestsAll}, problems.Problems(submission.ProblemID))
 	if err != nil {
 		return fmt.Errorf("failed retreiving problem info: %v", err)
@@ -101,6 +95,33 @@ func judge(ctx context.Context, run *models.SubmissionRun) error {
 		return fmt.Errorf("requested problem %d, got %d problems", submission.ProblemID, len(probs))
 	}
 	problem := probs[0]
+	includedFiles := problem.CurrentVersion.IncludedFiles
+	for _, included := range includedFiles {
+		subLang, ok := language.GetLanguage(submission.Language)
+		if !ok {
+			return fmt.Errorf("could not find language %v", submission.Language)
+		}
+		if included.LanguageId == language.TagName(subLang.LanguageGroup) {
+			var files map[string]string
+			if err := included.InclusionFiles.Unmarshal(&files); err != nil {
+				return err
+			}
+			for name, content := range files {
+				submission.Files = append(submission.Files, &models.SubmissionFile{
+					Path:     name,
+					Contents: content,
+				})
+			}
+		}
+	}
+
+	var compileErr *error = nil
+	compileOutput := make(chan *runpb.CompileResponse)
+	go compile(ctx, submission, compileOutput, &compileErr)
+	run.Status = models.StatusCompiling
+	if err := submissions.UpdateRun(ctx, run, submissions.UpdateRunArgs{Fields: []submissions.RunField{submissions.RunFieldStatus}}); err != nil {
+		return fmt.Errorf("failed setting run as compiling: %v", err)
+	}
 
 	var testHandles []*filepb.FileHandle
 	for _, tg := range problem.CurrentVersion.TestGroups {
@@ -247,6 +268,10 @@ func main() {
 	runner, err = rclient.NewClient()
 	if err != nil {
 		logger.Fatalf("Failed creating runner client: %v", err)
+	}
+	err = language.Init()
+	if err != nil {
+		logger.Fatalf("Failed initializing languages: %v", err)
 	}
 	filehandler = fhclient.NewClient()
 
