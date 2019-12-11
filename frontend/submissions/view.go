@@ -1,6 +1,7 @@
 package submissions
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/jsannemo/omogenjudge/frontend/paths"
@@ -25,7 +26,7 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	}
 	subs, err := submissions.ListSubmissions(r.Request.Context(),
 		submissions.ListArgs{WithFiles: true, WithRun: true, WithGroupRuns: true},
-		submissions.ListFilter{Submissions: &submissions.SubmissionFilter{[]int32{int32(subId)}}})
+		submissions.ListFilter{Submissions: &submissions.SubmissionFilter{SubmissionIDs: []int32{int32(subId)}}})
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +43,10 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	if r.Context.Contest != nil && !r.Context.Contest.HasProblem(sub.ProblemID) {
+	if len(probs) != 1 {
+		return request.Error(fmt.Errorf("could not find problem for submission")), nil
+	}
+	if !r.Context.CanSeeProblem(probs[0]) {
 		return request.NotFound(), nil
 	}
 	return request.Template("submissions_view", &ViewParams{probs.AsMap(), sub}), nil

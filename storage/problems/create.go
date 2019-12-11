@@ -120,10 +120,10 @@ func insertProblem(ctx context.Context, problem *models.Problem, tx *sqlx.Tx) er
 	return tx.QueryRowContext(ctx,
 		`
     INSERT INTO
-      problem(short_name, author, source, license)
-    VALUES($1, $2, $3, $4)
+      problem(short_name, author, source, license, public_from)
+    VALUES($1, $2, $3, $4, $5)
     RETURNING problem_id`,
-		problem.ShortName, problem.Author, problem.Source, problem.License).Scan(&problem.ProblemID)
+		problem.ShortName, problem.Author, problem.Source, problem.License, problem.PublicFrom).Scan(&problem.ProblemID)
 }
 
 func setCurrentVersion(ctx context.Context, problem *models.Problem, tx *sqlx.Tx) error {

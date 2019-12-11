@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/google/logger"
 
 	toolspb "github.com/jsannemo/omogenjudge/problemtools/api"
@@ -312,6 +313,13 @@ func installProblem(path string) error {
 		Author:         problem.Metadata.Author,
 		Source:         problem.Metadata.Source,
 		CurrentVersion: problemVersion,
+	}
+	if problem.Metadata.PublicFrom != nil {
+		ts, err := ptypes.Timestamp(problem.Metadata.PublicFrom)
+		if err != nil {
+			panic(err)
+		}
+		storageProblem.PublicFrom = &ts
 	}
 	if err := problems.CreateProblem(ctx, storageProblem); err != nil {
 		if err == problems.ErrDuplicateProblemName {

@@ -28,7 +28,7 @@ func (c *Contest) Flexible() bool {
 }
 
 func (c *Contest) Started(team *Team) bool {
-	if c.FlexibleEndTime.Valid {
+	if c.Flexible() {
 		if team == nil {
 			return false
 		}
@@ -46,7 +46,7 @@ func (c *Contest) FullStart() bool {
 }
 
 func (c *Contest) Over(team *Team) bool {
-	if !c.FlexibleEndTime.Valid {
+	if !c.Flexible() {
 		return c.FullEndTime().Before(time.Now())
 	}
 	if !team.StartTime.Valid {
@@ -60,8 +60,19 @@ func (c *Contest) FullOver() bool {
 	return c.FullEndTime().Before(time.Now())
 }
 
+func (c *Contest) RegistrationClosed() bool {
+	return c.RegistrationLimit().Before(time.Now())
+}
+
+func (c *Contest) RegistrationLimit() time.Time {
+	if c.Flexible() {
+		return c.FlexibleEndTime.Time.Add(-c.Duration)
+	}
+	return c.FullEndTime()
+}
+
 func (c *Contest) EndTime(team *Team) time.Time {
-	if c.FlexibleEndTime.Valid {
+	if c.Flexible() {
 		return team.StartTime.Time.Add(c.Duration)
 	}
 	return c.FullEndTime()
@@ -112,11 +123,16 @@ func (c *Contest) MaxScore() int32 {
 }
 
 func (c *Contest) CanSeeScoreboard(team *Team) bool {
-	if c.HiddenScoreboard {
-		return c.FullOver() || (team != nil && c.Over(team))
+	if c.FullOver() {
+		return true
 	}
-	if !c.Started(team) {
-		return false
+	// Ongoing contests with hidden scoreboard may still be displayed if the contest is over for a given team.
+	if c.HiddenScoreboard {
+		return team != nil && c.Over(team)
+	}
+	// Open scoreboards in flexible contests should still be gated behind teams having started.
+	if c.Flexible() {
+		return c.Started(team)
 	}
 	return true
 }

@@ -13,6 +13,7 @@ var ErrAccountInTeam = errors.New("an account was already registered in the cont
 
 // CreateTeam persists a team with its members in the database.
 func CreateTeam(ctx context.Context, team *models.Team) error {
+	// TODO(jsannemo): this transaction should also check again that we didn't register someone too late
 	return db.InTransaction(ctx, func(tx *sqlx.Tx) error {
 		if len(team.Members) == 0 {
 			return fmt.Errorf("team was empty")
@@ -23,12 +24,12 @@ func CreateTeam(ctx context.Context, team *models.Team) error {
 			VALUES($1, $2, false, false, '{}')
 			RETURNING team_id`
 		if err := tx.QueryRowContext(ctx, query, team.ContestID, team.TeamName).Scan(&team.TeamID); err != nil {
-			return fmt.Errorf("failed create contest query: %v", err)
+			return fmt.Errorf("failed create team query: %v", err)
 		}
 		for _, tm := range team.Members {
 			tm.TeamID = team.TeamID
 			if err := insertMember(ctx, team.ContestID, tm, tx); err != nil {
-				return fmt.Errorf("failed insert contest problem: %v", err)
+				return fmt.Errorf("failed insert team member: %v", err)
 			}
 		}
 		return nil

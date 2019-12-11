@@ -24,5 +24,8 @@ proto_library(
         "problem.proto",
         "tools.proto",
     ],
-    deps = ["//runner/api:omogen_runner_proto"],
+    deps = [
+        "//runner/api:omogen_runner_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
 )

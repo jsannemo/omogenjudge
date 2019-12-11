@@ -33,7 +33,8 @@ CREATE TABLE problem(
 	author TEXT NOT NULL,
     source TEXT NOT NULL,
 	license TEXT NOT NULL,
-	current_version INTEGER
+	current_version INTEGER,
+	public_from TIMESTAMP WITH TIME ZONE
 );
 
 CREATE UNIQUE INDEX problem_shortname ON problem(short_name);

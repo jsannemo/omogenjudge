@@ -25,6 +25,15 @@ type RequestContext struct {
 	Locales []language.Tag
 }
 
+func (rc *RequestContext) CanSeeProblem(problem *models.Problem) bool {
+	contest := rc.Contest
+	team := rc.Team
+	if contest != nil {
+		return (contest.Started(team) || contest.CanSeeScoreboard(team)) && contest.HasProblem(problem.ProblemID)
+	}
+	return !problem.Hidden()
+}
+
 // A Request represents a single HTTP request.
 type Request struct {
 	Writer   http.ResponseWriter

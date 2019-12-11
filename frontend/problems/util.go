@@ -15,19 +15,9 @@ func getProblemIfVisible(req *request.Request, shortname string, args problems.L
 		return nil, nil
 	}
 	problem := probs[0]
-	if !problemIsVisible(req.Context.Team, req.Context.Contest, problem) {
+	if !req.Context.CanSeeProblem(problem) {
 		return nil, nil
 	}
 	return problem, nil
 
-}
-
-func problemIsVisible(team *models.Team, contest *models.Contest, problem *models.Problem) bool {
-	if contest != nil && !contest.Started(team) {
-		return false
-	}
-	if contest != nil && !contest.HasProblem(problem.ProblemID) {
-		return false
-	}
-	return true
 }

@@ -19,13 +19,13 @@ func RegisterHandler(r *request.Request) (request.Response, error) {
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
 	// Don't allow registration after the contest ends.
-	if r.Context.Contest.FullOver() {
+	if r.Context.Contest.RegistrationClosed() {
 		return request.Redirect(paths.Route(paths.Home)), nil
 	}
 	if r.Request.Method == http.MethodPost {
 		err := contests.CreateTeam(r.Request.Context(), &models.Team{
 			ContestID: r.Context.Contest.ContestID,
-			Members:   []*models.TeamMember{&models.TeamMember{AccountID: r.Context.UserID}},
+			Members:   []*models.TeamMember{{AccountID: r.Context.UserID}},
 		})
 		if err != nil {
 			return nil, err

@@ -56,6 +56,19 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	nprobs := models.ProblemList{}
+	for _, p := range probs {
+		if r.Context.CanSeeProblem(p) {
+			nprobs = append(nprobs, p)
+		}
+	}
+	probMap := nprobs.AsMap()
+	var nsubs []*models.Submission
+	for _, s := range subs {
+		if _, ok := probMap[s.ProblemID]; ok {
+			nsubs = append(nsubs, s)
+		}
+	}
 	return request.Template("users_view",
-		&ListParams{Submissions: subs, Problems: probs.AsMap(), Filtered: userID != r.Context.UserID, Username: userName}), nil
+		&ListParams{Submissions: nsubs, Problems: probMap, Filtered: userID != r.Context.UserID, Username: userName}), nil
 }
