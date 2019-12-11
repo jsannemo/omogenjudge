@@ -2,13 +2,13 @@ package templates
 
 import (
 	"fmt"
-	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"html/template"
 	"net/http"
 	"time"
 
 	"github.com/Masterminds/sprig"
 
+	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"github.com/jsannemo/omogenjudge/frontend/util"
 )
 
@@ -30,6 +30,9 @@ func templates() *template.Template {
 	tpl := template.New("templates").Funcs(sprig.FuncMap()).Funcs(
 		map[string]interface{}{
 			"language": util.GetLanguage,
+			"durationToSeconds": func(dur time.Duration) int {
+				return int(dur.Truncate(time.Second) / time.Second)
+			},
 			"interval": func(dur time.Duration) string {
 				secs := dur.Truncate(time.Second) / time.Second
 				return fmt.Sprintf("%02d:%02d:%02d", secs/3600, (secs/60)%60, secs%60)

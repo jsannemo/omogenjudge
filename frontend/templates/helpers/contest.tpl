@@ -7,21 +7,21 @@
                         {{ if .C.Contest.FullOver }}
                             Tävlingen är helt avslutad
                         {{ else if not .C.Contest.FullStart }}
-                            Tävlingen börjar om {{ .C.Contest.UntilStart | interval }}
+                            Tävlingen börjar om {{template "timer"  .C.Contest.UntilStart}}
                         {{ else if not (.C.Contest.Started .C.Team) }}
-                            Tävlingen slutar om {{ .C.Contest.UntilFullEnd | interval }}
+                            Tävlingen slutar om {{template "timer"  .C.Contest.UntilFullEnd}}
                         {{ else if .C.Contest.Over .C.Team }}
-                            Din tävling är avslutad. Tävlingen slutar om {{ .C.Contest.UntilFullEnd | interval }}
+                            Din tävling är avslutad. Tävlingen slutar om {{template "timer"  .C.Contest.UntilFullEnd}}
                         {{ else }}
-                            Din tävling slutar om {{ .C.Contest.UntilEnd .C.Team | interval }}
+                            Din tävling slutar om {{template "timer"  .C.Contest.UntilEnd .C.Team}}
                         {{ end }}
                     {{ else }}
                         {{ if .C.Contest.FullOver }}
                             <h1 class="display">Tävlingen är avslutad</h1>
                         {{ else if .C.Contest.FullStart }}
-                            <h1 class="display">Tävlingen slutar om {{ .C.Contest.UntilFullEnd | interval }}</h1>
+                            <h1 class="display">Tävlingen slutar om {{template "timer"  .C.Contest.UntilFullEnd}}</h1>
                         {{ else  }}
-                            <h1 class="display">Tävlingen börjar om {{ .C.Contest.UntilFullStart | interval }}</h1>
+                            <h1 class="display">Tävlingen börjar om {{template "timer"  .C.Contest.UntilFullStart}}</h1>
                         {{ end }}
                     {{ end }}
                 </h1>
@@ -51,5 +51,9 @@
                 </a>
             </div>
         </div>
-    </form>
+    </form> 
 {{ end }}
+
+{{ define "timer" }}
+    <span class="timer" data-duration="{{ . | durationToSeconds}}">{{. | interval}}</span>
+{{end}}
