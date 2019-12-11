@@ -7,21 +7,21 @@
                         {{ if .C.Contest.FullOver }}
                             Tävlingen är helt avslutad
                         {{ else if not .C.Contest.FullStart }}
-                            Tävlingen börjar om {{template "timer_count_down"  .C.Contest.UntilStart}}
+                            Tävlingen börjar om {{template "timer"  .C.Contest.UntilStart}}
                         {{ else if not (.C.Contest.Started .C.Team) }}
-                            Tävlingen slutar om {{template "timer_count_down"  .C.Contest.UntilFullEnd}}
+                            Tävlingen slutar om {{template "timer"  .C.Contest.UntilFullEnd}}
                         {{ else if .C.Contest.Over .C.Team }}
-                            Din tävling är avslutad. Tävlingen slutar om {{template "timer_count_down"  .C.Contest.UntilFullEnd}}
+                            Din tävling är avslutad. Tävlingen slutar om {{template "timer"  .C.Contest.UntilFullEnd}}
                         {{ else }}
-                            Din tävling slutar om {{template "timer_count_down"  .C.Contest.UntilEnd .C.Team}}
+                            Din tävling slutar om {{template "timer"  .C.Contest.UntilEnd .C.Team}}
                         {{ end }}
                     {{ else }}
                         {{ if .C.Contest.FullOver }}
                             <h1 class="display">Tävlingen är avslutad</h1>
                         {{ else if .C.Contest.FullStart }}
-                            <h1 class="display">Tävlingen slutar om {{template "timer_count_down"  .C.Contest.UntilFullEnd}}</h1>
+                            <h1 class="display">Tävlingen slutar om {{template "timer"  .C.Contest.UntilFullEnd}}</h1>
                         {{ else  }}
-                            <h1 class="display">Tävlingen börjar om {{template "timer_count_down"  .C.Contest.UntilFullStart}}</h1>
+                            <h1 class="display">Tävlingen börjar om {{template "timer"  .C.Contest.UntilFullStart}}</h1>
                         {{ end }}
                     {{ end }}
                 </h1>
@@ -54,10 +54,6 @@
     </form> 
 {{ end }}
 
-{{ define "timer_count_up" }}
-    <span class='timer' data-countdir=1 data-time={{ . | durationToSeconds}}></span>
-{{end}}
-
-{{ define "timer_count_down" }}
-    <span class='timer' data-countdir=-1 data-time={{ . | durationToSeconds}}></span>
+{{ define "timer" }}
+    <span class='timer' data-duration={{ . | durationToSeconds}}>{{. | interval}}</span>
 {{end}}
