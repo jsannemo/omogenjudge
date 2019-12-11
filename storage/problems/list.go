@@ -2,6 +2,7 @@ package problems
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -198,21 +199,37 @@ func includeStatements(ctx context.Context, ps models.ProblemMap, arg StmtOpt) e
 	for _, s := range statements {
 		p := ps[s.ProblemID]
 		p.Statements = append(p.Statements, s)
+		if arg == StmtAll {
+			query := `
+				SELECT
+					problem_id, file_path,
+					file_hash "content.hash",
+					file_url(file_hash) "content.url"
+				FROM problem p
+				LEFT JOIN problem_statement_file ps USING(problem_id)
+				WHERE problem_id = $1 AND attachment`
+			if err := conn.SelectContext(ctx, &p.StatementFiles, query, s.ProblemID); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
-func GetStatementFile(ctx context.Context, problemShort string, lang string, path string) (*models.ProblemStatementFile, error) {
+func GetStatementFile(ctx context.Context, problemShort string, path string) (*models.ProblemStatementFile, error) {
 	query := `
 		SELECT
-			problem_id, language, file_path,
+			problem_id, file_path,
 			file_hash "content.hash",
 			file_url(file_hash) "content.url"
 		FROM problem p
 		LEFT JOIN problem_statement_file ps USING(problem_id)
-		WHERE language = $1 AND short_name = $2 AND file_path = $3`
+		WHERE short_name = $1 AND file_path = $2`
 	file := &models.ProblemStatementFile{}
-	if err := db.Conn().GetContext(ctx, file, query, lang, problemShort, path); err != nil {
+	if err := db.Conn().GetContext(ctx, file, query, problemShort, path); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
 		return nil, fmt.Errorf("statement file query failed: %v", err)
 	}
 	return file, nil

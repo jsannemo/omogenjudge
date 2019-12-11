@@ -10,7 +10,7 @@ import (
 )
 
 type statementFilterFunc func(path string) (bool, error)
-type statementParseFunc func(path string, problemName string, reporter util.Reporter) (*toolspb.ProblemStatement, error)
+type statementParseFunc func(path string, problemName string, statementFiles map[string]string, reporter util.Reporter) (*toolspb.ProblemStatement, error)
 
 type statementParser struct {
 	name   string
@@ -22,8 +22,11 @@ var parsers = []*statementParser{
 	markdownParser(),
 }
 
-func parseStatements(path string, reporter util.Reporter) ([]*toolspb.ProblemStatement, error) {
-	statements := make([]*toolspb.ProblemStatement, 0)
+func parseStatements(path string, reporter util.Reporter) (*toolspb.ProblemStatements, error) {
+	statements := &toolspb.ProblemStatements{
+		StatementFiles: make(map[string]string),
+		Attachments:    make(map[string]string),
+	}
 	statementPath := filepath.Join(path, "statements")
 
 	if _, err := os.Stat(statementPath); os.IsNotExist(err) {
@@ -38,26 +41,32 @@ func parseStatements(path string, reporter util.Reporter) ([]*toolspb.ProblemSta
 
 	for _, f := range files {
 		if f.IsDir() {
-			statement, err := parseStatement(filepath.Join(statementPath, f.Name()), filepath.Base(path), reporter)
+			err := parseStatement(statements, filepath.Join(statementPath, f.Name()), filepath.Base(path), reporter)
 			if err != nil {
 				return nil, err
 			}
-			// Statement can be null due to a reporter error that is not a run-time error
-			if statement != nil {
-				statements = append(statements, statement)
-			}
 		}
 	}
+	attachmentPath := filepath.Join(path, "attachments")
+	attachements, err := ioutil.ReadDir(attachmentPath)
+	for _, f := range attachements {
+		if !f.IsDir() {
+			statements.Attachments[f.Name()] = filepath.Join(attachmentPath, f.Name())
+		} else {
+			// TODO(jsannemo): support zipping of directories
+		}
+	}
+
 	return statements, nil
 }
 
-func parseStatement(path string, problemName string, reporter util.Reporter) (*toolspb.ProblemStatement, error) {
+func parseStatement(statements *toolspb.ProblemStatements, path string, problemName string, reporter util.Reporter) error {
 	var found = false
 	var parsedStatement *toolspb.ProblemStatement
 	for _, p := range parsers {
 		match, err := p.filter(path)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if match {
 			if found {
@@ -65,8 +74,9 @@ func parseStatement(path string, problemName string, reporter util.Reporter) (*t
 				break
 			}
 			found = true
-			parsedStatement, err = p.parser(path, problemName, reporter)
+			parsedStatement, err = p.parser(path, problemName, statements.StatementFiles, reporter)
 		}
 	}
-	return parsedStatement, nil
+	statements.Statements = append(statements.Statements, parsedStatement)
+	return nil
 }

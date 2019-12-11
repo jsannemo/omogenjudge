@@ -38,6 +38,9 @@ func CreateProblem(ctx context.Context, p *models.Problem) error {
 				return fmt.Errorf("failed persisting statement: %v", err)
 			}
 		}
+		if err := insertStatementFiles(ctx, p, tx); err != nil {
+			return fmt.Errorf("failed persisting statement files: %v", err)
+		}
 		return nil
 	})
 	return err
@@ -81,11 +84,18 @@ func insertStatement(ctx context.Context, s *models.ProblemStatement, tx *sqlx.T
 		s.ProblemID, s.Language, s.Title, s.HTML); err != nil {
 		return err
 	}
-	for _, file := range s.Files {
+	return nil
+}
+
+func insertStatementFiles(ctx context.Context, p *models.Problem, tx *sqlx.Tx) error {
+	for _, file := range p.StatementFiles {
+		file.ProblemID = p.ProblemID
 		if _, err := tx.ExecContext(
 			ctx,
-			`INSERT INTO problem_statement_file(problem_id, language, file_hash, file_path) VALUES($1, $2, $3, $4)`,
-			s.ProblemID, s.Language, file.Content.Hash, file.Path); err != nil {
+			`INSERT INTO
+    					problem_statement_file(problem_id, file_hash, file_path, attachment)
+    				VALUES($1, $2, $3, $4)`,
+			p.ProblemID, file.Content.Hash, file.Path, file.Attachment); err != nil {
 			return err
 		}
 	}

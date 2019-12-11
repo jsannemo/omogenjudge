@@ -9,9 +9,7 @@ import "runner/api/eval.proto";
 message Problem {
   // Metadata about the problem.
   Metadata metadata = 1;
-  // All statements that were present in the problem.
-  // They have no particular order.
-  repeated ProblemStatement statements = 2;
+  ProblemStatements statements = 2;
   // All test groups that were present in the problem.
   // They have no particular order.
   repeated TestGroup test_groups = 3;
@@ -30,6 +28,18 @@ message Metadata {
   string source = 5;
 }
 
+message ProblemStatements {
+  // All statements that were present in the problem.
+  // They have no particular order.
+  repeated ProblemStatement statements = 1;
+  // Files that should be made for inclusion in the problem statement.
+  // Mapping from public file path to the file path in the system containing the file.
+  map<string, string> statement_files = 2;
+  // Files that should be listed as attachments available for download.
+  // Mapping from public file path to the file path in the system containing the file.
+  map<string, string> attachments = 3;
+}
+
 // A parsed problem statement, possibly in any language.
 message ProblemStatement {
   // A language code, either just a language ("en") or a language with a
@@ -41,8 +51,6 @@ message ProblemStatement {
 
   // The parsed HTML of the problem statement.
   string statement_html = 3;
-
-  map<string, string> statement_files = 4;
 }
 
 // A test case group containing a set of testcases.
