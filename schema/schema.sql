@@ -76,11 +76,12 @@ CREATE TABLE problem_statement(
 GRANT ALL ON problem_statement TO omogenjudge;
 
 CREATE TABLE problem_statement_file(
-	problem_id INTEGER NOT NULL REFERENCES problem_statement ON DELETE CASCADE,
+	problem_id INTEGER NOT NULL,
+	language TEXT NOT NULL,
+	FOREIGN KEY(problem_id, language) REFERENCES problem_statement ON DELETE CASCADE,
 	file_path TEXT NOT NULL,
 	file_hash VARCHAR(256) NOT NULL REFERENCES stored_file,
-	attachment BOOLEAN NOT NULL,
-	PRIMARY KEY(problem_id, file_path)
+	PRIMARY KEY(problem_id, language, file_path)
 );
 
 GRANT ALL ON problem_statement_file TO omogenjudge;

@@ -13,6 +13,7 @@ import (
 func FileHandler(r *request.Request) (request.Response, error) {
 	vars := mux.Vars(r.Request)
 	shortName := vars[paths.ProblemNameArg]
+	lang := vars[paths.ProblemLangArg]
 	path := vars[paths.ProblemFileArg]
 	problem, err := getProblemIfVisible(r, vars[paths.ProblemNameArg], problems.ListArgs{})
 	if err != nil {
@@ -22,7 +23,7 @@ func FileHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 
-	file, err := problems.GetStatementFile(r.Request.Context(), shortName, path)
+	file, err := problems.GetStatementFile(r.Request.Context(), shortName, lang, path)
 	if err == sql.ErrNoRows {
 		return request.NotFound(), nil
 	}
@@ -30,8 +31,5 @@ func FileHandler(r *request.Request) (request.Response, error) {
 		return nil, err
 	}
 	content, err := file.Content.FileData()
-	if file.Attachment {
-		r.Writer.Header().Set("Content-Disposition", "attachment")
-	}
 	return request.RawBytes(content), err
 }

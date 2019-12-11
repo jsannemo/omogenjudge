@@ -19,7 +19,6 @@ type Problem struct {
 	License        License         `db:"license"`
 	CurrentVersion *ProblemVersion `db:"problem_version"`
 	Source         string          `db:"source"`
-	StatementFiles []*ProblemStatementFile
 }
 
 // localizedStatement returns the statement of a problem closest to the ones given in langs.
@@ -63,15 +62,17 @@ type ProblemStatement struct {
 	Title string `db:"title"`
 	// The HTML template of the statement.
 	HTML string `db:"html"`
+
+	Files []*ProblemStatementFile
 }
 
 // A ProblemStatementFile is a file that is used by the text statement of a problem.
 type ProblemStatementFile struct {
 	ProblemID int32 `db:"problem_id"`
 	// The tag of the language that the statement is written in.
-	Path       string      `db:"file_path"`
-	Attachment bool        `db:"attachment"`
-	Content    *StoredFile `db:"content"`
+	Language string      `db:"language"`
+	Path     string      `db:"file_path"`
+	Content  *StoredFile `db:"content"`
 }
 
 // ProblemMap maps problem IDs to problems.

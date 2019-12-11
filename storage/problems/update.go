@@ -41,9 +41,6 @@ func UpdateProblem(ctx context.Context, problem *models.Problem) error {
 		if _, err := tx.ExecContext(ctx, "DELETE FROM problem_statement_file WHERE problem_id = $1", problem.ProblemID); err != nil {
 			return err
 		}
-		if err := insertStatementFiles(ctx, problem, tx); err != nil {
-			return err
-		}
 		for _, s := range problem.Statements {
 			s.ProblemID = problem.ProblemID
 			if err := insertStatement(ctx, s, tx); err != nil {

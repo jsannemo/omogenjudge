@@ -53,7 +53,7 @@ func hasProblemMd(path string) (bool, error) {
 	return false, nil
 }
 
-func parseMarkdown(path string, problemName string, statementFiles map[string]string, reporter util.Reporter) (*toolspb.ProblemStatement, error) {
+func parseMarkdown(path string, problemName string, reporter util.Reporter) (*toolspb.ProblemStatement, error) {
 	dat, err := ioutil.ReadFile(filepath.Join(path, "problem.md"))
 	if err != nil {
 		return nil, err
@@ -89,12 +89,13 @@ func parseMarkdown(path string, problemName string, statementFiles map[string]st
 	}
 
 	renderer := html.NewRenderer(opts)
-	statementHtml := string(markdown.ToHTML(dat, nil, renderer))
+	statement_html := string(markdown.ToHTML(dat, nil, renderer))
 
 	if title == "" {
 		reporter.Err("Statement for language %s had no title", lang)
 	}
 
+	otherFiles := make(map[string]string)
 	subFiles, err := listSubFiles(path)
 	if err != nil {
 		return nil, err
@@ -102,14 +103,15 @@ func parseMarkdown(path string, problemName string, statementFiles map[string]st
 	for _, filePath := range subFiles {
 		name := filepath.Base(filePath)
 		if name != "problem.md" && filePath != path {
-			statementFiles[filepath.Base(path)+"/"+filepath.Base(filePath)] = filePath
+			otherFiles[filepath.Base(filePath)] = filePath
 		}
 	}
 
 	return &toolspb.ProblemStatement{
-		LanguageCode:  lang,
-		Title:         title,
-		StatementHtml: statementHtml,
+		LanguageCode:   lang,
+		Title:          title,
+		StatementHtml:  statement_html,
+		StatementFiles: otherFiles,
 	}, nil
 
 }

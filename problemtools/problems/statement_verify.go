@@ -8,11 +8,10 @@ import (
 )
 
 func verifyStatements(problem *toolspb.Problem, reporter util.Reporter) error {
-	statements := problem.Statements.Statements
-	if len(statements) == 0 {
+	if len(problem.Statements) == 0 {
 		reporter.Err("Problem had no statements")
 	}
-	for _, statement := range statements {
+	for _, statement := range problem.Statements {
 		if statement.Title == "" {
 			reporter.Err("Statement for language %s had no title", statement.LanguageCode)
 		}

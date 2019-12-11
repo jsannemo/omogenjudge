@@ -23,8 +23,8 @@ func configureRouter() *mux.Router {
 	r.HandleFunc("/problems", plain(problems.ListHandler)).Name(paths.ProblemList)
 	r.HandleFunc(fmt.Sprintf("/problems/{%s}", paths.ProblemNameArg), plain(problems.ViewHandler)).Name(paths.Problem)
 	r.HandleFunc(fmt.Sprintf("/problems/{%s}/submit", paths.ProblemNameArg), plain(problems.SubmitHandler)).Name(paths.SubmitProblem)
-	r.HandleFunc(fmt.Sprintf("/problems/{%s}/{%s:.*}",
-		paths.ProblemNameArg, paths.ProblemFileArg),
+	r.HandleFunc(fmt.Sprintf("/problems/{%s}/{%s}/{%s}",
+		paths.ProblemNameArg, paths.ProblemLangArg, paths.ProblemFileArg),
 		plain(problems.FileHandler)).Name(paths.ProblemFile)
 	r.HandleFunc(fmt.Sprintf("/submissions/{%s}", paths.SubmissionIdArg), plain(submissions.ViewHandler)).Name(paths.Submission)
 	r.HandleFunc(fmt.Sprintf("/users/{%s}", paths.UserNameArg), plain(users.ViewHandler)).Name(paths.User)
