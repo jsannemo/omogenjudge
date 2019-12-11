@@ -85,7 +85,7 @@ CREATE TABLE problem_statement(
 GRANT ALL ON problem_statement TO omogenjudge;
 
 CREATE TABLE problem_statement_file(
-	problem_id INTEGER NOT NULL REFERENCES problem_statement ON DELETE CASCADE,
+	problem_id INTEGER NOT NULL REFERENCES problem ON DELETE CASCADE,
 	file_path TEXT NOT NULL,
 	file_hash VARCHAR(256) NOT NULL REFERENCES stored_file,
 	attachment BOOLEAN NOT NULL,
