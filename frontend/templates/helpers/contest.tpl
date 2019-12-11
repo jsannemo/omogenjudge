@@ -55,5 +55,5 @@
 {{ end }}
 
 {{ define "timer" }}
-    <span class='timer' data-duration={{ . | durationToSeconds}}>{{. | interval}}</span>
+    <span class="timer" data-duration="{{ . | durationToSeconds}}">{{. | interval}}</span>
 {{end}}

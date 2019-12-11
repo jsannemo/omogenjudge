@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jsannemo/omogenjudge/frontend/paths"
-
 	"github.com/Masterminds/sprig"
 
+	"github.com/jsannemo/omogenjudge/frontend/paths"
 	"github.com/jsannemo/omogenjudge/frontend/util"
 )
 
@@ -32,8 +31,7 @@ func templates() *template.Template {
 		map[string]interface{}{
 			"language": util.GetLanguage,
 			"durationToSeconds": func(dur time.Duration) int {
-				secs := dur.Truncate(time.Second) / time.Second
-				return int(secs)
+				return int(dur.Truncate(time.Second) / time.Second)
 			},
 			"interval": func(dur time.Duration) string {
 				secs := dur.Truncate(time.Second) / time.Second
