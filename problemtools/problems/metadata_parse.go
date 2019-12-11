@@ -4,7 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/google/logger"
 	"gopkg.in/yaml.v2"
 
@@ -23,10 +25,11 @@ type problemJudging struct {
 }
 
 type problemMetadata struct {
-	Author  string
-	Source  string
-	License string
-	Judging problemJudging
+	Author     string
+	Source     string
+	License    string
+	Judging    problemJudging
+	PublicFrom *time.Time `yaml:"public_from"`
 }
 
 func toLicense(l string, reporter util.Reporter) toolspb.License {
@@ -57,7 +60,7 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 	}
 
 	var md problemMetadata
-	err = yaml.Unmarshal([]byte(dat), &md)
+	err = yaml.Unmarshal(dat, &md)
 	if err != nil {
 		reporter.Err("Invalid problem yaml: %v", err)
 		return nil, nil
@@ -74,15 +77,22 @@ func parseMetadata(path string, reporter util.Reporter) (*toolspb.Metadata, erro
 		timeMultiplier = 4
 	}
 	lic := toLicense(md.License, reporter)
-	return &toolspb.Metadata{
+	metadata := &toolspb.Metadata{
 		ProblemId: filepath.Base(path),
 		Limits: &toolspb.Limits{
 			TimeLimitMs:         int32(1000 * timeLimit),
-			MemoryLimitKb:       int32(1000 * memLimit),
+			MemoryLimitKb:       1000 * memLimit,
 			TimeLimitMultiplier: timeMultiplier,
 		},
 		Author:  md.Author,
 		Source:  md.Source,
 		License: lic,
-	}, nil
+	}
+	if md.PublicFrom != nil {
+		metadata.PublicFrom, err = ptypes.TimestampProto(*md.PublicFrom)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return metadata, nil
 }

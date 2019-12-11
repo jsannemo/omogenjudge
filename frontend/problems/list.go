@@ -20,5 +20,11 @@ func ListHandler(r *request.Request) (request.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return request.Template("problems_list", Params{probs}), nil
+	nprobs := models.ProblemList{}
+	for _, p := range probs {
+		if r.Context.CanSeeProblem(p) {
+			nprobs = append(nprobs, p)
+		}
+	}
+	return request.Template("problems_list", Params{nprobs}), nil
 }

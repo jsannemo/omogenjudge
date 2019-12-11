@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package omogen.problemtools;
 
+import "google/protobuf/timestamp.proto";
 import "runner/api/eval.proto";
 import "runner/api/program.proto";
 
@@ -32,6 +33,7 @@ message Metadata {
   string author = 3;
   License license = 4;
   string source = 5;
+  google.protobuf.Timestamp public_from = 6;
 }
 
 message ProblemStatements {

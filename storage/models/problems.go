@@ -2,6 +2,7 @@ package models
 
 import (
 	"html/template"
+	"time"
 
 	"golang.org/x/text/language"
 
@@ -20,6 +21,7 @@ type Problem struct {
 	CurrentVersion *ProblemVersion `db:"problem_version"`
 	Source         string          `db:"source"`
 	StatementFiles []*ProblemStatementFile
+	PublicFrom     *time.Time `db:"public_from"`
 }
 
 // localizedStatement returns the statement of a problem closest to the ones given in langs.
@@ -52,6 +54,10 @@ func (p *Problem) Link() string {
 
 func (p *Problem) SubmitLink() string {
 	return paths.Route(paths.SubmitProblem, paths.ProblemNameArg, p.ShortName)
+}
+
+func (p *Problem) Hidden() bool {
+	return p.PublicFrom == nil || p.PublicFrom.After(time.Now())
 }
 
 // A ProblemStatement is the text statement of a problem in a given language.

@@ -97,7 +97,7 @@ func problemQuery(args ListArgs, filterArgs ListFilter) (string, []interface{}) 
 
 	query := `
     SELECT
-        problem.problem_id, short_name, author, license,
+        problem.problem_id, short_name, author, license, public_from,
         problem_version.problem_version_id "problem_version.problem_version_id",
    	    problem_version.time_limit_ms "problem_version.time_limit_ms",
 		problem_version.memory_limit_kb "problem_version.memory_limit_kb",

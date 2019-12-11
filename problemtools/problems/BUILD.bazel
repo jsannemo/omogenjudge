@@ -32,6 +32,7 @@ go_library(
         "//util/go/files:go_default_library",
         "//util/go/strings:go_default_library",
         "//util/go/users:go_default_library",
+        "@com_github_golang_protobuf//ptypes:go_default_library_gen",
         "@com_github_gomarkdown//:go_default_library",
         "@com_github_gomarkdown//ast:go_default_library",
         "@com_github_gomarkdown//html:go_default_library",
