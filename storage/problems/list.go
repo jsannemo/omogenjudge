@@ -107,6 +107,7 @@ func problemQuery(args ListArgs, filterArgs ListFilter) (string, []interface{}) 
     LEFT JOIN problem_version ON current_version = problem_version.problem_version_id
     %s
     %s
+    ORDER BY short_name
     `
 	if filterArgs.ShortName != "" {
 		filter = db.SetParam("WHERE short_name = $%d", &params, filterArgs.ShortName)
