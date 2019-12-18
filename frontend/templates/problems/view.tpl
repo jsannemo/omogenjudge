@@ -59,7 +59,14 @@
             {{end}}
 
           </div>
-          <p class="problem-authors">Författare: {{ .D.Problem.Author }} | Licens: {{ .D.Problem.License }}
+          <p class="problem-authors">
+          {{ if .D.Problem.Author }}
+          Författare: {{ .D.Problem.Author }} <br>
+          {{ end }}
+          {{ if .D.Problem.Source }}
+          Källa: {{ .D.Problem.Source }} <br>
+          {{ end }}
+          Licens: {{ .D.Problem.License }}
         </div>
       </div>
     </article>
