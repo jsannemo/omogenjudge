@@ -6,7 +6,7 @@
         <div class="mdl-cell mdl-cell--3-col">
           <div class="mdl-card mdl-shadow--2dp" style="width: 100%; height: auto; min-height: 0">
             <div class="mdl-color-text--grey-600 mdl-card__supporting-text">
-              <table>
+              <table class="plain">
                 {{ if .D.Problem.CurrentVersion.MaxScore }}
                   <tr>
                     <td><strong>Maxpoäng:</strong></td>
@@ -51,7 +51,7 @@
           <h1 class="display">{{ .D.Problem.LocalizedTitle $.C.Locales }}</h1>
           <div class="problem-info">
           </div>
-          <div class="statement">
+          <div class="statement fancy-tables">
             {{ .D.Problem.LocalizedStatement $.C.Locales }}
 
             {{ range $i, $s := .D.Problem.CurrentVersion.Samples }}
