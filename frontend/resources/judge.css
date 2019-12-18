@@ -1,16 +1,21 @@
 .statement .samplebox {
-  border: 1px solid black;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-top: none;
   margin-top: 15px;
   page-break-inside: avoid;
 }
 
 .statement .samplebox .samplebox-header {
-  border-top: 1px solid black;
-  border-bottom: 1px solid black;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   padding: 7px;
-  background: #efefef;
+  background: rgba(0, 0, 0, 0.05);
   position: relative;
+  font-family: "Source Sans Pro", sans-serif;
+  color: rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  font-size: 12.8px;
+  font-weight: 600;
 }
 
 .statement .samplebox .samplebox-data {
@@ -124,4 +129,18 @@ i.material-icons {
   .problem-authors {
     display: none;
   }
+}
+
+blockquote:before {
+  margin: 0;
+  content: "";
+}
+
+blockquote:after {
+  margin: 0;
+  content: "";
+}
+
+blockquote p {
+  margin: 0;
 }

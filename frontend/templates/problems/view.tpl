@@ -47,7 +47,7 @@
             </div>
           {{ end }}
         </div>
-        <div class="mdl-shadow--2dp mdl-cell mdl-cell--7-col" style="padding: 0 25px">
+        <div class="mdl-shadow--2dp mdl-cell mdl-cell--7-col" style="padding: 0 25px; min-width: 600px">
           <h1 class="display">{{ .D.Problem.LocalizedTitle $.C.Locales }}</h1>
           <div class="problem-info">
           </div>
