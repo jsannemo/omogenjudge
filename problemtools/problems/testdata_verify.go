@@ -52,7 +52,7 @@ func verifyTestCaseFormats(ctx context.Context, group *toolspb.TestGroup, valida
 		}
 		for i, res := range resp.Results {
 			if res.Timeout {
-				reporter.Err("test case %s caused validator to time out")
+				reporter.Err("test case %s caused validator to time out", names[i])
 			} else if res.ExitCode != 42 {
 				msg := ""
 				if res.Stdout != "" {
