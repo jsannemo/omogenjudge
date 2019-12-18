@@ -96,6 +96,8 @@ Container::~Container() {
       absl::StrCat("/usr/bin/omogenjudge-sandboxc ", container_id->Get());
   CHECK(system(cmd.c_str()) == 0) << "Could not clear submission";
   VLOG(3) << "Removed container root!";
+  close(command_pipe[1]);
+  close(return_pipe[0]);
 }
 
 void Container::KillInit() {
