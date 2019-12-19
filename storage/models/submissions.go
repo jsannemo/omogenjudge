@@ -15,7 +15,8 @@ type Submission struct {
 	// SubmissionID The numeric ID of the submission. This may exposed externally.
 	SubmissionID int32 `db:"submission_id"`
 	// The ID of the author of the submission.
-	AccountID int32 `db:"account_id"`
+	AccountID int32    `db:"account_id"`
+	Account   *Account `db:"account"`
 	// The ID of the problem the submission was for.
 	ProblemID int32 `db:"problem_id"`
 	// The tag of the langauge the submission was made in.
@@ -119,10 +120,7 @@ func (run *SubmissionRun) StatusString(p *ProblemVersion, filtered bool) string 
 	} else if run.Score > 0 {
 		return fmt.Sprintf("%d/%d", run.Score, p.MaxScore())
 	} else {
-		if filtered {
-			return "Felaktig"
-		}
-		return run.Verdict.String()
+		return run.Verdict.Filtered(filtered)
 	}
 }
 

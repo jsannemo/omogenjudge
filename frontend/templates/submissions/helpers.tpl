@@ -1,5 +1,5 @@
 {{ define "submission_status" }}
-    {{ $status := .run.StatusString .version .filtered }}
+    {{ $status := .run.StatusString .version (and (not .queue) .filtered) }}
     {{ if .run.Accepted .version }}
         <span class="text-col-green">
             <strong>{{ $status }}</strong>
@@ -29,8 +29,11 @@
         <tr>
             <th>ID</th>
             <th class="mdl-data-table__cell--non-numeric">Problem</th>
+            {{ if .queue }}
+              <th class="mdl-data-table__cell--non-numeric">Användare</th>
+            {{ end }}
             <th class="mdl-data-table__cell--non-numeric">Inskickningstid</th>
-            {{ if not .filtered }}
+            {{ if or .queue (not .filtered) }}
                 <th class="mdl-data-table__cell--non-numeric">Språk</th>
             {{ end }}
             <th class="mdl-data-table__cell--non-numeric">Resultat</th>
@@ -40,15 +43,16 @@
             {{$prob := index $.problems .ProblemID }}
             <tr>
                 <td>
-                    {{ if not $.filtered }}
-                        <a href="{{ .Link }}">{{ .SubmissionID }}</a>
-                    {{ else }}
-                        {{ .SubmissionID }}
-                    {{ end }}
+                    <a href="{{ .Link }}">{{ .SubmissionID }}</a>
                 </td>
                 <td class="mdl-data-table__cell--non-numeric">
                     <a href="{{ $prob.Link }}">{{ $prob.LocalizedTitle $.C.Locales }}</a>
                 </td>
+                {{ if $.queue }}
+                <td class="mdl-data-table__cell--non-numeric">
+                    <a href="{{ .Account.Link }}">{{ .Account.Username }}</a>
+                </td>
+                {{ end }}
                 <td class="mdl-data-table__cell--non-numeric">
                     {{ .Created.Format "2006-01-02 15:04:05"  }}
                 </td>

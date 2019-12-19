@@ -16,13 +16,15 @@ type ListArgs struct {
 	// Whether to include the current run in the query.
 	WithRun       bool
 	WithGroupRuns bool
+	WithAccounts  bool
 }
 
 // A ListFilter controls what submissions to search for.
 type ListFilter struct {
-	Submissions *SubmissionFilter
-	Users       *UserFilter
-	Problems    *ProblemFilter
+	Submissions   *SubmissionFilter
+	Users         *UserFilter
+	Problems      *ProblemFilter
+	OnlyAvailable bool
 }
 
 type SubmissionFilter struct {
@@ -68,12 +70,16 @@ func ListSubmissions(ctx context.Context, args ListArgs, filterArgs ListFilter) 
 	if filterArgs.Problems != nil {
 		filters = append(filters, db.SetInParamInt(`problem_id IN (%s)`, &params, filterArgs.Problems.ProblemIDs))
 	}
+	if filterArgs.OnlyAvailable {
+		filters = append(filters, "public_from <= current_timestamp")
+		joins += " LEFT JOIN problem USING(problem_id) "
+	}
 	filter := ""
 	if len(filters) > 0 {
 		filter = fmt.Sprintf(" WHERE %s ", strings.Join(filters, " AND "))
 	}
 	if args.WithRun {
-		joins = "LEFT JOIN submission_run ON current_run = submission_run_id"
+		joins += " LEFT JOIN submission_run ON current_run = submission_run_id "
 		fields = `
 			,
 			submission_run.submission_run_id "submission_run.submission_run_id",
@@ -85,6 +91,14 @@ func ListSubmissions(ctx context.Context, args ListArgs, filterArgs ListFilter) 
 			submission_run.score "submission_run.score",
 			submission_run.verdict "submission_run.verdict",
 			submission_run.compile_error "submission_run.compile_error"
+`
+	}
+	if args.WithAccounts {
+		joins += " LEFT JOIN account USING (account_id) "
+		fields += `
+			,
+			account.account_id "account.account_id",
+			account.username "account.username"
 `
 	}
 	if args.WithGroupRuns {

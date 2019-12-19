@@ -3,6 +3,7 @@ package home
 import (
 	"github.com/jsannemo/omogenjudge/frontend/request"
 	"github.com/jsannemo/omogenjudge/storage/models"
+	"github.com/jsannemo/omogenjudge/storage/problems"
 	"github.com/jsannemo/omogenjudge/storage/submissions"
 )
 
@@ -13,8 +14,24 @@ func HomeHandler(r *request.Request) (request.Response, error) {
 	return mainHome(r)
 }
 
+type homeParams struct {
+	Submissions submissions.SubmissionList
+	Problems    models.ProblemMap
+}
+
 func mainHome(r *request.Request) (request.Response, error) {
-	return request.Template("home_home", nil), nil
+	subs, err := submissions.ListSubmissions(r.Request.Context(), submissions.ListArgs{
+		WithRun:      true,
+		WithAccounts: true,
+	}, submissions.ListFilter{OnlyAvailable: true})
+	if err != nil {
+		return nil, err
+	}
+	probs, err := problems.List(r.Request.Context(), problems.ListArgs{}, problems.Problems(subs.ProblemIDs()...))
+	if err != nil {
+		return nil, err
+	}
+	return request.Template("home_home", &homeParams{Submissions: subs, Problems: probs.AsMap()}), nil
 }
 
 type problemData struct {

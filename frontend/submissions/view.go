@@ -16,6 +16,8 @@ import (
 type ViewParams struct {
 	Problems   models.ProblemMap
 	Submission *models.Submission
+	Filtered   bool
+	WithCode   bool
 }
 
 func ViewHandler(r *request.Request) (request.Response, error) {
@@ -34,9 +36,6 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), nil
 	}
 	sub := subs[0]
-	if sub.AccountID != r.Context.UserID {
-		return request.NotFound(), nil
-	}
 	probs, err := problems.List(r.Request.Context(),
 		problems.ListArgs{WithStatements: problems.StmtTitles, WithTests: problems.TestsGroups},
 		problems.Problems(sub.ProblemID))
@@ -49,5 +48,10 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 	if !r.Context.CanSeeProblem(probs[0]) {
 		return request.NotFound(), nil
 	}
-	return request.Template("submissions_view", &ViewParams{probs.AsMap(), sub}), nil
+	return request.Template("submissions_view", &ViewParams{
+		Problems:   probs.AsMap(),
+		Submission: sub,
+		Filtered:   sub.AccountID != r.Context.UserID && r.Context.Contest != nil,
+		WithCode:   sub.AccountID == r.Context.UserID,
+	}), nil
 }

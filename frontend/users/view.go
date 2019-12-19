@@ -32,7 +32,7 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 		return request.NotFound(), err
 	}
 	userID := user.Single().AccountID
-	subFilter := submissions.ListFilter{Users: &submissions.UserFilter{[]int32{userID}}}
+	subFilter := submissions.ListFilter{Users: &submissions.UserFilter{UserIDs: []int32{userID}}}
 
 	if r.Context.Contest != nil {
 		var cProbs []int32
@@ -70,5 +70,5 @@ func ViewHandler(r *request.Request) (request.Response, error) {
 		}
 	}
 	return request.Template("users_view",
-		&ListParams{Submissions: nsubs, Problems: probMap, Filtered: userID != r.Context.UserID, Username: userName}), nil
+		&ListParams{Submissions: nsubs, Problems: probMap, Filtered: userID != r.Context.UserID && r.Context.Contest != nil, Username: userName}), nil
 }

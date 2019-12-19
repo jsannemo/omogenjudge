@@ -87,6 +87,13 @@ func (v Verdict) String() string {
 	panic(fmt.Errorf("unknown verdict: %s", string(v)))
 }
 
+func (v Verdict) Filtered(filtered bool) string {
+	if filtered && v != VerdictAccepted {
+		return "Felaktig"
+	}
+	return v.String()
+}
+
 func (v Verdict) Accepted() bool {
 	return v == VerdictAccepted
 }
