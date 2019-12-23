@@ -56,6 +56,9 @@ func (lists SubmissionList) ProblemIDs() []int32 {
 
 // ListSubmissions searches for a list of submissions.
 func ListSubmissions(ctx context.Context, args ListArgs, filterArgs ListFilter) (SubmissionList, error) {
+	if len(filterArgs.Users.UserIDs) == 0 {
+		return SubmissionList{}, nil
+	}
 	conn := db.Conn()
 	var params []interface{}
 	var filters []string
