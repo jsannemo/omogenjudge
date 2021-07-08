@@ -1,0 +1,11 @@
+{% macro format_score(score) %}
+    {% if score == None %}
+        <span style="color: var(--bs-purple)">?</span>
+    {% else %}
+        {{ "{:.2f}".format(score).rstrip('0').rstrip('.') }}
+    {% endif %}
+{% endmacro %}
+
+{% macro format_time_limit(time_usage_ms, time_limit_ms) %}
+ {{ format_duration_ms(time_usage_ms, time_limit_ms) }}s
+{% endmacro %}

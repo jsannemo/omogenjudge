@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% import "nav.html" as nav %}
+{% import "contests/helpers.html" as contesthelpers with context %}
+{% import "problems/helpers.html" as problemhelpers with context %}
+{% import "submissions/helpers.html" as submissionhelpers with context %}
+{% import "util.html" as util %}
+{% import "formatting.html" as formatting %}
+
+{% block title %}Problems{% endblock %}
+{% set active_page = 'contest' %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-lg-12">
+            {{ nav.contest_nav('problems') }}
+        </div>
+        <div class="col-lg-8">
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    {% if contest.is_scoring() %}
+                        <th style="width: 0">Score</th>
+                        <th style="width: 0">Subtasks</th>
+                    {% else %}
+                        <th style="width: 0">Verdict</th>
+                    {% endif %}
+                </tr>
+                </thead>
+                {% for scoreboard_problem in scoreboard.scoreboard_problems %}
+                    {% set team_problem_res = None %}
+                    {% if team_results %}
+                        {% set team_problem_res = team_results.results[loop.index0] %}
+                    {% endif %}
+                    <tr>
+                        <td>{{ problemhelpers.scoreboard_problem_link(scoreboard_problem) }}</td>
+                        {% if contest.is_scoring() %}
+                            <td style="white-space: nowrap">
+                                {% if team_problem_res %}
+                                    {{ formatting.format_score(team_problem_res.problem_score) }} /
+                                    {{ formatting.format_score(scoreboard_problem.max_score) }}
+                                {% else %}
+                                    {{ formatting.format_score(scoreboard_problem.max_score) }}
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                {{ submissionhelpers.subtask_score_labels(scoreboard_problem.subtask_scores, team_problem_res.subtask_scores) }}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                {% if contest.is_scoring() and team_results %}
+                    <tr class="border-bottom-0">
+                        <td class="border-0"></td>
+                        <td class="border-bottom border-start border-end" style="white-space: nowrap">
+                            {{ formatting.format_score(team_results.total_score) }}&nbsp;/&nbsp;{{ formatting.format_score(scoreboard.max_score()) }}
+                        </td>
+                        <td class="border-0"></td>
+                    </tr>
+                {% endif %}
+            </table>
+        </div>
+        {{ contesthelpers.contest_card() }}
+    </div>
+{% endblock %}

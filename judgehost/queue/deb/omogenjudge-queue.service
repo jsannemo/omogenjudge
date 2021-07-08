@@ -1,0 +1,13 @@
+[Unit]
+Description=OmogenJudge Queue
+After=network.target
+Wants=omogenjudge-host.service
+
+[Service]
+Type=simple
+Restart=always
+User=omogenjudge-queue
+ExecStart=/usr/bin/omogenjudge-queue
+
+[Install]
+WantedBy=multi-user.target

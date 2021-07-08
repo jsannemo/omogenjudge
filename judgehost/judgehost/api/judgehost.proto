@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package omogen.judgehost;
+
+message EvaluateRequest {
+  int64 run_id = 1;
+}
+
+message EvaluateResponse {
+}
+
+service JudgehostService {
+  rpc Evaluate (EvaluateRequest) returns (EvaluateResponse) {
+  }
+}

@@ -1,0 +1,25 @@
+{% macro problem_title(problem) %}
+    {% set problem_titles = problem.titles_by_language %}
+    {% set ns = namespace(found=false) %}
+    {% for lang in ['en', 'sv'] if not found %}
+        {% if lang in problem_titles %}
+            {{ problem_titles[lang] }}
+            {% set ns.found = True %}
+        {% endif %}
+    {% endfor %}
+    {% if not ns.found %}
+        {{ next(problem_titles) }}
+    {% endif %}
+{% endmacro %}
+
+{% macro scoreboard_problem_link(scoreboard_problem) %}
+    {% if scoreboard_problem.problem.label %}
+        <span class="badge me-1 bg-primary"
+              style="font-size: 0.9rem">{{ scoreboard_problem.label }}</span>
+    {% endif %}
+    {{ link(scoreboard_problem.problem.problem) }}
+{% endmacro %}
+
+{% macro link(problem) %}
+    <a href="{{ contest_url('problem', problem.short_name) }}">{{ problem_title(problem) }}</a>
+{% endmacro %}

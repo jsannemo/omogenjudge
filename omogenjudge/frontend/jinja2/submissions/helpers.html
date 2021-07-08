@@ -1,0 +1,102 @@
+{% import "formatting.html" as formatting %}
+{% import "util.html" as util %}
+
+{% macro display_verdict(submission) %}
+    {% set status = submission.get_status() %}
+    {% set verdict = submission.get_verdict() %}
+    {% if status == Status.DONE %}
+        {{ verdict_badge(verdict) }}
+    {% elif status == Status.QUEUED %}
+        <span class="badge bg-dark">Queued</span>
+    {% elif status == Status.RUNNING %}
+        <span class="badge bg-dark">Running</span>
+    {% elif status == Status.COMPILING %}
+        <span class="badge bg-dark">Compiling</span>
+    {% elif status == Status.COMPILE_ERROR %}
+        <span class="badge bg-dark">Compile Error</span>
+    {% elif status == Status.JUDGE_ERROR %}
+        <span class="badge bg-dark">Judge Error</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro verdict_badge(verdict) %}
+    {% if verdict == Verdict.AC %}
+        <span class="badge bg-success">Accepted</span>
+    {% elif verdict == Verdict.TLE %}
+        <span class="badge bg-danger">Time Limit Exceeded</span>
+    {% elif verdict == Verdict.WA %}
+        <span class="badge bg-danger">Wrong Answer</span>
+    {% elif verdict == Verdict.RTE %}
+        <span class="badge bg-danger">Run-Time Error</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro link(submission) %}
+    <a href="{{ contest_url('submission', submission.submission_id) }}">{{ submission.submission_id }}</a>
+{% endmacro %}
+
+{% macro button_link(submission, text) %}
+    <a class="btn btn-primary"
+       style="white-space: nowrap"
+       href="{{ contest_url('submission', submission.submission_id) }}">{{ text }}</a>
+{% endmacro %}
+
+{% macro subtask_bubbles(sub_scores, max_scores) %}
+    <div style="font-size: 0.5em; margin-top: 0.3em; overflow: hidden; white-space: nowrap">
+        {% for max_subtask_score in max_scores %}
+            {% if loop.index0 >= sub_scores|length %}
+                <i style="color: var(--bs-purple)" class="bi bi-circle-fill"></i>
+            {% elif max_subtask_score == sub_scores[loop.index0] %}
+                <i style="color: var(--bs-green)" class="bi bi-circle-fill"></i>
+            {% elif sub_scores[loop.index0] > 0 %}
+                <i style="color: var(--bs-yellow)"
+                   class="bi bi-circle-fill"></i>
+            {% else %}
+                <i style="color: var(--bs-red)" class="bi bi-circle-fill"></i>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+{% macro subtask_score_labels(problem_subtask_scores, submission_subtask_scores) %}
+    <div style="overflow: hidden; white-space: nowrap">
+        {% for subtask_max_score in problem_subtask_scores %}
+            {% if submission_subtask_scores %}
+                {% set subtask = submission_subtask_scores[loop.index0] %}
+                {% if subtask == subtask_max_score %}
+                    <span class="badge"
+                          style="background-color: var(--bs-green)"
+                          data-bs-toggle="tooltip" data-bs-placement="left"
+                          title="Subtask {{ loop.index }}: Full score"
+                    >{{ formatting.format_score(subtask_max_score) }}</span>
+                {% elif subtask > 0 %}
+                    <span class="badge"
+                          style="background-color: var(--bs-yellow)"
+                          data-bs-toggle="tooltip" data-bs-placement="left"
+                          title="Subtask {{ loop.index }}: {{ formatting.format_score(subtask) }} points"
+                    >{{ formatting.format_score(subtask_max_score) }}</span>
+                {% else %}
+                    <span class="badge"
+                          style="background-color: var(--bs-red)"
+                          data-bs-toggle="tooltip" data-bs-placement="left"
+                          title="Subtask {{ loop.index }}: no points"
+                    >{{ formatting.format_score(subtask_max_score) }}</span>
+                {% endif %}
+            {% else %}
+                <span class="badge"
+                      style="background-color: var(--bs-black)"
+                      data-bs-toggle="tooltip" data-bs-placement="left"
+                      title="Subtask {{ loop.index }}: no points"
+                >{{ formatting.format_score(subtask_max_score) }}</span>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+{% macro format_submission_time(submission) %}
+    {% if contest and contest.start_time %}
+        {{ util.relative_date(submission.date_created, contest.start_time) }}
+    {% else %}
+        {{ util.simple_local_date(submission.date_created) }}
+    {% endif %}
+{% endmacro %}

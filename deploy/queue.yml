@@ -1,0 +1,13 @@
+---
+- name: Install omogenjudge-queue
+  hosts: queue
+
+  tasks:
+  - name: Upload deb
+    ansible.builtin.copy:
+      src: ./packages/omogenjudge-queue.deb
+      dest: omogenjudge-queue.deb
+  - name: Install omogenjudge-queue.deb
+    ansible.builtin.apt:
+      deb: omogenjudge-queue.deb
+      state: present

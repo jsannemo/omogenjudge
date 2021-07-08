@@ -1,0 +1,7 @@
+__pycache__
+.idea
+.ijwb
+frontend_assets/node_modules
+output
+bazel-*
+.mypy_cache

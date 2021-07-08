@@ -1,0 +1,39 @@
+// Colors
+$white: #fff !default;
+$gray-100: #f8f9fa !default;
+$gray-200: #e9ecef !default;
+$gray-300: #dee2e6 !default;
+$gray-400: #ced4da !default;
+$gray-500: #adb5bd !default;
+$gray-600: #6c757d !default;
+$gray-700: #495057 !default;
+$gray-800: #343a40 !default;
+$gray-900: #212529 !default;
+$black: #000 !default;
+
+
+$dark: #2f2f2f !default;
+$primary: #276dc7;
+$secondary: #e5bc3a;
+
+$headings-color: $gray-800 !default;
+$body-color: $gray-900 !default;
+
+
+// Components
+$border-radius: .4rem !default;
+$border-radius-lg: .6rem !default;
+$border-radius-sm: .3rem !default;
+
+// Fonts
+$font-size-base: 0.9rem;
+$font-family-sans-serif: 'Lato', -apple-system, system-ui, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif !default;
+$headings-font-family: 'Source Sans Pro', -apple-system, system-ui, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif !default;
+
+// Containers
+$container-max-widths: (
+        sm: 540px,
+        md: 720px,
+        lg: 960px,
+        xl: 1240px,
+);

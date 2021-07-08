@@ -1,0 +1,7 @@
+[judgehost]
+server = "127.0.0.1"
+port = 56743
+
+[database]
+server = "127.0.0.1"
+port = 5432

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+if ! id -u omogenjudge-queue >/dev/null 2>&1; then
+  adduser --system omogenjudge-queue --no-create-home --quiet
+fi
+
+systemctl start omogenjudge-queue

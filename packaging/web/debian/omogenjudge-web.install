@@ -1,0 +1,5 @@
+static var/lib/omogen/web/
+uwsgi.ini var/lib/omogen/web/
+web.toml etc/omogen/
+bin var/lib/omogen/
+omogenjudge-web.nginx etc/nginx/sites-available

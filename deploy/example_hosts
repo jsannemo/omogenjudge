@@ -1,0 +1,11 @@
+# Hosts to install the webserver on
+[web]
+127.0.0.1
+
+# Hosts to install the judgehosts on
+[host]
+127.0.0.1
+
+# Hosts to install the judging coordinator on
+[queue]
+127.0.0.1

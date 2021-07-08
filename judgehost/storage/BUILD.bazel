@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "storage",
+    srcs = [
+        "db.go",
+        "models.go",
+    ],
+    importpath = "github.com/jsannemo/omogenhost/storage",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_google_logger//:logger",
+        "@com_github_lib_pq//:pq",
+        "@io_gorm_driver_postgres//:postgres",
+        "@io_gorm_gorm//:gorm",
+        "@io_gorm_gorm//schema",
+    ],
+)

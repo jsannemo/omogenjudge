@@ -1,0 +1,30 @@
+---
+- name: Install nginx
+  hosts: web
+  remote_user: root
+
+  tasks:
+  - name: Ensure nginx is at the latest version
+    ansible.builtin.apt:
+      update_cache: yes
+      name: nginx
+      state: latest
+
+- name: Gather the package facts
+  hosts: web
+  tasks:
+    - ansible.builtin.package_facts:
+        manager: auto
+
+- name: Install omogenjudge-web
+  hosts: web
+
+  tasks:
+  - name: Upload deb
+    ansible.builtin.copy:
+      src: ./packages/omogenjudge-web.deb
+      dest: omogenjudge-web.deb
+  - name: Install omogenjudge-web.deb
+    ansible.builtin.apt:
+      deb: omogenjudge-web.deb
+      state: present

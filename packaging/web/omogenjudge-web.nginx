@@ -1,0 +1,17 @@
+server {
+    listen      80;
+    server_name judge.kodsport.dev *.judge.kodsport.dev;
+    charset     utf-8;
+
+    client_max_body_size 75M;
+
+    location /static {
+        alias /var/lib/omogen/web/static;
+    }
+
+    location / {
+        uwsgi_pass      127.0.0.1:62542;
+        include     /etc/nginx/uwsgi_params;
+    }
+}
+

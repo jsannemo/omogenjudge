@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% import "nav.html" as nav %}
+{% import "problems/helpers.html" as problemhelpers %}
+{% import "submissions/helpers.html" as submissionhelpers %}
+
+{% block title %}{{ username }}{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h1>{{ username }}</h1>
+                    <h5>{{ full_name }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

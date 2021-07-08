@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "es6",
+    "moduleResolution": "node",
+    "lib": [
+      "es2017",
+      "dom",
+      "dom.iterable"
+    ],
+    "allowJs": true,
+    "outFile": "static/js/bundle.js",
+    "rootDir": "js",
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "js/**/*"
+  ]
+}
+

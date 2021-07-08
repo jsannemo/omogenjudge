@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "queue_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/jsannemo/omogenhost/queue",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//judgehost/api",
+        "//storage",
+        "@com_github_burntsushi_toml//:toml",
+        "@com_github_google_logger//:logger",
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+    ],
+)
+
+go_binary(
+    name = "omogenjudge-queue",
+    embed = [":queue_lib"],
+    visibility = ["//visibility:public"],
+)
