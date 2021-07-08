@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+	configure)
+		if ! getent group omogenjudge-web > /dev/null; then
+			addgroup --quiet --system omogenjudge-web
+		fi
+
+		if ! getent group omogenadmin > /dev/null; then
+			addgroup --quiet --system omogenadmin
+		fi
+
+		adduser --system --no-create-home --quiet --gecos "user for omogenjudge-web service" \
+			--ingroup omogenjudge-web omogenjudge-web
+
+        mkdir -p /var/lib/omogen/web/run
+        chown omogenjudge-web:omogenjudge-web /var/lib/omogen/web/run
+
+        /var/lib/omogen/bin/migrate-db
+		;;
+esac
+
+#DEBHELPER#
+
+exit 0

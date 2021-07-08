@@ -1,0 +1,8 @@
+#!/usr/bin/make -f
+
+
+%:
+	DH_VIRTUALENV_INSTALL_ROOT=/var/lib/omogen/web/ dh $@ --with python-virtualenv
+
+override_dh_systemd_start:
+	dh_systemd_start --restart-after-upgrade

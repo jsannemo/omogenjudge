@@ -1,0 +1,16 @@
+{% import "util.html" as util %}
+
+{% macro contest_card() %}
+<div class="col-lg-4">
+    <div class="card mb-3">
+        <div class="h5 card-header card-title text-center">
+            {{ contest.title }}
+        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item text-center">
+                {{ util.countdown() }}
+            </li>
+        </ul>
+    </div>
+</div>
+{% endmacro %}

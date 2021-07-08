@@ -1,0 +1,21 @@
+{% macro local_date(d) %}
+    {% set s = d.astimezone(timezone.utc) %}
+    <a class="local_date" data-timestamp="{{ d.timestamp() }}"
+       href="https://www.timeanddate.com/worldclock/fixedtime.html?day={{ s.day }}&month={{ s.month }}&year={{ s.year }}&hour={{ s.hour }}&min={{ s.minute }}&sec={{ s.second }}">
+        {{ d.strftime("%Y-%m-%d %H:%M %Z") }}
+    </a>
+{% endmacro %}
+
+{% macro simple_local_date(d) %}
+    <span class="simple_local_date" data-timestamp="{{ d.timestamp() }}">
+        {{ d.strftime("%Y-%m-%d %H:%M") }}
+    </span>
+{% endmacro %}
+
+{% macro relative_date(date, relative_to) %}
+    {{ (date - relative_to) | format_timedelta }}
+{% endmacro %}
+
+{% macro countdown() %}
+    <span class="contest-countdown">&nbsp;</span>
+{% endmacro %}

@@ -1,0 +1,57 @@
+load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
+
+pkg_tar(
+    name = "judgehost",
+    srcs = [
+        "//judgehost:omogenjudge-host",
+    ],
+    mode = "0755",
+    package_dir = "/usr/bin",
+    strip_prefix = "/judgehost/omogenjudge-host_",
+)
+
+pkg_tar(
+    name = "initd",
+    srcs = [
+        "//judgehost/deb:omogenjudge-host.service",
+    ],
+    mode = "0755",
+    package_dir = "/etc/systemd/system",
+    strip_prefix = "/judgehost/deb",
+)
+
+pkg_tar(
+    name = "config",
+    srcs = [
+        "//judgehost/deb:judgehost.toml",
+    ],
+    mode = "0755",
+    package_dir = "/etc/omogen/",
+    strip_prefix = "/judgehost/deb",
+)
+
+pkg_tar(
+    name = "debian-data",
+    extension = "tar.gz",
+    deps = [
+        ":config",
+        ":initd",
+        ":judgehost",
+    ],
+)
+
+pkg_deb(
+    name = "omogenjudge-host",
+    architecture = "amd64",
+    built_using = "bazel",
+    data = ":debian-data",
+    depends = [
+        "omogenexec",
+    ],
+    description = "Program execution service",
+    maintainer = "Johan Sannemo <johan.sannemo@kodsport.se>",
+    package = "omogenjudge-host",
+    postinst = "debian/postinst",
+    prerm = "debian/prerm",
+    version = "0.0.1",
+)

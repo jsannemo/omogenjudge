@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}{{ contest.title }} - Countdown{% endblock %}
+{% set active_page = 'contest' %}
+
+{% block content %}
+    <div class="row">
+        <h1 class="text-center">{{ contest.title }}</h1>
+        <h2 class="text-center mt-5"><span class="contest-countdown"></span></h2>
+    </div>
+{% endblock %}

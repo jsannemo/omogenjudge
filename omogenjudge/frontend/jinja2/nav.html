@@ -1,0 +1,57 @@
+{% macro nav_item(title, route, active) %}
+    <a class="nav-link {% if active %}active{% endif %}"
+       href="{{ url(route, **kwargs) }}">{{ title }}</a>
+{% endmacro %}
+
+{% macro menu(active) %}
+    <nav class="navbar navbar-dark bg-dark navbar-expand-lg" id="menu">
+        <div class="container">
+            <a class="navbar-brand me-5" href="/">
+                <img src="/static/img/logo.png" height="45" alt="Logotype">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent"
+                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto">
+                    {% if request.contest_site %}
+                        {{ nav_item('Contest', 'problems', active_page == 'contest') }}
+                    {% else %}
+                        {{ nav_item('Archive', 'archive', active_page == 'archive') }}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        {{ nav_item(user.username, 'profile', username=user.username) }}
+                        {{ nav_item('Log out', 'logout') }}
+                    {% else %}
+                        {{ nav_item('Log in', 'login') }}
+                        {{ nav_item('Register', 'register') }}
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+{% endmacro %}
+
+{% macro contest_nav(active) %}
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link {% if active == 'problems' %}active{% endif %}" href="{{ contest_url('problems') }}">Problems</a>
+        </li>
+        {% if contest.start_time %}
+            <li class="nav-item">
+                <a class="nav-link {% if active == 'scoreboard' %}active{% endif %}"
+                   href="{{ contest_url('scoreboard') }}">Standings</a>
+            </li>
+        {% endif %}
+        {% if contest_team or (user.is_authenticated and not contest.start_time) %}
+            <li class="nav-item">
+                <a class="nav-link {% if active == 'submissions' %}active{% endif %}"
+                   href="{{ contest_url('my-submissions') }}">My Submissions</a>
+            </li>
+        {% endif %}
+    </ul>
+{% endmacro %}

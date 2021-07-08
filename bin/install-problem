@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -e
+
+DJANGO_SETTINGS_MODULE=omogenjudge.settings PRODUCTION=1 /var/lib/omogen/web/omogenjudge-web/bin/django-admin addproblem
+

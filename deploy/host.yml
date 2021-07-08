@@ -1,0 +1,23 @@
+---
+- name: Install omogenexec
+  hosts: host
+  remote_user: root
+
+  tasks:
+  - name: Install omogenexec
+    ansible.builtin.apt:
+      deb: https://github.com/jsannemo/omogenexec/releases/download/v1.2.0/omogenexec_1.2.0_amd64.deb
+      state: present
+
+- name: Install omogenjudge-host
+  hosts: host
+
+  tasks:
+  - name: Upload deb
+    ansible.builtin.copy:
+      src: ./packages/omogenjudge-host.deb
+      dest: omogenjudge-host.deb
+  - name: Install omogenjudge-host.deb
+    ansible.builtin.apt:
+      deb: omogenjudge-host.deb
+      state: present

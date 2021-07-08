@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    Log in
+                </div>
+                <div class="card-body">
+                    {{ crispy(login_form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

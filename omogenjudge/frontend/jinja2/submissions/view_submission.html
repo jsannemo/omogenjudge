@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% import "contests/helpers.html" as contesthelpers with context %}
+{% import "problems/helpers.html" as problemhelpers %}
+{% import "submissions/helpers.html" as submissionhelpers %}
+{% import "formatting.html" as formatting %}
+{% import "util.html" as util %}
+
+{% set active_page = 'contest' %}
+{% block extra_head %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/languages/cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/languages/python.min.js"></script>
+    <script>
+        hljs.registerAliases('python3', {'languageName': 'python'});
+        hljs.highlightAll();
+    </script>
+{% endblock %}
+
+{% set submission = submission_with_subtasks.submission %}
+{% set problem = problem_with_scores.problem %}
+
+{% block title %}Submission {{ submission.submission_id }}{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-lg-12">
+            {% if contest %}
+                {{ nav.contest_nav('submissions') }}
+            {% endif %}
+        </div>
+        <div class="col-lg-8">
+            <table class="table">
+                <thead>
+                <tr class="bg-dark text-light">
+                    {% if user.is_superuser %}
+                        <th>ID</th>
+                    {% endif %}
+                    <th>Submitted</th>
+                    {% if user != author %}
+                        <th>Author</th>
+                    {% endif %}
+                    <th>Problem</th>
+                    <th>Language</th>
+                    {% if problem.current_version.scoring %}
+                        <th class="text-center">Score</th>
+                    {% else %}
+                        <th class="text-center">Verdict</th>
+                    {% endif %}
+                    <th class="text-end">Time</th>
+                </tr>
+                </thead>
+                <tr class="align-middle">
+                    {% if user.is_superuser %}
+                        <td>{{ submission.submission_id }}</td>
+                    {% endif %}
+                    <td>
+                        {{ submissionhelpers.format_submission_time(submission) }}
+                    </td>
+                    {% if user != author %}
+                        <td>{{ author.full_name }}</td>
+                    {% endif %}
+                    <td>{{ problemhelpers.link(submission.problem) }}</td>
+                    <td>{{ language }}</td>
+                    <td class="text-center">
+                        {% if problem.current_version.scoring %}
+                            {{ formatting.format_score(submission.current_run.score) }}
+                            {{ submissionhelpers.subtask_bubbles(submission_with_subtasks.subtask_scores, problem_with_scores.subtask_scores) }}
+                        {% else %}
+                            {{ submissionhelpers.display_verdict(sub.current_run) }}
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {{ formatting.format_time_limit(submission.current_run.time_usage_ms, problem.current_version.time_limit_ms) }}
+                    </td>
+                </tr>
+            </table>
+            {% if problem_with_scores.subtask_scores %}
+                {% set submission_scores = submission_with_subtasks.subtask_scores %}
+                {% set submission_groups = submission_with_subtasks.subtask_groups %}
+                <table class="table">
+                    <thead>
+                    <tr class="bg-dark text-light">
+                        <th>Subtask</th>
+                        <th>Verdict</th>
+                        <th>Score</th>
+                        <th>Time</th>
+                    </tr>
+                    </thead>
+                    {% for task in problem_with_scores.subtask_scores %}
+                        <tr class="align-middle">
+                            <td>
+                                Subtask {{ loop.index }}
+                            </td>
+                            <td>
+                                {% if loop.index0 >= submission_scores|length %}
+                                    <span class="badge bg-dark">Waiting</span>
+                                {% else %}
+                                    {{ submissionhelpers.verdict_badge(Verdict(submission_groups[loop.index0].verdict)) }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if loop.index0 >= submission_scores|length %}
+                                    ?
+                                {% else %}
+                                    {{ formatting.format_score(submission_groups[loop.index0].score) }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if loop.index0 >= submission_scores|length %}
+                                    ?
+                                {% else %}
+                                    {{ formatting.format_time_limit(submission_groups[loop.index0].time_usage_ms, problem.current_version.time_limit_ms) }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            {% endif %}
+            {% if submission.current_run.compile_error %}
+                <table class="table mb-0">
+                    <thead>
+                    <tr class="bg-dark text-light">
+                        <th>Compilation output</th>
+                    </tr>
+                    </thead>
+                    <tr>
+                        <td>
+                        <pre class="m-0"><code
+                                class="nohighlight">{{ submission.current_run.compile_error }}</code></pre>
+                        </td>
+                    </tr>
+                </table>
+            {% endif %}
+            {% for file, content in files.items() %}
+                <div class="card mt-3">
+                    <div class="card-header bg-dark text-light">
+                        {{ file }}
+                    </div>
+                    <div class="card-body">
+                        <pre><code class="language-{{ submission.language }}">{{ content }}</code></pre>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {{ contesthelpers.contest_card() }}
+    </div>
+{% endblock %}
