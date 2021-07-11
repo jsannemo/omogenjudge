@@ -3,7 +3,9 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# AUTH_USER_MODEL = 'storage.Account'
+ALLOWED_HOSTS = []
+
+AUTH_USER_MODEL = 'storage.Account'
 
 # Application definition
 INSTALLED_APPS = [
@@ -46,7 +48,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'omogenjudge.wsgi.application'
 
-
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
@@ -64,7 +65,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 LANGUAGE_CODE = 'en-us'
@@ -80,3 +80,25 @@ STATIC_URL = '/static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Logging settings
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'default': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'default'
+        },
+    },
+    'omogenjudge': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
