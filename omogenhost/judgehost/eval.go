@@ -1,0 +1,228 @@
+package main
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"github.com/google/logger"
+	apipb "github.com/jsannemo/omogenexec/api"
+	"github.com/jsannemo/omogenexec/judgehost/eval"
+	"github.com/jsannemo/omogenexec/util"
+	"github.com/jsannemo/omogenhost/storage"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+)
+
+var langMap = map[string]apipb.LanguageGroup{
+	"cpp":     apipb.LanguageGroup_CPP,
+	"python3": apipb.LanguageGroup_PYTHON_3,
+}
+
+type submissionJson struct {
+	Files map[string]string
+}
+
+var evalMutex sync.Mutex
+
+func evaluate(runId int64) error {
+	evalMutex.Lock()
+	defer evalMutex.Unlock()
+
+	var run storage.SubmissionRun
+	if res := storage.GormDB.Joins("Submission").Joins("ProblemVersion").First(&run, runId); res.Error != nil {
+		return res.Error
+	}
+	logger.Infof("Taking run %d of submission %d", run.SubmissionRunId, run.SubmissionId)
+
+	run.Status = storage.StatusCompiling
+	if res := storage.GormDB.Select("Status").Save(&run); res.Error != nil {
+		return res.Error
+	}
+	program := &apipb.Program{
+		Language: langMap[run.Submission.Language],
+	}
+	submissionFiles := submissionJson{}
+	_ = json.Unmarshal(run.Submission.SubmissionFiles, &submissionFiles)
+	for path, content := range submissionFiles.Files {
+		content, err := base64.StdEncoding.DecodeString(content)
+		if err != nil {
+			return err
+		}
+		program.Sources = append(program.Sources, &apipb.SourceFile{
+			Path:     filepath.Base(path),
+			Contents: content,
+		})
+	}
+	subRoot := fmt.Sprintf("/var/lib/omogen/submissions/%d-%d", runId, time.Now().Unix())
+	compile, err := eval.Compile(program, filepath.Join(subRoot, "compile"))
+	if err != nil {
+		return err
+	}
+	if compile.CompilerErrors != "" {
+		run.CompileError = compile.CompilerErrors
+		run.Status = storage.StatusCompileError
+		res := storage.GormDB.Select("CompileError", "Status").Save(&run)
+		return res.Error
+	} else {
+		run.Status = storage.StatusRunning
+		if res := storage.GormDB.Select("Status").Save(&run); res.Error != nil {
+			return res.Error
+		}
+	}
+
+	evalPlan, err := makeEvalPlan(compile.Program, run.ProblemVersion)
+	if err != nil {
+		return err
+	}
+	logger.Infof("plan: %v", evalPlan)
+	resultChan := make(chan *apipb.Result, 1000)
+	var lastRes *apipb.Result
+	resultWait := sync.WaitGroup{}
+	resultWait.Add(1)
+	go func() {
+		for result := range resultChan {
+			lastRes = result
+		}
+		resultWait.Done()
+	}()
+	evaluator, err := eval.NewEvaluator(subRoot, evalPlan, resultChan)
+	if err != nil {
+		return err
+	}
+	if err := evaluator.Evaluate(); err != nil {
+		return err
+	}
+	resultWait.Wait()
+	run.Status = storage.StatusDone
+	switch lastRes.Verdict {
+	case apipb.Verdict_ACCEPTED:
+		run.Verdict = storage.VerdictAccepted
+	case apipb.Verdict_TIME_LIMIT_EXCEEDED:
+		run.Verdict = storage.VerdictTimeLimitExceeded
+	case apipb.Verdict_WRONG_ANSWER:
+		run.Verdict = storage.VerdictWrongAnswer
+	case apipb.Verdict_RUN_TIME_ERROR:
+		run.Verdict = storage.VerdictWrongAnswer
+	}
+	run.TimeUsageMs = int64(lastRes.TimeUsageMs)
+	run.Score = lastRes.Score
+	if res := storage.GormDB.Select("Status", "Verdict", "TimeUsageMs", "Score").Save(&run); res.Error != nil {
+		return res.Error
+	}
+	return nil
+}
+
+func makeEvalPlan(program *apipb.CompiledProgram, version storage.ProblemVersion) (*apipb.EvaluationPlan, error) {
+	var groups []storage.ProblemTestgroup
+	if res := storage.GormDB.Debug().Where("problem_version_id = ?", version.ProblemVersionId).Preload("ProblemTestcases").Order("problem_testgroup_id asc").Find(&groups)
+		res.Error != nil {
+		return nil, res.Error
+	}
+
+	evalPlan := &apipb.EvaluationPlan{
+		Program:              program,
+		TimeLimitMs:          int32(version.TimeLimitMs),
+		MemLimitKb:           int32(version.MemoryLimitKb),
+		ValidatorTimeLimitMs: 60_000,
+		ValidatorMemLimitKb:  1_000_000,
+	}
+	if version.Interactive {
+		evalPlan.PlanType = apipb.EvaluationType_INTERACTIVE
+	} else {
+		evalPlan.PlanType = apipb.EvaluationType_SIMPLE
+	}
+	if version.OutputValidatorId != 0 {
+		evalPlan.ScoringValidator = version.OutputValidator.Scoringvalidator
+		val, err := zipProgram(version.OutputValidator.ValidatorSourceZipId)
+		if err != nil {
+			return nil, err
+		}
+		evalPlan.Validator = val
+	}
+
+	apigroups := make(map[int64]*apipb.TestGroup)
+	for _, group := range groups {
+		apigroup, err := toGroup(group)
+		if err != nil {
+			return nil, err
+		}
+		apigroups[group.ProblemTestgroupId] = apigroup
+		if group.ParentId != 0 {
+			apigroups[group.ParentId].Groups = append(apigroups[group.ParentId].Groups, apigroup)
+		}
+	}
+	evalPlan.RootGroup = apigroups[version.RootGroupId]
+	return evalPlan, nil
+}
+
+func zipProgram(id string) (*apipb.CompiledProgram, error) {
+	// TODO: support custom validator
+	return nil, nil
+}
+
+func toGroup(testgroup storage.ProblemTestgroup) (*apipb.TestGroup, error) {
+	group := &apipb.TestGroup{
+		Name:                 testgroup.TestgroupName,
+		AcceptScore:          testgroup.AcceptScore.Float64,
+		RejectScore:          testgroup.RejectScore.Float64,
+		OutputValidatorFlags: testgroup.OutputValidatorFlags,
+		BreakOnFail:          testgroup.BreakOnReject,
+		// TODO: support scoring problems
+		AcceptIfAnyAccepted: false,
+	}
+	// TODO: support scoring problems
+	group.ScoringMode = apipb.ScoringMode_SUM
+	group.VerdictMode = apipb.VerdictMode_FIRST_ERROR
+
+	var missingFiles []string
+	for _, testcase := range testgroup.ProblemTestcases {
+		logger.Infof("converting case %v", testcase)
+		inpath, hasin := findPath(testcase.InputFileHash)
+		outpath, hasout := findPath(testcase.OutputFileHash)
+		group.Cases = append(group.Cases, &apipb.TestCase{
+			Name:       testcase.TestcaseName,
+			InputPath:  inpath,
+			OutputPath: outpath,
+		})
+		if !hasin {
+			missingFiles = append(missingFiles, testcase.InputFileHash)
+		}
+		if !hasout {
+			missingFiles = append(missingFiles, testcase.OutputFileHash)
+		}
+	}
+	if err := syncFiles(missingFiles); err != nil {
+		return nil, err
+	}
+	return group, nil
+}
+
+func syncFiles(fileIds []string) error {
+	logger.Infof("file ids: %v", fileIds)
+	if len(fileIds) == 0 {
+		return nil
+	}
+	var files []storage.StoredFile
+	res := storage.GormDB.Find(&files, fileIds)
+	if res.Error != nil {
+		return res.Error
+	}
+	fb := util.NewFileBase("/var/lib/omogen/cache")
+	fb.OwnerGid = util.OmogenexecGroupId()
+	for _, file := range files {
+		if err := fb.WriteFile(file.FileHash, file.FileContents); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func findPath(id string) (string, bool) {
+	path := fmt.Sprintf("/var/lib/omogen/cache/%s", id)
+	if _, err := os.Stat(path); err == nil {
+		return path, true
+	}
+	return path, false
+}

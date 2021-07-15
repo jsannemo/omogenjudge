@@ -3,8 +3,12 @@ import json
 import typing
 
 
-class IsDataclass(typing.Protocol):
-    __dataclass_fields__: typing.Dict
+class IsDataclassClass(typing.Protocol):
+    __dataclass_fields__: dict
+
+
+class IsDictable(typing.Protocol):
+    __dict__: dict
 
 
 class DataclassJsonEncoder(json.JSONEncoder):
@@ -14,10 +18,10 @@ class DataclassJsonEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-T = typing.TypeVar('T', bound=IsDataclass)
+T = typing.TypeVar('T', bound=IsDataclassClass)
 
 
-def dict_to_dataclass(cls: typing.ClassVar[IsDataclass], obj: dict):
+def dict_to_dataclass(cls: typing.ClassVar[IsDataclassClass], obj: dict):
     try:
         fields = {field.name: field.type for field in dataclasses.fields(cls)}
         return cls(**{key: dict_to_dataclass(fields[key], value) for key, value in obj})

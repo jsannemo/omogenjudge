@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% load crispy_forms_tags %}
+{% load problems %}
+
+{% block 'title' %}
+{{ statement_title }}
+{% endblock %}
+
+{% block 'extra_head' %}
+<link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css"
+      integrity="sha384-Um5gpz1odJg5Z4HAmzPtgZKdTBHZdw8S29IecapCSB31ligYPhHQZMIlWLYQGVoc" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js"
+        integrity="sha384-YNHdsYkH6gMx9y3mRkmcJ2mFUjTd0qNQQvY9VYZgQd7DcN7env35GzlmFaZ23JGp"
+        crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/contrib/auto-render.min.js"
+        integrity="sha384-vZTG03m+2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl" crossorigin="anonymous"
+        onload="
+        document.querySelectorAll('.tex2jax_process').forEach(
+            el => renderMathInElement(el, { delimiters: [
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false},
+          ],
+          ignoredClasses: ['*']
+        }));
+"></script>
+{% endblock %}
+
+{% block 'content' %}
+<div class="row">
+    <div class="col-lg-8 problemstatement">
+        <h1 class="problemheader">{{ statement_title }}</h1>
+        <div class="problemlimits mb-2">
+            <div>Time limit: {{ timelim_seconds }} s</div>
+            <div>Memory limit: {{ memlim_mb }} MB</div>
+        </div>
+        {{ statement_html | safe }}
+        <hr>
+        <div>
+            License: {{ statement_license }} |
+            Authors: {{ statement_authors }}
+        </div>
+    </div>
+    <div class="col-lg-4">
+        {% if contest %}
+        <div class="card mb-3">
+            <div class="h5 card-header card-title text-center">
+                {{ contest.title }}
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item text-center">
+                    Remaining: 01:43:23
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25"
+                             aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </li>
+                {% for cproblem in contest_problems %}
+                <li class="list-group-item">
+                    <a href="{% url 'problem' cproblem.problem.short_name %}">
+                        {{ cproblem.problem.statements | problem_title }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% if user.is_authenticated %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <div class="d-flex align-items-center">
+                    Submit
+                    <div id="submit-progress" class="d-none spinner-border spinner-border-sm ms-auto" role="status"
+                         aria-hidden="true"></div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger d-none" id="submit-errors"></div>
+                {% crispy submit_form %}
+                <span class="text-muted">The source code can be at most 200 KB.</span>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-primary mb-0">
+            You must log in to submit solutions to the problem.
+        </div>
+        {% endif %}
+        {% if submissions %}
+        <div class="card mb-3">
+            <div class="card-header">
+                Previous submissions
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th>ID</th>
+                        <th>Verdict</th>
+                        {% if is_scoring %}
+                        <th>Score</th>
+                        {% endif %}
+                    </tr>
+                    {% for sub in submissions %}
+                    <tr>
+                        <td>
+                            {{ sub.submission_id }}
+                        </td>
+                        <td>
+                            {{ sub.current_run | display_verdict }}
+                        </td>
+                        {% if is_scoring %}
+                        <td>
+                            {% if sub.current_run.score != None %}
+                                {{ sub.current_run.score|stringformat:"g"  }}
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<script type="text/javascript">
+    const sourceCodeLimit = parseInt("{{ source_code_limit }}");
+
+    $(function () {
+        const form = $("#submit");
+        const errorContainer = $("#submit-errors");
+        form.on("submit", function (e) {
+            e.preventDefault();
+            errorContainer.empty().addClass("d-none");
+            const errors = [];
+            if (fileSize($("#id_files")[0].files) > sourceCodeLimit) {
+                errors.push('The source code limit is ' + Math.floor(sourceCodeLimit / 1000) + ' KB');
+                checkErrors(errors);
+            } else {
+                $("#submit-progress").removeClass("d-none");
+                $.ajax({
+                    type: form.attr("method"),
+                    url: form.attr("action"),
+                    data: new FormData(form[0]),
+                    contentType: false,
+                    processData: false,
+                }).done(function (data) {
+                    if (data.errors) {
+                        Object.entries(data.errors).forEach(e => {
+                            errors.push(...e[1]);
+                        });
+                    } else {
+                        window.location.reload();
+                    }
+                }).fail(function () {
+                    errors.push("An unknown error occurred");
+                }).always(function () {
+                    $("#submit-progress").addClass("d-none");
+                    checkErrors(errors);
+                });
+            }
+            return false;
+        });
+
+        function checkErrors(errors) {
+            if (errors.length === 1) {
+                errorContainer.append(errors[0]).removeClass("d-none");
+            } else if (errors.length > 1) {
+                const errorList = $("<ul class='mb-0'></ul>").append(
+                    errors.map(error => {
+                        const errorItem = $("<li></li>");
+                        errorItem.text(error);
+                        return errorItem;
+                    }));
+                errorContainer.append(errorList).removeClass("d-none");
+            }
+        }
+    });
+
+    function fileSize(files) {
+        let len = 0;
+        Array.from(files).forEach(f => len += f.size);
+        return len;
+    }
+</script>
+{% endblock %}

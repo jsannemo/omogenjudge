@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block 'content' %}
+
+{% load problems %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h1>Problems</h1>
+        <table class="table table-bordered table-sm">
+            <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+            </thead>
+            {% for problem in problems %}
+            <tr>
+                <td>
+                    <a href="{% url 'problem' problem.short_name %}">
+                        {{ problem.statements | problem_title }}
+                    </a>
+                </td>
+                <td>
+                    {{ problem.source }}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}

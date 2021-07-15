@@ -10,6 +10,21 @@ python-versions = ">=3.6"
 tests = ["pytest", "pytest-asyncio", "mypy (>=0.800)"]
 
 [[package]]
+name = "crispy-bootstrap5"
+version = "0.4"
+description = "Bootstrap5 template pack for django-crispy-forms"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+django = ">=2.2"
+django-crispy-forms = ">=1.9.2"
+
+[package.extras]
+test = ["pytest", "pytest-django"]
+
+[[package]]
 name = "django"
 version = "3.2.5"
 description = "A high-level Python Web framework that encourages rapid development and clean, pragmatic design."
@@ -25,6 +40,26 @@ sqlparse = ">=0.2.2"
 [package.extras]
 argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
+
+[[package]]
+name = "django-crispy-forms"
+version = "1.12.0"
+description = "Best way to have Django DRY forms"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[[package]]
+name = "django-debug-toolbar"
+version = "3.2.1"
+description = "A configurable set of panels that display various debug information about the current request/response."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+Django = ">=2.2"
+sqlparse = ">=0.2.0"
 
 [[package]]
 name = "plastex"
@@ -88,16 +123,28 @@ python-versions = ">=3.5"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "d60c1d9b90eb31ab443e6ab526c893cb261d97f33f89fdde3cb9dc7a091be8b7"
+content-hash = "dd743261fbfdbb95993cfeee007fe1b95bfb9e02fc5ad7345ab59e612ebc85db"
 
 [metadata.files]
 asgiref = [
     {file = "asgiref-3.4.1-py3-none-any.whl", hash = "sha256:ffc141aa908e6f175673e7b1b3b7af4fdb0ecb738fc5c8b88f69f055c2415214"},
     {file = "asgiref-3.4.1.tar.gz", hash = "sha256:4ef1ab46b484e3c706329cedeff284a5d40824200638503f5768edb6de7d58e9"},
 ]
+crispy-bootstrap5 = [
+    {file = "crispy-bootstrap5-0.4.tar.gz", hash = "sha256:04fad1dd060467278a62a3e5755b6b3dc15d4b1306db1de774a618e8dc5252a5"},
+    {file = "crispy_bootstrap5-0.4-py3-none-any.whl", hash = "sha256:6abe36a804d50d13bd20214e0c067c0b530c03074b64cf87c0cb5762b94c0779"},
+]
 django = [
     {file = "Django-3.2.5-py3-none-any.whl", hash = "sha256:c58b5f19c5ae0afe6d75cbdd7df561e6eb929339985dbbda2565e1cabb19a62e"},
     {file = "Django-3.2.5.tar.gz", hash = "sha256:3da05fea54fdec2315b54a563d5b59f3b4e2b1e69c3a5841dda35019c01855cd"},
+]
+django-crispy-forms = [
+    {file = "django-crispy-forms-1.12.0.tar.gz", hash = "sha256:d196db62ee8b4fc32d1f9583d0e4be1bb17328b662682c1ecb9fb77bbc0fcf77"},
+    {file = "django_crispy_forms-1.12.0-py3-none-any.whl", hash = "sha256:a3320356c84d0cdc631e1ec7b8908aa0117bc2a5f0ab1d053d33eba08f584808"},
+]
+django-debug-toolbar = [
+    {file = "django-debug-toolbar-3.2.1.tar.gz", hash = "sha256:a5ff2a54f24bf88286f9872836081078f4baa843dc3735ee88524e89f8821e33"},
+    {file = "django_debug_toolbar-3.2.1-py3-none-any.whl", hash = "sha256:e759e63e3fe2d3110e0e519639c166816368701eab4a47fed75d7de7018467b9"},
 ]
 plastex = [
     {file = "plasTeX-2.1-py3-none-any.whl", hash = "sha256:f2bd65b26f950e04a51fdf5f391c205fb3be6e8a00b633988746b668af2fccee"},

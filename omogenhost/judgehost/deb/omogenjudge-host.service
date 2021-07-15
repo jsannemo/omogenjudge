@@ -1,0 +1,12 @@
+[Unit]
+Description=OmogenJudge Judge Host
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+User=omogenjudge-host
+ExecStart=/usr/bin/omogenjudge-host
+
+[Install]
+WantedBy=multi-user.target

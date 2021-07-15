@@ -1,0 +1,55 @@
+load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
+
+pkg_tar(
+    name = "queue",
+    srcs = [
+        "//queue:omogenjudge-queue",
+    ],
+    mode = "0755",
+    package_dir = "/usr/bin",
+    strip_prefix = "/queue/omogenjudge-queue_",
+)
+
+pkg_tar(
+    name = "initd",
+    srcs = [
+        "//queue/deb:omogenjudge-queue.service",
+    ],
+    mode = "0755",
+    package_dir = "/etc/systemd/system",
+    strip_prefix = "/queue/deb",
+)
+
+pkg_tar(
+    name = "config",
+    srcs = [
+        "//queue/deb:queue.toml",
+    ],
+    mode = "0755",
+    package_dir = "/etc/omogenjudge/",
+    strip_prefix = "/queue/deb",
+)
+
+pkg_tar(
+    name = "debian-data",
+    extension = "tar.gz",
+    deps = [
+        ":config",
+        ":initd",
+        ":queue",
+    ],
+)
+
+pkg_deb(
+    name = "omogenjudge-queue",
+    architecture = "amd64",
+    built_using = "bazel",
+    data = ":debian-data",
+    description = "Program execution service",
+    maintainer = "Johan Sannemo <johan.sannemo@kodsport.se>",
+    package = "omogenjudge-queue",
+    postinst = "debian/postinst",
+    postrm = "debian/postrm",
+    prerm = "debian/prerm",
+    version = "0.0.1",
+)

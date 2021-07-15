@@ -7,5 +7,11 @@ T = typing.TypeVar('T', bound=enum.Enum)
 class EnumChoices(typing.Generic[T]):
 
     @classmethod
-    def as_choices(cls) -> typing.List[typing.Tuple[T, str]]:
-        return [(choice.value, choice.name) for choice in cls]
+    def as_choices(cls) -> list[tuple[T, str]]:
+        return [(choice, choice.display) for choice in cls]
+
+    def display(self):
+        return self.name
+
+    def __str__(self):
+        return self.value

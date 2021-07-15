@@ -37,8 +37,8 @@ def _add_case(db_group: ProblemTestgroup, case: ToolsCase) -> ProblemTestcase:
     db_case = ProblemTestcase(
         problem_testgroup=db_group,
         testcase_name=name,
-        input_file_hash=input_file,
-        output_file_hash=output_file,
+        input_file=input_file,
+        output_file=output_file,
     )
     db_case.save()
     return db_case
@@ -149,9 +149,10 @@ def _add_statement(problem: ToolsProblem, language_code: str, db_problem: Proble
         htmlopt.destdir = tmp_dest
         htmlopt.quiet = True
         htmlopt.language = language_code
-        htmlopt.body_only = True
+        htmlopt.bodyonly = True
         htmlopt.css = False
         htmlopt.headers = False
+        htmlopt.imgbasedir = f"/problems/{problem.shortname}/{language_code}"
         problem2html.convert(problem.probdir, htmlopt)
         with open(os.path.join(tmp_dest, 'index.html'), 'r') as html:
             statement.html = html.read()
@@ -164,7 +165,7 @@ def _add_statement(problem: ToolsProblem, language_code: str, db_problem: Proble
                     ProblemStatementFile(
                         problem=db_problem,
                         file_path=f'{language_code}/{rel_path}',
-                        file_hash=insert_file(statement_file.read()),
+                        statement_file=insert_file(statement_file.read()),
                         attachment=False,
                     ).save()
     statement.save()

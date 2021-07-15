@@ -1,3 +1,4 @@
+from django.contrib import admin
 from django.db import models
 
 from .accounts import Account
@@ -8,10 +9,10 @@ class Team(models.Model):
     team_id = models.AutoField(primary_key=True)
     contest = models.ForeignKey(Contest, models.CASCADE)
     team_name = models.TextField(null=True)
-    virtual = models.BooleanField()
-    unofficial = models.BooleanField()
-    start_time = models.DateTimeField(null=True)
-    team_data = models.JSONField()
+    team_data = models.JSONField(blank=True, default=dict)
+
+    def __str__(self):
+        return self.team_name + " (in " + str(self.contest) + ")"
 
     class Meta:
         db_table = 'team'

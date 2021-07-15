@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+if ! id -u omogenjudge-host >/dev/null 2>&1; then
+  adduser --system omogenjudge-host --quiet
+  adduser --quiet omogenjudge-host omogenexec-users
+fi
+
+mkdir -p /var/lib/omogen/{cache,submissions}
+
+chown omogenjudge-host:omogenexec-users /var/lib/omogen/{cache,submissions}
+
+systemctl start omogenjudge-host

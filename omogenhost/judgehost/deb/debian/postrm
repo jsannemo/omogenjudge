@@ -1,0 +1,8 @@
+#!/bin/bash
+
+rm -rf /var/lib/omogen/{cache,submissions}
+
+set +e
+deluser --system omogenjudge-host
+set -e
+

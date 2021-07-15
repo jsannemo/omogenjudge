@@ -1,11 +1,10 @@
 import dataclasses
 import enum
-import typing
 
-from django.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.db import models
 
-from omogenjudge.util import serialization, django_fields
+from omogenjudge.util import django_fields, serialization
 from omogenjudge.util.django_fields import PrefetchIDMixin
 from omogenjudge.util.enums import EnumChoices
 
@@ -25,10 +24,10 @@ class Problem(PrefetchIDMixin, models.Model):
     author = ArrayField(django_fields.TextField())
     source = django_fields.TextField()
     license = django_fields.TextField(choices=License.as_choices())
-    current_version = models.ForeignKey(
-        'ProblemVersion', models.RESTRICT, db_column='current_version',
-        related_name='+'
-    )
+    current_version = models.ForeignKey('ProblemVersion', models.RESTRICT, related_name='+')
+
+    def __str__(self):
+        return self.short_name
 
     class Meta:
         db_table = 'problem'
@@ -49,7 +48,7 @@ class ProblemOutputValidator(models.Model):
         encoder=serialization.DataclassJsonEncoder,
         decoder=ValidatorRunConfigDecoder,
     )
-    validator_source_zip = models.ForeignKey('StoredFile', models.RESTRICT, db_column='file_hash', related_name='+')
+    validator_source_zip = models.ForeignKey('StoredFile', models.RESTRICT, related_name='+')
     scoring_validator = models.BooleanField()
 
     class Meta:
@@ -57,7 +56,7 @@ class ProblemOutputValidator(models.Model):
 
 
 class ProblemStatement(models.Model):
-    problem = models.ForeignKey(Problem, models.CASCADE, db_column='problem')
+    problem = models.ForeignKey(Problem, models.CASCADE)
     language = django_fields.TextField()
     title = django_fields.TextField()
     html = django_fields.TextField()
@@ -68,9 +67,9 @@ class ProblemStatement(models.Model):
 
 
 class ProblemStatementFile(models.Model):
-    problem = models.ForeignKey(Problem, models.CASCADE, db_column='problem')
+    problem = models.ForeignKey(Problem, models.CASCADE)
     file_path = django_fields.TextField()
-    file_hash = models.ForeignKey('StoredFile', models.RESTRICT, db_column='file_hash', related_name='+')
+    statement_file = models.ForeignKey('StoredFile', models.RESTRICT, db_column='statement_file_hash', related_name='+')
     attachment = models.BooleanField()
 
     class Meta:
@@ -82,8 +81,8 @@ class ProblemTestcase(models.Model):
     problem_testcase_id = models.AutoField(primary_key=True)
     problem_testgroup = models.ForeignKey('ProblemTestgroup', models.CASCADE)
     testcase_name = django_fields.TextField()
-    input_file_hash = models.ForeignKey('StoredFile', models.RESTRICT, db_column='input_file_hash', related_name='+')
-    output_file_hash = models.ForeignKey('StoredFile', models.RESTRICT, db_column='output_file_hash', related_name='+')
+    input_file = models.ForeignKey('StoredFile', models.RESTRICT, db_column='input_file_hash', related_name='+')
+    output_file = models.ForeignKey('StoredFile', models.RESTRICT, db_column='output_file_hash', related_name='+')
 
     class Meta:
         db_table = 'problem_testcase'

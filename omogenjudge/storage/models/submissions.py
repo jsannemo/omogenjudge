@@ -1,18 +1,19 @@
 import dataclasses
 import enum
-import typing
 
 from django.db import models
 
 from .accounts import Account
+from .langauges import Language
 from .problems import Problem, ProblemTestcase, ProblemTestgroup, ProblemVersion
-from ...util import serialization, django_fields
+from ...util import django_fields, serialization
+from ...util.django_fields import PrefetchIDMixin
 from ...util.enums import EnumChoices
 
 
 @dataclasses.dataclass(frozen=True)
 class SubmissionFiles:
-    files: typing.Dict[str, str]
+    files: dict[str, str]
 
 
 class SubmissionFilesDecoder(serialization.DataclassJsonDecoder[SubmissionFiles]):
@@ -20,14 +21,13 @@ class SubmissionFilesDecoder(serialization.DataclassJsonDecoder[SubmissionFiles]
         super().__init__(SubmissionFiles)
 
 
-class Submission(models.Model):
+class Submission(PrefetchIDMixin, models.Model):
     submission_id = models.AutoField(primary_key=True)
     account = models.ForeignKey(Account, models.CASCADE)
     problem = models.ForeignKey(Problem, models.CASCADE)
-    language = django_fields.TextField()
-    current_run = models.ForeignKey('SubmissionRun', models.SET_NULL, db_column='current_run', null=True,
-                                    related_name='+')
-    date_created = models.DateTimeField()
+    language = models.TextField(choices=Language.as_choices())
+    current_run = models.ForeignKey('SubmissionRun', models.RESTRICT, db_column='current_run', related_name='+')
+    date_created = models.DateTimeField(auto_now_add=True)
     submission_files = models.JSONField(
         encoder=serialization.DataclassJsonEncoder,
         decoder=SubmissionFilesDecoder,
@@ -50,11 +50,12 @@ class SubmissionCaseRun(models.Model):
     problem_testcase = models.ForeignKey(ProblemTestcase, models.RESTRICT, related_name='+')
     date_created = models.DateTimeField()
     time_usage_ms = models.IntegerField()
-    score = models.IntegerField()
+    score = models.FloatField()
     verdict = models.TextField(choices=Verdict.as_choices())  # This field type is a guess.
 
     class Meta:
         db_table = 'submission_case_run'
+
 
 
 class SubmissionGroupRun(models.Model):
@@ -62,7 +63,7 @@ class SubmissionGroupRun(models.Model):
     problem_testgroup = models.ForeignKey(ProblemTestgroup, models.RESTRICT, related_name='+')
     date_created = models.DateTimeField()
     time_usage_ms = models.IntegerField()
-    score = models.IntegerField()
+    score = models.FloatField()
     verdict = models.TextField(choices=Verdict.as_choices())
 
     class Meta:
@@ -82,11 +83,11 @@ class SubmissionRun(models.Model):
     submission_run_id = models.AutoField(primary_key=True)
     submission = models.ForeignKey(Submission, models.CASCADE)
     problem_version = models.ForeignKey(ProblemVersion, models.CASCADE)
-    date_created = models.DateTimeField()
+    date_created = models.DateTimeField(auto_now_add=True)
     status = models.TextField(choices=Status.as_choices())
     verdict = models.TextField(choices=Verdict.as_choices())
-    time_usage_ms = models.IntegerField()
-    score = models.IntegerField()
+    time_usage_ms = models.IntegerField(null=True)
+    score = models.FloatField(null=True)
     compile_error = django_fields.TextField(null=True)
 
     class Meta:

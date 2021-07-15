@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "judgehost_lib",
+    srcs = [
+        "eval.go",
+        "main.go",
+    ],
+    importpath = "github.com/jsannemo/omogenhost/judgehost",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//judgehost/api",
+        "//storage",
+        "@com_github_burntsushi_toml//:toml",
+        "@com_github_google_logger//:logger",
+        "@com_github_jsannemo_omogenexec//api",
+        "@com_github_jsannemo_omogenexec//judgehost/eval",
+        "@com_github_jsannemo_omogenexec//util",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "omogenjudge-host",
+    embed = [":judgehost_lib"],
+    visibility = ["//visibility:public"],
+)
