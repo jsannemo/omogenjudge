@@ -1,25 +1,28 @@
 {% extends "base.html" %}
-{% block 'content' %}
+{% block 'title' %}
+Problems
+{% endblock %}
 
 {% load problems %}
+
+{% block 'content' %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-4">
         <h1>Problems</h1>
         <table class="table table-bordered table-sm">
             <thead>
             <tr>
+                <th></th>
                 <th>Name</th>
             </tr>
             </thead>
-            {% for problem in problems %}
+            {% for cproblem in problems %}
             <tr>
                 <td>
-                    <a href="{% url 'problem' problem.short_name %}">
-                        {{ problem.statements | problem_title }}
-                    </a>
+                    {{ cproblem.label }}
                 </td>
                 <td>
-                    {{ problem.source }}
+                    {% include 'problems/link.html' with problem=cproblem.problem %}
                 </td>
             </tr>
             {% endfor %}

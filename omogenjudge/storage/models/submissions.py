@@ -33,6 +33,9 @@ class Submission(PrefetchIDMixin, models.Model):
         decoder=SubmissionFilesDecoder,
     )
 
+    def __str__(self):
+        return f'Submission {self.submission_id} by {self.account_id} for {self.problem_id}'
+
     class Meta:
         db_table = 'submission'
 

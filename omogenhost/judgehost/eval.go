@@ -67,6 +67,7 @@ func evaluate(runId int64) error {
 		if res := storage.GormDB.Select("CompileError", "Status").Save(&run); res.Error != nil {
 			return fmt.Errorf("failed marking program as compile error: %v", res.Error)
 		}
+		return nil
 	} else {
 		run.Status = storage.StatusRunning
 		if res := storage.GormDB.Select("Status").Save(&run); res.Error != nil {

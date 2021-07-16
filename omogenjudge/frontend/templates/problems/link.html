@@ -1,0 +1,2 @@
+{% load problems %}
+<a href="{% url 'problem' problem.short_name %}">{{ problem.statements | problem_title }}</a>

@@ -60,6 +60,7 @@
 
   .problembody p {
     text-align: justify;
+    margin: 0.7rem 0;
   }
 
   td {
@@ -76,6 +77,7 @@
 
   table.sample {
     width: 100%;
+    margin-bottom: 1rem;
   }
 
   table.sample th {
@@ -85,6 +87,10 @@
 
   table.sample td {
     border: 1px solid black;
+    padding: 0.3rem;
+    pre {
+      margin: 0;
+    }
   }
 
   div.sampleinteractionread {

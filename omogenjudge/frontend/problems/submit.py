@@ -8,7 +8,8 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
-from omogenjudge.problems.lookup import lookup_problem
+from omogenjudge.frontend.decorators import requires_started_contest
+from omogenjudge.problems.lookup import problem_by_name
 from omogenjudge.storage.models import Problem
 from omogenjudge.storage.models.langauges import Language
 from omogenjudge.submissions.create import create_submission
@@ -57,12 +58,13 @@ class SourceLimitCappingHandler(FileUploadHandler):
 
 @csrf_exempt
 def submit(request: HttpRequest, short_name: str) -> HttpResponse:
-    problem = lookup_problem(short_name)
+    problem = problem_by_name(short_name)
     request.upload_handlers.insert(0, SourceLimitCappingHandler(request))
     return _submit(request, problem)
 
 
 @login_required
+@requires_started_contest
 @csrf_protect
 def _submit(request: HttpRequest, problem: Problem):
     exceeded_file_size = request.META.get('upload_was_capped', False)
@@ -79,4 +81,4 @@ def _submit(request: HttpRequest, problem: Problem):
         language=language,
         files={f.name: f.read() for f in request.FILES.getlist('files')}
     )
-    return JsonResponse({'submission_id': submission.submission_id})
+    return JsonResponse({'submission_link': reverse('submission', kwargs={'sub_id': submission.submission_id})})

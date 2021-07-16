@@ -52,10 +52,12 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'omogenjudge.contests.active_contest.contest_context',
+                'omogenjudge.frontend.js_context.js_context',
             ],
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'omogenjudge.wsgi.application'
 
@@ -79,10 +81,13 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Stockholm'
+USE_L10N = False
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
+DATE_FORMAT = "Y-m-d"
+DATETIME_FORMAT = "Y-m-d H:i:s"
+TIME_FORMAT = "Y-m-d H:i:s"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/

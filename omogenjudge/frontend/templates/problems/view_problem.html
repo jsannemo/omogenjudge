@@ -51,18 +51,16 @@
             </div>
             <ul class="list-group list-group-flush">
                 <li class="list-group-item text-center">
-                    Remaining: 01:43:23
-                    <div class="progress">
-                        <div class="progress-bar" role="progressbar" style="width: 25%;" aria-valuenow="25"
-                             aria-valuemin="0" aria-valuemax="100">
-                        </div>
-                    </div>
+                    <span class="contest-countdown"></span>
                 </li>
                 {% for cproblem in contest_problems %}
                 <li class="list-group-item">
-                    <a href="{% url 'problem' cproblem.problem.short_name %}">
-                        {{ cproblem.problem.statements | problem_title }}
-                    </a>
+                    {% if cproblem.label %}
+                    <span class="badge me-1 bg-primary" style="font-size: 0.9rem">
+                        {{ cproblem.label }}
+                    </span>
+                    {% endif %}
+                    {% include 'problems/link.html' with problem=cproblem.problem %}
                 </li>
                 {% endfor %}
             </ul>
@@ -101,11 +99,14 @@
                         {% if is_scoring %}
                         <th>Score</th>
                         {% endif %}
+                        <th>Submitted</th>
                     </tr>
                     {% for sub in submissions %}
                     <tr>
                         <td>
+                            <a href="{% url 'submission' sub.submission_id %}">
                             {{ sub.submission_id }}
+                            </a>
                         </td>
                         <td>
                             {{ sub.current_run | display_verdict }}
@@ -113,10 +114,11 @@
                         {% if is_scoring %}
                         <td>
                             {% if sub.current_run.score != None %}
-                                {{ sub.current_run.score|stringformat:"g"  }}
+                            {{ sub.current_run.score|stringformat:"g" }}
                             {% endif %}
                         </td>
                         {% endif %}
+                        <td>{{ sub.date_created }}</td>
                     </tr>
                     {% endfor %}
                 </table>
@@ -152,7 +154,7 @@
                             errors.push(...e[1]);
                         });
                     } else {
-                        window.location.reload();
+                        window.location = data.submission_link;
                     }
                 }).fail(function () {
                     errors.push("An unknown error occurred");

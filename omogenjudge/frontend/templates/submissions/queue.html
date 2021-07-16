@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block 'title' %}
+Submission Queue
+{% endblock %}
+
+{% load problems %}
+
+{% block 'content' %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <h1>Submission Queue</h1>
+        <table class="table table-bordered">
+            <tr>
+                <th>ID</th>
+                <th>Team</th>
+                <th>Problem</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+            {% for sub in submissions %}
+            <tr>
+                <td>{% include 'submissions/link.html' with submission=sub %}</td>
+                <td></td>
+                <td>
+                    {% include 'problems/link.html' with problem=sub.problem %}
+                </td>
+                <td>
+                    {{ sub.current_run | display_verdict }}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}

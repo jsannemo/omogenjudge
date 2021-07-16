@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block 'title' %}
+Scoreboard
+{% endblock %}
+
+{% block 'content' %}
+<div class="row">
+    <h1 class="text-center">{{ contest.title }}</h1>
+    <div class="text-center"><span class="contest-countdown"></span></div>
+
+    <table class="table table-borderless table-striped table" style="vertical-align: middle">
+        <thead>
+        <tr>
+            {% if contest.has_started %}
+            <th style="width: 2em">Rank</th>
+            {% endif %}
+            <th>Team</th>
+            {% if contest.has_started %}
+                {% for cproblem in scoreboard.problems %}
+                <th style="width: 2em">
+                    <a href="{% url 'problem' cproblem.problem.short_name %}">
+                    <span class="badge me-1 bg-primary" style="font-size: 0.9rem">
+                        {{ cproblem.label }}
+                    </span>
+                    </a>
+                </th>
+                {% endfor %}
+                <th class="ps-3" style="width: 2em">Score</th>
+                <th class="ps-3" style="width: 2em">Time</th>
+            {% endif %}
+        </tr>
+        </thead>
+        {% for team in scoreboard.teams %}
+        <tr>
+            {% if contest.has_started %}
+                <td class="text-end"> {{ team.rank }}</td>
+            {% endif %}
+            <td> {{ team.name }}</td>
+            {% if contest.has_started %}
+                {% for res in team.results %}
+                <td class="text-center">
+                    {% if res.accepted %}
+                    <span class="text-success" style="font-size: 0.8rem">
+                        +{{ res.tries }}
+                        <div style="font-size: 0.5rem">
+                            {{ res.time_str }}
+                        </div>
+                    </span>
+                    {% elif res.pending %}
+                    <span style="color: var(--bs-purple)">
+                        -{{ res.tries }}?
+                    </span>
+                    {% elif res.tries %}
+                    <span class="text-danger">
+                        -{{ res.tries }}
+                    </span>
+                    {% else %}
+                    .
+                    {% endif %}
+                </td>
+                {% endfor %}
+                <td class="text-end">{{ team.score }}</td>
+                <td class="text-end">{{ team.time }}</td>
+            {% endif %}
+        {% endfor %}
+        </tr>
+    </table>
+</div>
+{% endblock %}

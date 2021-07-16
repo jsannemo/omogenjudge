@@ -9,7 +9,7 @@ class NoSuchLanguage(Exception):
     pass
 
 
-def lookup_for_viewing(short_name: str, *, language: Optional[str] = None) -> Tuple[Problem, ProblemStatement]:
+def get_problem_for_view(short_name: str, *, language: Optional[str] = None) -> Tuple[Problem, ProblemStatement]:
     problem = (
         Problem.objects.prefetch_related('problemstatement_set')
             .select_related('current_version')
@@ -31,7 +31,7 @@ def lookup_for_viewing(short_name: str, *, language: Optional[str] = None) -> Tu
     return problem, problem.problemstatement_set[0]
 
 
-def lookup_problem(short_name: str) -> Problem:
+def problem_by_name(short_name: str) -> Problem:
     return Problem.objects.get(short_name=short_name)
 
 
@@ -55,8 +55,8 @@ def list_public_problems() -> list[Problem]:
 
 
 def contest_problems(contest: Contest) -> list[ContestProblem]:
-    return ContestProblem.objects.filter(contest=contest).select_related('problem').prefetch_related(
+    return contest.contestproblem_set.select_related('problem').prefetch_related(
         Prefetch(
             'problem__problemstatement_set',
             ProblemStatement.objects.all().only('problem_id', 'language', 'title'),
-            to_attr='statements')).all()
+            to_attr='statements')).order_by('label').all()

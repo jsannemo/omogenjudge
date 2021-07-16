@@ -25,7 +25,7 @@ class ProblemInline(admin.TabularInline):
 
 
 class ContestAdmin(admin.ModelAdmin):
-    inlines = (ProblemInline,)
+    inlines = (ProblemInline, TeamInline)
 
 
 admin.site.register(Account)

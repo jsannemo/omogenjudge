@@ -3,15 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npm run css",
+    "build": "npm run css ts",
     "css-compile": "node-sass --include-path node_modules --output-style compressed --source-map true --source-map-contents true --precision 6 scss -o static/css/",
     "css-lint": "stylelint scss/",
     "css-prefix": "postcss --replace static/css/main.css --use autoprefixer --map",
     "css-purge": "purgecss --keyframes --css static/css/main.css --content index.html \\\\\\\"node_modules/bootstrap/js/dist/{util,modal}.js\\\\\\\" --output static/css/",
     "css": "npm-run-all css-compile css-prefix",
-    "start": "npm-run-all --parallel watch server",
-    "watch": "nodemon -e html,scss -x \"npm run css\"",
-    "test": "npm run css-lint && npm run css"
+    "watch": "npm-run-all --parallel watchcss watchts",
+    "watchcss": "nodemon -e scss -x \"npm run css\" --watch scss",
+    "watchts": "nodemon -e ts -x \"npm run ts\" --watch js",
+    "ts": "tsc-bundle ./tsconfig.json --outFile ./static/js/bundle.js"
   },
   "dependencies": {
     "bootstrap": "^5.0.0"
@@ -26,6 +27,8 @@
     "purgecss": "^4.0.2",
     "serve": "^11.3.2",
     "stylelint": "^13.12.0",
-    "stylelint-config-twbs-bootstrap": "^2.1.0"
+    "stylelint-config-twbs-bootstrap": "^2.1.0",
+    "typescript": "^4.3.5",
+    "typescript-bundle": "^1.0.17"
   }
 }

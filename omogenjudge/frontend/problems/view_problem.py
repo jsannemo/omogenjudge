@@ -6,8 +6,9 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 
+from omogenjudge.frontend.decorators import requires_started_contest
 from omogenjudge.frontend.problems.submit import SOURCE_CODE_LIMIT, SubmitForm
-from omogenjudge.problems.lookup import NoSuchLanguage, find_statement_file, lookup_for_viewing
+from omogenjudge.problems.lookup import NoSuchLanguage, find_statement_file, get_problem_for_view
 from omogenjudge.storage.models import Problem, ProblemStatementFile, Submission
 from omogenjudge.submissions.lookup import list_account_problem_submissions
 from omogenjudge.util.templates import render_template
@@ -27,9 +28,10 @@ class ViewArgs:
     submissions: list[Submission]
 
 
+@requires_started_contest
 def view_problem(request: HttpRequest, short_name: str, language: Optional[str] = None) -> HttpResponse:
     try:
-        problem, statement = lookup_for_viewing(short_name, language=language)
+        problem, statement = get_problem_for_view(short_name, language=language)
     except Problem.DoesNotExist:
         raise Http404
     except NoSuchLanguage:
@@ -50,6 +52,7 @@ def view_problem(request: HttpRequest, short_name: str, language: Optional[str] 
     return render_template(request, 'problems/view_problem.html', args)
 
 
+@requires_started_contest
 def problem_attachment(request: HttpRequest,
                        short_name: str,
                        file_path: str) -> HttpResponse:

@@ -12,3 +12,4 @@ def contest_for_request(request: HttpRequest) -> Optional[Contest]:
         )
     except Contest.DoesNotExist:
         return None
+

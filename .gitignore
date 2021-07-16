@@ -3,4 +3,5 @@ __pycache__
 .ijwb
 node_modules
 static/css/
+static/js/
 bazel-*

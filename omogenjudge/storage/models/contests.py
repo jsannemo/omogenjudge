@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+from django.utils.functional import cached_property
 
 from omogenjudge.util import django_fields
 
@@ -11,6 +13,14 @@ class Contest(models.Model):
     duration = models.DurationField()
     title = django_fields.TextField()
     problems = models.ManyToManyField('Problem', through='ContestProblem')
+
+    @cached_property
+    def has_started(self):
+        return timezone.now() >= self.start_time
+
+    @cached_property
+    def has_ended(self):
+        return timezone.now() >= self.start_time + self.duration
 
     def __str__(self):
         repr = self.title
