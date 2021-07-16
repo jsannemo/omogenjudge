@@ -55,7 +55,6 @@ def _aggregate_team_submissions(team: Team, subs: list[Submission], problem_ids:
         if status in (Status.QUEUED, Status.COMPILING, Status.COMPILE_ERROR, Status.JUDGE_ERROR):
             continue
 
-        print(sub)
         result.tries += 1
         if status == Status.RUNNING:
             result.pending = True

@@ -42,7 +42,6 @@ def login(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             django.contrib.auth.login(request, form.get_user())
             return redirect('/')
-        print("errors", form.errors, form.is_valid())
     else:
         form = LoginForm()
     args = LoginArgs(
