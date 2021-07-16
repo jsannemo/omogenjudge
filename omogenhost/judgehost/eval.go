@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/google/logger"
 	apipb "github.com/jsannemo/omogenexec/api"
-	"github.com/jsannemo/omogenexec/judgehost/eval"
+	"github.com/jsannemo/omogenexec/eval"
 	"github.com/jsannemo/omogenexec/util"
 	"github.com/jsannemo/omogenhost/storage"
 	"os"
@@ -32,13 +32,13 @@ func evaluate(runId int64) error {
 
 	var run storage.SubmissionRun
 	if res := storage.GormDB.Joins("Submission").Joins("ProblemVersion").First(&run, runId); res.Error != nil {
-		return res.Error
+		return fmt.Errorf("failed loading run: %v", res.Error)
 	}
-	logger.Infof("Taking run %d of submission %d", run.SubmissionRunId, run.SubmissionId)
+	logger.Infof("Found run %d of submission %d", run.SubmissionRunId, run.SubmissionId)
 
 	run.Status = storage.StatusCompiling
 	if res := storage.GormDB.Select("Status").Save(&run); res.Error != nil {
-		return res.Error
+		logger.Warningf("failed marking run as compiling: %v", res.Error)
 	}
 	program := &apipb.Program{
 		Language: langMap[run.Submission.Language],
@@ -55,32 +55,34 @@ func evaluate(runId int64) error {
 			Contents: content,
 		})
 	}
+	// In case we retry judging of the run, put it in a new folder instead to aovid collisions
 	subRoot := fmt.Sprintf("/var/lib/omogen/submissions/%d-%d", runId, time.Now().Unix())
 	compile, err := eval.Compile(program, filepath.Join(subRoot, "compile"))
 	if err != nil {
 		return err
 	}
-	if compile.CompilerErrors != "" {
+	if compile.Program == nil {
 		run.CompileError = compile.CompilerErrors
 		run.Status = storage.StatusCompileError
-		res := storage.GormDB.Select("CompileError", "Status").Save(&run)
-		return res.Error
+		if res := storage.GormDB.Select("CompileError", "Status").Save(&run); res.Error != nil {
+			return fmt.Errorf("failed marking program as compile error: %v", res.Error)
+		}
 	} else {
 		run.Status = storage.StatusRunning
 		if res := storage.GormDB.Select("Status").Save(&run); res.Error != nil {
-			return res.Error
+			return fmt.Errorf("failed marking program as running: %v", res.Error)
 		}
 	}
 
 	evalPlan, err := makeEvalPlan(compile.Program, run.ProblemVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed constructing evaluation plan: %v", err)
 	}
-	logger.Infof("plan: %v", evalPlan)
 	resultChan := make(chan *apipb.Result, 1000)
 	var lastRes *apipb.Result
 	resultWait := sync.WaitGroup{}
 	resultWait.Add(1)
+	// TODO: insert group / case runs in database
 	go func() {
 		for result := range resultChan {
 			lastRes = result
@@ -89,10 +91,10 @@ func evaluate(runId int64) error {
 	}()
 	evaluator, err := eval.NewEvaluator(subRoot, evalPlan, resultChan)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed initializing evaluator: %v", err)
 	}
 	if err := evaluator.Evaluate(); err != nil {
-		return err
+		return fmt.Errorf("failed evaluation: %v", err)
 	}
 	resultWait.Wait()
 	run.Status = storage.StatusDone
@@ -109,7 +111,7 @@ func evaluate(runId int64) error {
 	run.TimeUsageMs = int64(lastRes.TimeUsageMs)
 	run.Score = lastRes.Score
 	if res := storage.GormDB.Select("Status", "Verdict", "TimeUsageMs", "Score").Save(&run); res.Error != nil {
-		return res.Error
+		return fmt.Errorf("failed writing submission results: %v", res.Error)
 	}
 	return nil
 }
@@ -118,7 +120,7 @@ func makeEvalPlan(program *apipb.CompiledProgram, version storage.ProblemVersion
 	var groups []storage.ProblemTestgroup
 	if res := storage.GormDB.Debug().Where("problem_version_id = ?", version.ProblemVersionId).Preload("ProblemTestcases").Order("problem_testgroup_id asc").Find(&groups)
 		res.Error != nil {
-		return nil, res.Error
+		return nil, fmt.Errorf("failed gathering testdata: %v", res.Error)
 	}
 
 	evalPlan := &apipb.EvaluationPlan{
@@ -137,7 +139,7 @@ func makeEvalPlan(program *apipb.CompiledProgram, version storage.ProblemVersion
 		evalPlan.ScoringValidator = version.OutputValidator.Scoringvalidator
 		val, err := zipProgram(version.OutputValidator.ValidatorSourceZipId)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed loading zip'ed validator: %v", err)
 		}
 		evalPlan.Validator = val
 	}
@@ -146,7 +148,7 @@ func makeEvalPlan(program *apipb.CompiledProgram, version storage.ProblemVersion
 	for _, group := range groups {
 		apigroup, err := toGroup(group)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed loading test group %d: %v", group.TestgroupName, err)
 		}
 		apigroups[group.ProblemTestgroupId] = apigroup
 		if group.ParentId != 0 {
@@ -178,7 +180,6 @@ func toGroup(testgroup storage.ProblemTestgroup) (*apipb.TestGroup, error) {
 
 	var missingFiles []string
 	for _, testcase := range testgroup.ProblemTestcases {
-		logger.Infof("converting case %v", testcase)
 		inpath, hasin := findPath(testcase.InputFileHash)
 		outpath, hasout := findPath(testcase.OutputFileHash)
 		group.Cases = append(group.Cases, &apipb.TestCase{
@@ -200,14 +201,13 @@ func toGroup(testgroup storage.ProblemTestgroup) (*apipb.TestGroup, error) {
 }
 
 func syncFiles(fileIds []string) error {
-	logger.Infof("file ids: %v", fileIds)
 	if len(fileIds) == 0 {
 		return nil
 	}
 	var files []storage.StoredFile
 	res := storage.GormDB.Find(&files, fileIds)
 	if res.Error != nil {
-		return res.Error
+		return fmt.Errorf("failed loading stored files: %v", res.Error)
 	}
 	fb := util.NewFileBase("/var/lib/omogen/cache")
 	fb.OwnerGid = util.OmogenexecGroupId()

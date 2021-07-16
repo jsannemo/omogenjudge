@@ -7,6 +7,7 @@ import (
 	"github.com/google/logger"
 	apipb "github.com/jsannemo/omogenhost/judgehost/api"
 	"github.com/jsannemo/omogenhost/storage"
+	"github.com/jsannemo/omogenexec/eval"
 	"google.golang.org/grpc"
 	"io/ioutil"
 	"net"
@@ -30,15 +31,16 @@ type config struct {
 type JudgehostServer struct {
 }
 
-func (j *JudgehostServer) Evaluate(ctx context.Context, request *apipb.EvaluateRequest) (*apipb.EvaluateResponse, error) {
+func (j *JudgehostServer) Evaluate(_ context.Context, request *apipb.EvaluateRequest) (*apipb.EvaluateResponse, error) {
 	runId := request.RunId
-	logger.Infof("Received submission %d", runId)
+	logger.Infof("Received run %d", runId)
 	err := evaluate(runId)
 	return &apipb.EvaluateResponse{}, err
 }
 
 func main() {
 	defer logger.Init("localjudge", true, false, ioutil.Discard).Close()
+	eval.InitLanguages()
 	data, err := ioutil.ReadFile("/etc/omogenjudge/judgehost.toml")
 	if err != nil {
 		panic(err)

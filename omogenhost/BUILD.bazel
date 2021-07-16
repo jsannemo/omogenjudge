@@ -1,7 +1,7 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
 
 # gazelle:resolve go github.com/jsannemo/omogenexec/api @com_github_jsannemo_omogenexec//api
-# gazelle:resolve go github.com/jsannemo/omogenexec/judgehost/eval @com_github_jsannemo_omogenexec//judgehost/eval
+# gazelle:resolve go github.com/jsannemo/omogenexec/eval @com_github_jsannemo_omogenexec//eval
 # gazelle:resolve go github.com/jsannemo/omogenexec/util @com_github_jsannemo_omogenexec//util
 # gazelle:prefix github.com/jsannemo/omogenhost
 gazelle(name = "gazelle")

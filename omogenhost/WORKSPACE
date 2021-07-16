@@ -1723,18 +1723,11 @@ gazelle_dependencies()
 
 http_archive(
     name = "com_github_jsannemo_omogenexec",
-    strip_prefix = "omogenexec-5fe8c86e2a5ec89804272e04b82094e99145a072",
+    strip_prefix = "omogenexec-1.1.0",
     urls = [
-        "https://github.com/jsannemo/omogenexec/archive/refs/tags/1.0.0.tar.gz",
-      "https://github.com/jsannemo/omogenexec/archive/5fe8c86e2a5ec89804272e04b82094e99145a072.zip"
+        "https://github.com/jsannemo/omogenexec/archive/refs/tags/v1.1.0.zip",
     ],
 )
-
-local_repository(
-    name = "com_github_jsannemo_omogenexec",
-    path = "../omogenexec",
-)
-
 
 http_archive(
     name = "com_google_protobuf",

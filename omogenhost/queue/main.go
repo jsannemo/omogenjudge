@@ -8,8 +8,11 @@ import (
 	apipb "github.com/jsannemo/omogenhost/judgehost/api"
 	"github.com/jsannemo/omogenhost/storage"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"io/ioutil"
 	"strconv"
+	"time"
 )
 
 type dbConfig struct {
@@ -87,10 +90,28 @@ func main() {
 	}()
 	for sub := range judgeChan {
 		logger.Infof("Sending submission %d for judging", sub)
+		// TODO: give context a deadline to prevent stuck judge hosts...
 		ctx := context.Background()
-		_, err := hostClient.Evaluate(ctx, &apipb.EvaluateRequest{RunId: sub})
-		if err != nil {
-			logger.Fatalf("Failed judging %d: %v", sub, err)
+		req := &apipb.EvaluateRequest{RunId: sub}
+		for {
+			_, err := hostClient.Evaluate(ctx, req)
+			errcode := status.Code(err)
+			if errcode == codes.Unavailable {
+				logger.Infof("Judge host unavailable; retrying in 10s...")
+				time.Sleep(time.Second * 10)
+				continue
+			}
+
+			// TODO: retry failed judging 1 more time
+			if err != nil {
+				logger.Fatalf("Failed judging %d: %v", sub, err)
+				if res := storage.GormDB.Model(
+					&storage.SubmissionRun{SubmissionRunId: sub},
+				).Update("Status", storage.StatusJudgeError); res.Error != nil {
+					logger.Warningf("failed marking run as compiling: %v", res.Error)
+				}
+			}
+			break
 		}
 		logger.Infof("Done judging run %d", sub)
 	}
