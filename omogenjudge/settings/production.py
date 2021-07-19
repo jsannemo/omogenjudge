@@ -1,12 +1,16 @@
-ALLOWED_HOSTS = ['kodsport.dev']
+import os
+
+SECRET_KEY = os.environ['SECRET_KEY']
+
+ALLOWED_HOSTS = ['*']
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': '<db_name>',
-        'USER': '<db_username>',
-        'PASSWORD': '<password>',
-        'HOST': '<db_hostname_or_ip>',
-        'PORT': '<db_port>',
+        'NAME': 'omogenjudge',
+        'USER': 'omogenjudge',
+        'PASSWORD': 'omogenjudge',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }

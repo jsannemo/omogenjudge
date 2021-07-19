@@ -4,12 +4,13 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit
 from django.contrib.auth.decorators import login_required
 from django.core.files.uploadhandler import FileUploadHandler, SkipFile, StopUpload
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 
 from omogenjudge.frontend.decorators import requires_started_contest
 from omogenjudge.problems.lookup import problem_by_name
+from omogenjudge.problems.permissions import can_view_problem
 from omogenjudge.storage.models import Problem
 from omogenjudge.storage.models.langauges import Language
 from omogenjudge.submissions.create import create_submission
@@ -58,13 +59,17 @@ class SourceLimitCappingHandler(FileUploadHandler):
 
 @csrf_exempt
 def submit(request: HttpRequest, short_name: str) -> HttpResponse:
-    problem = problem_by_name(short_name)
+    try:
+        problem = problem_by_name(short_name)
+    except Problem.DoesNotExist:
+        raise Http404
+    if not can_view_problem(request, problem):
+        raise Http404
     request.upload_handlers.insert(0, SourceLimitCappingHandler(request))
     return _submit(request, problem)
 
 
 @login_required
-@requires_started_contest
 @csrf_protect
 def _submit(request: HttpRequest, problem: Problem):
     exceeded_file_size = request.META.get('upload_was_capped', False)

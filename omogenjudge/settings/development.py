@@ -1,6 +1,7 @@
 SECRET_KEY = 'not a very secret key'
 
 DEBUG = True
+ALLOWED_HOSTS = ['*']
 
 DATABASES = {
     'default': {

@@ -4,32 +4,47 @@ Submission Queue
 {% endblock %}
 
 {% load problems %}
+{% load submissions %}
 
 {% block 'content' %}
 <div class="row justify-content-center">
     <div class="col-lg-10">
-        <h1>Submission Queue</h1>
-        <table class="table table-bordered">
-            <tr>
-                <th>ID</th>
-                <th>Team</th>
-                <th>Problem</th>
-                <th>Status</th>
-                <th>Date</th>
-            </tr>
-            {% for sub in submissions %}
-            <tr>
-                <td>{% include 'submissions/link.html' with submission=sub %}</td>
-                <td></td>
-                <td>
-                    {% include 'problems/link.html' with problem=sub.problem %}
-                </td>
-                <td>
-                    {{ sub.current_run | display_verdict }}
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
+        <div class="card card-body">
+            <table class="table table-striped table-sm">
+                <thead>
+                <tr class="bg-dark text-light">
+                    <th>ID</th>
+                    <th>Team</th>
+                    <th>Problem</th>
+                    <th>Language</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                    <th>Submitted</th>
+                </tr>
+                </thead>
+                {% for sub in submissions %}
+                <tr>
+                    <td>{% include 'submissions/link.html' with submission=sub %}</td>
+                    <td>{{ sub.account.full_name }}</td>
+                    <td>
+                        {% include 'problems/link.html' with problem=sub.problem %}
+                    </td>
+                    <td>
+                        {{ sub.language }}
+                    </td>
+                    <td>
+                        {{ sub.current_run | display_verdict }}
+                    </td>
+                    <td>
+                        {{ sub.current_run.time_usage_ms | format_duration_ms }}
+                    </td>
+                    <td>
+                        {{ sub.date_created }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

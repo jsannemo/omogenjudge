@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -58,7 +59,6 @@ TEMPLATES = [
     },
 ]
 
-
 WSGI_APPLICATION = 'omogenjudge.wsgi.application'
 
 # Password validation
@@ -92,6 +92,7 @@ TIME_FORMAT = "Y-m-d H:i:s"
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 STATICFILES_DIRS = [
     BASE_DIR / ".." / "static",
 ]

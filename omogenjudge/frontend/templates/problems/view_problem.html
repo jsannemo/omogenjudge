@@ -31,16 +31,18 @@
 {% block 'content' %}
 <div class="row">
     <div class="col-lg-8 problemstatement">
-        <h1 class="problemheader">{{ statement_title }}</h1>
-        <div class="problemlimits mb-2">
-            <div>Time limit: {{ timelim_seconds }} s</div>
-            <div>Memory limit: {{ memlim_mb }} MB</div>
-        </div>
-        {{ statement_html | safe }}
-        <hr>
-        <div>
-            License: {{ statement_license }} |
-            Authors: {{ statement_authors }}
+        <div class="card card-body">
+            <h1 class="problemheader">{{ statement_title }}</h1>
+            <div class="problemlimits mb-2">
+                <div>Time limit: {{ timelim_seconds }} s</div>
+                <div>Memory limit: {{ memlim_mb }} MB</div>
+            </div>
+            {{ statement_html | safe }}
+            <hr>
+            <div>
+                License: {{ statement_license }} |
+                Authors: {{ statement_authors }}
+            </div>
         </div>
     </div>
     <div class="col-lg-4">
@@ -105,7 +107,7 @@
                     <tr>
                         <td>
                             <a href="{% url 'submission' sub.submission_id %}">
-                            {{ sub.submission_id }}
+                                {{ sub.submission_id }}
                             </a>
                         </td>
                         <td>
@@ -133,6 +135,7 @@
     $(function () {
         const form = $("#submit");
         const errorContainer = $("#submit-errors");
+        const submitButton = $("#submit-id-submit");
         form.on("submit", function (e) {
             e.preventDefault();
             errorContainer.empty().addClass("d-none");
@@ -142,6 +145,7 @@
                 checkErrors(errors);
             } else {
                 $("#submit-progress").removeClass("d-none");
+                submitButton.prop('disabled', true);
                 $.ajax({
                     type: form.attr("method"),
                     url: form.attr("action"),
@@ -161,6 +165,7 @@
                 }).always(function () {
                     $("#submit-progress").addClass("d-none");
                     checkErrors(errors);
+                    submitButton.prop('disabled', false);
                 });
             }
             return false;

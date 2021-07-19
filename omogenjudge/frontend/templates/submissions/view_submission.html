@@ -8,47 +8,69 @@ Submission {{ submission.id }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/languages/cpp.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.1.0/languages/python.min.js"></script>
-<script>hljs.highlightAll();</script>
+<script>
+    hljs.registerAliases('python3', {'languageName': 'python'});
+    hljs.highlightAll();
+</script>
 {% endblock %}
 
 {% load problems %}
+{% load submissions %}
 
 {% block 'content' %}
 <div class="row justify-content-center">
     <div class="col-lg-10">
-        <h1>Submission {{ submission.submission_id }}</h1>
-        <table class="table table-bordered">
-            <tr>
-                <th>Problem</th>
-                <th>Status</th>
-                <th>Submitted</th>
-            </tr>
-            <tr>
-                <td>{% include 'problems/link.html' with problem=submission.problem %}</td>
-                <td>{{ submission.current_run | display_verdict }}</td>
-                <td>{{ submission.date_created }}</td>
-            </tr>
-        </table>
-        {% if submission.current_run.compile_error %}
-        <div class="card mb-3">
-            <div class="card-header">
-                Compilation output
+        <div class="card card-body">
+            <table class="table">
+                <thead>
+                <tr class="bg-dark text-light">
+                    <th>ID</th>
+                    <th>Author</th>
+                    <th>Problem</th>
+                    <th>Language</th>
+                    <th>Status</th>
+                    <th class="text-end">Time</th>
+                    <th>Submitted</th>
+                </tr>
+                </thead>
+                <tr>
+                    <td>{{ submission.submission_id }}</td>
+                    <td>{{ author.full_name }}</td>
+                    <td>{% include 'problems/link.html' with problem=submission.problem %}</td>
+                    <td>{{ language }}</td>
+                    <td>{{ submission.current_run | display_verdict }}</td>
+                    <td class="text-end">
+                        {{ submission.current_run.time_usage_ms | format_duration_ms }}
+                    </td>
+                    <td>{{ submission.date_created }}</td>
+                </tr>
+            </table>
+            {% if submission.current_run.compile_error %}
+            <table class="table mb-0">
+                <thead>
+                <tr class="bg-dark text-light">
+                    <th>Compilation output</th>
+                </tr>
+                </thead>
+                <tr>
+                    <td>
+                        <pre class="m-0"><code
+                                class="nohighlight">{{ submission.current_run.compile_error }}</code></pre>
+                    </td>
+                </tr>
+            </table>
+            {% endif %}
+            {% for file, content in files.items %}
+            <div class="card mt-3">
+                <div class="card-header bg-dark text-light">
+                    {{ file }}
+                </div>
+                <div class="card-body">
+                    <pre><code class="language-{{ submission.language }}">{{ content }}</code></pre>
+                </div>
             </div>
-            <div class="card-body">
-                <pre class="m-0"><code class="nohighlight">{{ submission.current_run.compile_error }}</code></pre>
-            </div>
+            {% endfor %}
         </div>
-        {% endif %}
-        {% for file, content in files.items %}
-        <div class="card mb-3">
-            <div class="card-header">
-                {{ file }}
-            </div>
-            <div class="card-body">
-                <pre><code class="language-{{ submission.language }}">{{ content }}</code></pre>
-            </div>
-        </div>
-        {% endfor %}
     </div>
 </div>
 {% endblock %}

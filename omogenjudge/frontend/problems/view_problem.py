@@ -2,13 +2,15 @@ import dataclasses
 import mimetypes
 from typing import Optional
 
+from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect
-from django.urls import reverse
 
 from omogenjudge.frontend.decorators import requires_started_contest
 from omogenjudge.frontend.problems.submit import SOURCE_CODE_LIMIT, SubmitForm
-from omogenjudge.problems.lookup import NoSuchLanguage, find_statement_file, get_problem_for_view
+from omogenjudge.problems.attempts import has_accepted
+from omogenjudge.problems.lookup import NoSuchLanguage, contest_problems, find_statement_file, get_problem_for_view
+from omogenjudge.problems.permissions import can_view_problem
 from omogenjudge.storage.models import Problem, ProblemStatementFile, Submission
 from omogenjudge.submissions.lookup import list_account_problem_submissions
 from omogenjudge.util.templates import render_template
@@ -28,14 +30,26 @@ class ViewArgs:
     submissions: list[Submission]
 
 
-@requires_started_contest
+@login_required
 def view_problem(request: HttpRequest, short_name: str, language: Optional[str] = None) -> HttpResponse:
     try:
         problem, statement = get_problem_for_view(short_name, language=language)
     except Problem.DoesNotExist:
         raise Http404
     except NoSuchLanguage:
-        return redirect(reverse(view_problem, kwargs={'short_name': short_name}))
+        return redirect('problem', short_name=short_name)
+
+    if not can_view_problem(request, problem):
+        raise Http404
+
+#    if request.contest:
+#        cproblems = contest_problems(request.contest)
+#        for idx, prob in enumerate(cproblems):
+#            if prob.problem == problem:
+#                break
+#            if not has_accepted(cproblems[idx].problem, request.user):
+#                return redirect('problem', short_name=cproblems[idx].problem.short_name)
+
     args = ViewArgs(
         statement_title=statement.title,
         statement_html=statement.html,

@@ -26,18 +26,20 @@ class ContestContext:
     has_ended: bool
 
 
-def _to_context(contest: Contest) -> ContestContext:
-    return ContestContext(
-        title=contest.title,
-        has_started=contest.has_started,
-        has_ended=contest.has_ended,
-    )
+def _to_context(contest: Contest) -> typing.Optional[ContestContext]:
+    if contest:
+        return ContestContext(
+            title=contest.title,
+            has_started=contest.has_started,
+            has_ended=contest.has_ended,
+        )
+    return None
 
 
 def contest_context(request: HttpRequest):
     contest: Contest = request.contest
     return {
-        'contest': _to_context(contest),
+        'contest': SimpleLazyObject(lambda: _to_context(contest)),
         'all_contest_problems': SimpleLazyObject(lambda: contest_problems(contest)),
         'contest_problems': SimpleLazyObject(lambda: contest_problems(contest) if contest.has_started else []),
     }

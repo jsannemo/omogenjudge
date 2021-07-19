@@ -67,10 +67,9 @@ def _aggregate_team_submissions(team: Team, subs: list[Submission], problem_ids:
             seconds = math.floor((sub.date_created - start_time).total_seconds())
             time += seconds // 60
             result.time_str = "{:d}:{:02d}".format(seconds // 60, seconds % 60)
-        else:
-            time += 10
 
-    team.time = time
+    # TODO: take contest penalty from contest
+    team.time = time # + sum(20 * (result.tries - 1) if result.accepted else 0 for result in results.values())
     team.results = [results[problem_id] for problem_id in problem_ids]
     return team
 
@@ -79,7 +78,7 @@ def load_scoreboard(contest: Contest) -> Scoreboard:
     problems = contest_problems(contest)
     teams = contest_teams(contest)
     registered_user_ids = [tm.account_id for team in teams for tm in team.teammember_set.all()]
-    problem_ids = [p.id for p in problems]
+    problem_ids = [p.problem_id for p in problems]
     submissions = list_contest_submissions(registered_user_ids, problem_ids, contest)
 
     team_submissions = _submission_by_team(submissions, teams)

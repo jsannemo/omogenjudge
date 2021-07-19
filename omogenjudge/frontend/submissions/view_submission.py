@@ -1,22 +1,24 @@
 import base64
 import dataclasses
+from typing import Optional
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
 
 from omogenjudge.frontend.decorators import requires_started_contest
-from omogenjudge.storage.models import Problem, Submission
+from omogenjudge.storage.models import Language, Problem, Submission
 from omogenjudge.submissions.lookup import get_submission_for_view
 from omogenjudge.util.templates import render_template
 
 
 @dataclasses.dataclass
 class ViewArgs:
+    author: str
     submission: Submission
+    language: str
     files: dict[str, str]
 
 
-@requires_started_contest
 @login_required
 def view_submission(request: HttpRequest, sub_id: int) -> HttpResponse:
     try:
@@ -27,6 +29,9 @@ def view_submission(request: HttpRequest, sub_id: int) -> HttpResponse:
         raise Http404
     args = ViewArgs(
         submission=submission,
-        files={file: base64.b64decode(content).decode('UTF-8', errors='ignore') for file, content in submission.submission_files['files'].items()}
+        author=submission.account,
+        language=Language(submission.language).display(),
+        files={file: base64.b64decode(content).decode('UTF-8', errors='ignore') for file, content in
+               submission.submission_files['files'].items()}
     )
     return render_template(request, 'submissions/view_submission.html', args)

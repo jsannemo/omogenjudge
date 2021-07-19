@@ -23,40 +23,48 @@
 
 <body>
 
-{% load navigation %}
-<nav class="navbar navbar-dark bg-dark navbar-expand-lg" id="menu">
-    <div class="container">
-        <a class="navbar-brand me-5" href="/">
-            <img src="/static/img/logo.png" height="45" alt="Logotype">
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav me-auto">
-                {% comment %}{% navitem 'Home' 'home' %}{% endcomment %}
-                {% navitem 'Scoreboard' 'scoreboard' %}
-                {% if contest.has_started %}
+<div id="page-wrapper" class="bg-light">
+    {% load navigation %}
+    <nav class="navbar navbar-dark bg-dark navbar-expand-lg" id="menu">
+        <div class="container">
+            <a class="navbar-brand me-5" href="/">
+                <img src="/static/img/logo.png" height="45" alt="Logotype">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent"
+                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto">
+                    {% comment %}{% navitem 'Home' 'home' %}{% endcomment %}
+                    {% if contest %}
+                    {% navitem 'Scoreboard' 'scoreboard' %}
+                    {% endif %}
+                    {% if contest and contest.has_started %}
                     {% navitem 'Problems' 'problems' %}
-                {% endif %}
-            </ul>
-            <ul class="navbar-nav">
-                {% if user.is_authenticated %}
-                {% comment %}{% navitem user.username 'profile' username=user.username %}{% endcomment %}
-                {% navitem 'Log out' 'logout' %}
-                {% else %}
-                {% navitem 'Log in' 'login' %}
-                {% navitem 'Register' 'register' %}
-                {% endif %}
-            </ul>
+                    {% endif %}
+                    {% if user.is_superuser %}
+                    {% navitem 'Queue' 'queue' %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    {% comment %}{% navitem user.username 'profile' username=user.username %}{% endcomment %}
+                    {% navitem 'Log out' 'logout' %}
+                    {% else %}
+                    {% navitem 'Log in' 'login' %}
+                    {% navitem 'Register' 'register' %}
+                    {% endif %}
+                </ul>
+            </div>
         </div>
-    </div>
-</nav>
-<div class="container page-content">
-    <div class="mt-4">
-        {% block 'content' %}
-        {% endblock %}
+    </nav>
+    <div class="container page-content">
+        <div class="mt-4">
+            {% block 'content' %}
+            {% endblock %}
+        </div>
     </div>
 </div>
 <div id="js_context" class="d-none">

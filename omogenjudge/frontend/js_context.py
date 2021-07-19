@@ -16,12 +16,14 @@ class JsContext:
 
 def js_context(request: HttpRequest):
     contest: Contest = request.contest
-    return {
-        'js_context':
-            json.dumps(dataclasses.asdict(JsContext(
-                contest_start_timestamp=int(contest.start_time.timestamp()),
-                contest_duration=int(contest.duration.total_seconds()),
-                contest_started=contest.has_started,
-                contest_ended=contest.has_ended,
-            ))),
-    }
+    if contest:
+        return {
+            'js_context':
+                json.dumps(dataclasses.asdict(JsContext(
+                    contest_start_timestamp=int(contest.start_time.timestamp()),
+                    contest_duration=int(contest.duration.total_seconds()),
+                    contest_started=contest.has_started,
+                    contest_ended=contest.has_ended,
+                ))),
+        }
+    return {}
