@@ -4,4 +4,5 @@ __pycache__
 node_modules
 static/css/
 static/js/
+omogenjudge/static
 bazel-*
