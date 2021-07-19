@@ -12,13 +12,16 @@ $gray-900: #212529 !default;
 $black: #000 !default;
 
 
-$dark: #2f2f2f !default;
+$dark: #3a3a3a !default;
 $primary: #276dc7;
 $secondary: #e5bc3a;
 
 $headings-color: $gray-800 !default;
 $body-color: $gray-900 !default;
 
+$navbar-dark-color:                 rgba($white, .85) !default;
+$navbar-dark-hover-color:           $white !default;
+$navbar-dark-active-color:          $white !default;
 
 // Components
 $border-radius:               .4rem !default;
