@@ -1721,12 +1721,16 @@ go_repository(
 
 gazelle_dependencies()
 
-http_archive(
+# http_archive(
+#    name = "com_github_jsannemo_omogenexec",
+#    strip_prefix = "omogenexec-1.1.1",
+#    urls = [
+#        "https://github.com/jsannemo/omogenexec/archive/refs/tags/v1.1.1.zip",
+#    ],
+#)
+local_repository(
     name = "com_github_jsannemo_omogenexec",
-    strip_prefix = "omogenexec-1.1.0",
-    urls = [
-        "https://github.com/jsannemo/omogenexec/archive/refs/tags/v1.1.0.zip",
-    ],
+    path = "../../omogenexec",
 )
 
 http_archive(

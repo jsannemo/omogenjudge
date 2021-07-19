@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"github.com/jsannemo/omogenexec/eval"
 	"github.com/jsannemo/omogenexec/util"
 	"github.com/jsannemo/omogenhost/storage"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -31,7 +33,7 @@ func evaluate(runId int64) error {
 	defer evalMutex.Unlock()
 
 	var run storage.SubmissionRun
-	if res := storage.GormDB.Joins("Submission").Joins("ProblemVersion").First(&run, runId); res.Error != nil {
+	if res := storage.GormDB.Debug().Joins("Submission").Joins("ProblemVersion").Preload("ProblemVersion.OutputValidator").First(&run, runId); res.Error != nil {
 		return fmt.Errorf("failed loading run: %v", res.Error)
 	}
 	logger.Infof("Found run %d of submission %d", run.SubmissionRunId, run.SubmissionId)
@@ -44,7 +46,11 @@ func evaluate(runId int64) error {
 		Language: langMap[run.Submission.Language],
 	}
 	submissionFiles := submissionJson{}
-	_ = json.Unmarshal(run.Submission.SubmissionFiles, &submissionFiles)
+	err := json.Unmarshal(run.Submission.SubmissionFiles, &submissionFiles)
+	if err != nil {
+		return err
+	}
+	logger.Infof("Files: %v", submissionFiles)
 	for path, content := range submissionFiles.Files {
 		content, err := base64.StdEncoding.DecodeString(content)
 		if err != nil {
@@ -74,6 +80,7 @@ func evaluate(runId int64) error {
 			return fmt.Errorf("failed marking program as running: %v", res.Error)
 		}
 	}
+	logger.Infof("Compiled program runs with: %v", compile.Program.RunCommand)
 
 	evalPlan, err := makeEvalPlan(compile.Program, run.ProblemVersion)
 	if err != nil {
@@ -107,7 +114,7 @@ func evaluate(runId int64) error {
 	case apipb.Verdict_WRONG_ANSWER:
 		run.Verdict = storage.VerdictWrongAnswer
 	case apipb.Verdict_RUN_TIME_ERROR:
-		run.Verdict = storage.VerdictWrongAnswer
+		run.Verdict = storage.VerdictRuntimeError
 	}
 	run.TimeUsageMs = int64(lastRes.TimeUsageMs)
 	run.Score = lastRes.Score
@@ -115,6 +122,10 @@ func evaluate(runId int64) error {
 		return fmt.Errorf("failed writing submission results: %v", res.Error)
 	}
 	return nil
+}
+
+type validatorConfig struct {
+	RunCommand []string `json:"run_command"`
 }
 
 func makeEvalPlan(program *apipb.CompiledProgram, version storage.ProblemVersion) (*apipb.EvaluationPlan, error) {
@@ -138,7 +149,11 @@ func makeEvalPlan(program *apipb.CompiledProgram, version storage.ProblemVersion
 	}
 	if version.OutputValidatorId != 0 {
 		evalPlan.ScoringValidator = version.OutputValidator.Scoringvalidator
-		val, err := zipProgram(version.OutputValidator.ValidatorSourceZipId)
+		conf := validatorConfig{}
+		if err := json.Unmarshal(version.OutputValidator.ValidatorRunConfig, &conf); err != nil {
+			return nil, err
+		}
+		val, err := zipProgram(version.OutputValidator.ValidatorSourceZipId, conf.RunCommand)
 		if err != nil {
 			return nil, fmt.Errorf("failed loading zip'ed validator: %v", err)
 		}
@@ -160,9 +175,60 @@ func makeEvalPlan(program *apipb.CompiledProgram, version storage.ProblemVersion
 	return evalPlan, nil
 }
 
-func zipProgram(id string) (*apipb.CompiledProgram, error) {
-	// TODO: support custom validator
-	return nil, nil
+func zipProgram(id string, runCmd []string) (*apipb.CompiledProgram, error) {
+	logger.Infof("Loading validator %s", id)
+	valPath := filepath.Join("/var/lib/omogen/validator/", id)
+	if _, err := os.Stat(valPath); err != nil {
+		if os.IsNotExist(err) {
+			if err := syncFiles([]string{id}); err != nil {
+				return nil, err
+			}
+			zipPath, _ := findPath(id)
+			r, err := zip.OpenReader(zipPath)
+			if err != nil {
+				return nil, err
+			}
+			defer r.Close()
+
+			fb := util.NewFileBase(valPath)
+			fb.OwnerGid = util.OmogenexecGroupId()
+			if err := fb.Mkdir("."); err != nil {
+				return nil, err
+			}
+			for _, f := range r.File {
+				subPath := f.Name
+				if f.FileInfo().IsDir() {
+					if err := fb.Mkdir(subPath); err != nil {
+						return nil, err
+					}
+					continue
+				}
+				if err := fb.Mkdir(filepath.Dir(subPath)); err != nil {
+					return nil, err
+				}
+				fileReader, err := f.Open()
+				if err != nil {
+					return nil, err
+				}
+				content, err := ioutil.ReadAll(fileReader)
+				if err != nil {
+					return nil, err
+				}
+				if err := fb.WriteFile(subPath, content); err != nil {
+					return nil, err
+				}
+				if err := fb.FixModeExec(subPath); err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			return nil, err
+		}
+	}
+	return &apipb.CompiledProgram{
+		ProgramRoot: valPath,
+		RunCommand:  runCmd,
+	}, nil
 }
 
 func toGroup(testgroup storage.ProblemTestgroup) (*apipb.TestGroup, error) {
