@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package omogen.webapi;
+
+message ProblemStatement {
+  string language = 1;
+  string title = 2;
+  string html = 3;
+  string license = 4;
+  repeated string authors = 5;
+}
+
+message ProblemLimits {
+  int64 time_limit_ms = 1;
+  int64 memory_limit_kb = 2;
+}

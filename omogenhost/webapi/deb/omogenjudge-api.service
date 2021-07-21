@@ -1,0 +1,12 @@
+[Unit]
+Description=OmogenJudge Web API
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+User=omogenjudge-api
+ExecStart=/usr/bin/omogenjudge-api
+
+[Install]
+WantedBy=multi-user.target

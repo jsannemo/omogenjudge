@@ -1,7 +1,90 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@npm//webpack-cli:index.bzl", "webpack_cli")
+load("@build_bazel_rules_nodejs//:index.bzl", "copy_to_bin", "nodejs_binary")
 
 # gazelle:resolve go github.com/jsannemo/omogenexec/api @com_github_jsannemo_omogenexec//api
 # gazelle:resolve go github.com/jsannemo/omogenexec/eval @com_github_jsannemo_omogenexec//eval
 # gazelle:resolve go github.com/jsannemo/omogenexec/util @com_github_jsannemo_omogenexec//util
 # gazelle:prefix github.com/jsannemo/omogenhost
 gazelle(name = "gazelle")
+
+filegroup(
+    name = "frontend_srcs",
+    srcs = glob(
+        include = [
+            "frontend/src/**/*",
+        ],
+    ),
+)
+
+copy_to_bin(
+    name = "webpack_config",
+    srcs = [
+        "webpack.prod.js",
+    ],
+)
+
+copy_to_bin(
+    name = "webpack_dev_config",
+    srcs = [
+        "webpack.dev.js",
+    ],
+)
+
+copy_to_bin(
+    name = "build_deps",
+    srcs = [
+        "package.json",
+        "tsconfig.json",
+        "webpack.config.js",
+    ] + glob(
+        include = [
+            "frontend/src/**/*",
+        ],
+    ),
+)
+
+nodejs_binary(
+    name = "serve",
+    data = [
+        ":build_deps",
+        ":webpack_dev_config",
+        "//webapi/proto:omogen_webapi_ts_grpc",
+        "//webapi/proto:omogen_webapi_ts_proto",
+        "@npm//jest-worker",
+        "@npm//react",
+        "@npm//ts-loader",
+        "@npm//webpack",
+        "@npm//webpack-dev-server",
+    ],
+    entry_point = "scripts/webpack_dev.js",
+    tags = [
+        # Keeps the server alive under ibazel
+        "ibazel_notify_changes",
+    ],
+    templated_args = [
+        "--config",
+        "$(location //:webpack_dev_config)",
+        "--nobazel_node_patches",
+    ],
+)
+
+webpack_cli(
+    name = "build",
+    outs = ["frontend_bundle"],
+    args = [
+        "build",
+        "--config",
+        "$(location //:webpack_config)",
+        "-o",
+        "$@",
+    ],
+    data = [
+        ":build_deps",
+        ":webpack_config",
+        "//webapi/proto:omogen_webapi_ts_grpc",
+        "//webapi/proto:omogen_webapi_ts_proto",
+        "@npm//:node_modules",
+    ],
+    link_workspace_root = True,
+)

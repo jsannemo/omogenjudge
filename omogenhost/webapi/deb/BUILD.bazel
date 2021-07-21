@@ -1,0 +1,54 @@
+load("@rules_pkg//:pkg.bzl", "pkg_deb", "pkg_tar")
+
+pkg_tar(
+    name = "webapi",
+    srcs = [
+        "//webapi:omogenjudge-webapi",
+    ],
+    mode = "0755",
+    package_dir = "/usr/bin",
+    strip_prefix = "/webapi/omogenjudge-webapi_",
+)
+
+pkg_tar(
+    name = "initd",
+    srcs = [
+        "//webapi/deb:omogenjudge-webapi.service",
+    ],
+    mode = "0755",
+    package_dir = "/etc/systemd/system",
+    strip_prefix = "/webapi/deb",
+)
+
+pkg_tar(
+    name = "config",
+    srcs = [
+        "//webapi/deb:webapi.toml",
+    ],
+    mode = "0755",
+    package_dir = "/etc/omogenjudge/",
+    strip_prefix = "/webapi/deb",
+)
+
+pkg_tar(
+    name = "debian-data",
+    extension = "tar.gz",
+    deps = [
+        ":config",
+        ":initd",
+        ":webapi",
+    ],
+)
+
+pkg_deb(
+    name = "omogenjudge-webapi",
+    architecture = "amd64",
+    built_using = "bazel",
+    data = ":debian-data",
+    description = "OmogenJudge Web API",
+    maintainer = "Johan Sannemo <johan.sannemo@kodsport.se>",
+    package = "omogenjudge-webapi",
+    postinst = "debian/postinst",
+    prerm = "debian/prerm",
+    version = "0.0.1",
+)

@@ -3,21 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npm run css ts",
+    "build": "npm run css",
     "css-compile": "node-sass --include-path node_modules --output-style compressed --source-map true --source-map-contents true --precision 6 scss -o static/css/",
     "css-lint": "stylelint scss/",
     "css-prefix": "postcss --replace static/css/main.css --use autoprefixer --map",
     "css-purge": "purgecss --keyframes --css static/css/main.css --content index.html \\\\\\\"node_modules/bootstrap/js/dist/{util,modal}.js\\\\\\\" --output static/css/",
     "css": "npm-run-all css-compile css-prefix",
-    "watch": "npm-run-all --parallel watchcss watchts",
-    "watchcss": "nodemon -e scss -x \"npm run css\" --watch scss",
-    "watchts": "nodemon -e ts -x \"npm run ts\" --watch js",
-    "ts": "tsc-bundle ./tsconfig.json --outFile ./static/js/bundle.js"
+    "watch": "nodemon -e scss -x \"npm run css\" --watch scss"
   },
   "dependencies": {
-    "bootstrap": "^5.0.0"
   },
   "devDependencies": {
+    "bootstrap": "^5.0.0",
     "autoprefixer": "^10.2.5",
     "node-sass": "^5.0.0",
     "nodemon": "^2.0.7",
@@ -25,10 +22,7 @@
     "postcss": "^8.2.10",
     "postcss-cli": "^8.3.1",
     "purgecss": "^4.0.2",
-    "serve": "^11.3.2",
     "stylelint": "^13.12.0",
     "stylelint-config-twbs-bootstrap": "^2.1.0",
-    "typescript": "^4.3.5",
-    "typescript-bundle": "^1.0.17"
   }
 }

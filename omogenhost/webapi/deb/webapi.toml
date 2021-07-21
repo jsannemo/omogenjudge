@@ -1,0 +1,7 @@
+[webapi]
+server = "127.0.0.1"
+port = 56744
+
+[database]
+server = "127.0.0.1"
+port = 5432

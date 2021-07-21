@@ -1,69 +1,10 @@
-import dataclasses
 import mimetypes
-from typing import Optional
 
-from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import redirect
 
 from omogenjudge.frontend.decorators import requires_started_contest
-from omogenjudge.frontend.problems.submit import SOURCE_CODE_LIMIT, SubmitForm
-from omogenjudge.problems.attempts import has_accepted
-from omogenjudge.problems.lookup import NoSuchLanguage, contest_problems, find_statement_file, get_problem_for_view
-from omogenjudge.problems.permissions import can_view_problem
-from omogenjudge.storage.models import Problem, ProblemStatementFile, Submission
-from omogenjudge.submissions.lookup import list_account_problem_submissions
-from omogenjudge.util.templates import render_template
-
-
-@dataclasses.dataclass
-class ViewArgs:
-    statement_title: str
-    statement_html: str
-    statement_license: str
-    statement_authors: str
-    timelim_seconds: str
-    memlim_mb: str
-    is_scoring: bool
-    submit_form: SubmitForm
-    source_code_limit: int
-    submissions: list[Submission]
-
-
-@login_required
-def view_problem(request: HttpRequest, short_name: str, language: Optional[str] = None) -> HttpResponse:
-    try:
-        problem, statement = get_problem_for_view(short_name, language=language)
-    except Problem.DoesNotExist:
-        raise Http404
-    except NoSuchLanguage:
-        return redirect('problem', short_name=short_name)
-
-    if not can_view_problem(request, problem):
-        raise Http404
-
-#    if request.contest:
-#        cproblems = contest_problems(request.contest)
-#        for idx, prob in enumerate(cproblems):
-#            if prob.problem == problem:
-#                break
-#            if not has_accepted(cproblems[idx].problem, request.user):
-#                return redirect('problem', short_name=cproblems[idx].problem.short_name)
-
-    args = ViewArgs(
-        statement_title=statement.title,
-        statement_html=statement.html,
-        statement_license=problem.license,
-        statement_authors=', '.join(problem.author),
-        timelim_seconds='{:.2g}'.format(problem.current_version.time_limit_ms / 1000),
-        memlim_mb='{:.0f}'.format(round(problem.current_version.memory_limit_kb / 1000)),
-        is_scoring=problem.current_version.scoring,
-        submit_form=SubmitForm(problem.short_name),
-        source_code_limit=SOURCE_CODE_LIMIT,
-        submissions=list_account_problem_submissions(account=request.user, problem=problem,
-                                                     limit=20) if request.user.is_authenticated else [],
-    )
-    return render_template(request, 'problems/view_problem.html', args)
+from omogenjudge.problems.lookup import find_statement_file
+from omogenjudge.storage.models import ProblemStatementFile
 
 
 @requires_started_contest

@@ -25,11 +25,9 @@
     {{ js_context }}
 </div>
 {% if debug %}
-<script type="text/javascript" src="http://127.0.0.1:3000/static/js/modules.js"></script>
-<script type="text/javascript" src="http://127.0.0.1:3000/static/js/app.js"></script>
+<script type="text/javascript" src="http://127.0.0.1:3000/static/js/bundle.js"></script>
 {% else %}
-<script type="text/javascript" src="{% static 'js/modules.js' %}"></script>
-<script type="text/javascript" src="{% static 'js/app.js' %}"></script>
+<script type="text/javascript" src="{% static 'js/bundle.js' %}"></script>
 {% endif %}
 </body>
 </html>

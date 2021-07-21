@@ -1,11 +1,11 @@
 import io
-import io
 import os.path
 import shlex
 import tempfile
 import zipfile
 from typing import Optional
 
+import problemtools.run
 from django.db import transaction
 from problemtools import problem2html
 from problemtools.run import BuildRun, SourceCode
@@ -87,30 +87,33 @@ def _included_files(problem: ToolsProblem) -> IncludedFiles:
     return IncludedFiles(files_by_language=include_dict)
 
 
-def _zip_program(program: ToolsProgram) -> StoredFile:
-    assert isinstance(program, BuildRun) or isinstance(program, SourceCode)
-    path = program.path
+def _zip_program(path) -> StoredFile:
     zip_buf = io.BytesIO()
     zip_handler = zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED)
     for root, dirs, files in os.walk(path):
         for file in files:
-            zip_handler.write(os.path.join(root, file),
-                              os.path.relpath(os.path.join(root, file),
-                                              os.path.join(path, '..')))
+            zip_handler.write(os.path.join(root, file), file)
     zip_handler.close()
     return insert_file(zip_buf.getbuffer())
 
 
 def _add_validator(problem: ToolsProblem) -> ProblemOutputValidator:
-    validator = problem.output_validators._validators[0]
-    run_config = ValidatorRunConfig(
-        run_command=validator.get_runcmd(validator.path),
-    )
-    db_validator = ProblemOutputValidator(
-        validator_run_config=run_config,
-        validator_source_zip=_zip_program(validator),
-        scoring_validator=problem.config.get('grading')['custom_scoring']
-    )
+    # We recompile the validator to ensure that we have a directory only with a single validator present.
+    # Otherwise, it's annoying to handle the case of multiple single-file validators in the same directory.
+    with tempfile.TemporaryDirectory() as tmp_validator:
+        validator = problemtools.run.find_programs(
+            os.path.join(problem.probdir, "output_validators"),
+            language_config=problem.language_config,
+            work_dir=tmp_validator)[0]
+        validator.compile()
+        run_config = ValidatorRunConfig(
+            run_command=validator.get_runcmd(tmp_validator),
+        )
+        db_validator = ProblemOutputValidator(
+            validator_run_config=run_config,
+            validator_source_zip=_zip_program(tmp_validator),
+            scoring_validator=problem.config.get('grading')['custom_scoring']
+        )
     db_validator.save()
     return db_validator
 
@@ -152,7 +155,7 @@ def _add_statement(problem: ToolsProblem, language_code: str, db_problem: Proble
         htmlopt.bodyonly = True
         htmlopt.css = False
         htmlopt.headers = False
-        htmlopt.imgbasedir = f"/problems/{problem.shortname}/{language_code}"
+        htmlopt.imgbasedir = f"/problems/img/{problem.shortname}/{language_code}"
         problem2html.convert(problem.probdir, htmlopt)
         with open(os.path.join(tmp_dest, 'index.html'), 'r') as html:
             statement.html = html.read()

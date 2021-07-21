@@ -1,0 +1,26 @@
+{
+  "include": [
+    "frontend",
+    "webapi"
+  ],
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "module": "es6",
+    "target": "es5",
+    "jsx": "react",
+    "allowJs": true,
+    "moduleResolution": "node",
+    "downlevelIteration": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": [
+        // Enables absolute paths for src files in your project
+        "*",
+        // Enables referencing generated protos with absolute paths
+        "bazel-bin/*"
+      ]
+    }
+  }
+}

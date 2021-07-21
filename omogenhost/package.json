@@ -1,0 +1,31 @@
+{
+  "name": "omogenfrontend",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@bazel/ibazel": "^0.15.10",
+    "@bazel/typescript": "3.0.0",
+    "@improbable-eng/grpc-web": "^0.14.0",
+    "@types/google-protobuf": "^3.15.3",
+    "@types/react-dom": "^17.0.9",
+    "@types/react-router-dom": "^5.1.8",
+    "css-loader": "^6.2.0",
+    "fork-ts-checker-webpack-plugin": "^6.2.12",
+    "google-protobuf": "^3.17.3",
+    "jest-worker": "^27.0.6",
+    "react": "^17.0.2",
+    "react-bootstrap": "^1.6.1",
+    "react-dom": "^17.0.2",
+    "react-router-dom": "^5.2.0",
+    "sass": "^1.35.2",
+    "sass-loader": "^12.1.0",
+    "style-loader": "^3.2.1",
+    "terser-webpack-plugin": "^5.1.4",
+    "ts-loader": "^9.2.3",
+    "typescript": "3.9.7",
+    "webpack": "5.10.3",
+    "webpack-cli": "^4.7.2",
+    "webpack-dev-server": "^3.11.2",
+    "webpack-merge": "^5.8.0"
+  }
+}

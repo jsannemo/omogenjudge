@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+if ! id -u omogenjudge-host >/dev/null 2>&1; then
+  adduser --system omogenjudge-webapi --quiet
+fi
+
+systemctl start omogenjudge-host
