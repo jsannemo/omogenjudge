@@ -38,7 +38,7 @@ func (a ApiServer) ViewProblem(ctx context.Context, request *apipb.ViewProblemRe
 		Statement: &apipb.ProblemStatement{
 			Language: "en",
 			Title:    "Hello World",
-			Html:     "<p>test statement</p>",
+			Html:     "<p>test statement <span class='tex2jax_process'>$1 + 2 = 3$</span></p>",
 			License:  "cc by-sa",
 			Authors:  []string{"Johan Sannemo", "Simon Lindholm"},
 		},
@@ -67,20 +67,10 @@ func main() {
 	if err != nil {
 		logger.Fatalf("failed to create server: %v", err)
 	}
-	wrappedGrpc := grpcweb.WrapServer(grpcServer,
-		grpcweb.WithOriginFunc(func(origin string) bool {
-			return origin == "http://localhost:8000"
-		}))
+	wrappedGrpc := grpcweb.WrapServer(grpcServer)
 	httpServer := &http.Server{
 		Addr: fmt.Sprintf("%s:%d", conf.Webapi.Server, conf.Webapi.Port),
 		Handler: http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			if req.Method == "OPTIONS" {
-				resp.Header().Add("Access-Control-Allow-Origin", "*")
-				resp.Header().Add("Access-Control-Allow-Headers", "*")
-				resp.Header().Add("Access-Control-Allow-Methods", "GET, POST,OPTIONS")
-				resp.WriteHeader(http.StatusOK)
-				return
-			}
 			if wrappedGrpc.IsGrpcWebRequest(req) {
 				wrappedGrpc.ServeHTTP(resp, req)
 				return

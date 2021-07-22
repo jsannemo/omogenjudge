@@ -1,3 +1,4 @@
+const path = require('path');
 const webpack = require('webpack');
 const {merge} = require('webpack-merge');
 
@@ -12,7 +13,17 @@ module.exports = merge(common, {
     port: 3000,
     sockPort: 3000,
     publicPath: '/static/js/',
+    contentBase: path.join(__dirname, './frontend/assets'),
     headers: {"Access-Control-Allow-Origin": "*"},
+    proxy: [
+      {
+        context: ['/omogen.webapi'],
+        target: 'http://localhost:56744',
+      },
+    ],
+    historyApiFallback: {
+      index: 'index.html'
+    }
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin(),

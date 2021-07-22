@@ -40,6 +40,7 @@ copy_to_bin(
     ] + glob(
         include = [
             "frontend/src/**/*",
+            "frontend/bootstrap/**/*",
         ],
     ),
 )

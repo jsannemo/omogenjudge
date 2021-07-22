@@ -21,7 +21,7 @@ export type GrpcError = {
 }
 
 
-const API_PORT = 56744;
+const API_PORT = 3000;
 const API_ADDRESS = "http://" + window.location.hostname + ":" + API_PORT;
 
 console.log("API address: " + API_ADDRESS);
