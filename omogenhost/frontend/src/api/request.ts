@@ -20,6 +20,7 @@ export type GrpcError = {
   statusMessage: string;
 }
 
+export type GrpcResponse<ResponseMessage> = GrpcError | GrpcResult<ResponseMessage>;
 
 const API_PORT = 3000;
 const API_ADDRESS = "http://" + window.location.hostname + ":" + API_PORT;
@@ -31,14 +32,14 @@ export async function grpcRequest<TRequest extends grpc.ProtobufMessage,
     M extends grpc.UnaryMethodDefinition<TRequest, ResponseMessage>>(
     methodDescriptor: M,
     request: TRequest,
-): Promise<GrpcResult<ResponseMessage> | GrpcError> {
+): Promise<GrpcResponse<ResponseMessage>> {
   return new Promise(
       (resolve, reject) => {
         internalRequest(methodDescriptor, request).then((result: Result<ResponseMessage>) => {
           if (result.status == grpc.Code.OK) {
             resolve({
               error: false,
-              message: result.message
+              message: result.message as ResponseMessage,
             });
           } else {
             resolve({

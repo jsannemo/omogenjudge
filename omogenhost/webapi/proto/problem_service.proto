@@ -6,6 +6,7 @@ import "webapi/proto/problems.proto";
 
 message ViewProblemRequest {
   string short_name = 1;
+  string language = 2;
 }
 
 message ViewProblemResponse {

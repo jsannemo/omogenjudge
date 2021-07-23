@@ -17,7 +17,7 @@ module.exports = merge(common, {
     headers: {"Access-Control-Allow-Origin": "*"},
     proxy: [
       {
-        context: ['/omogen.webapi'],
+        context: ['/omogen.webapi', '/problems/img/'],
         target: 'http://localhost:56744',
       },
     ],

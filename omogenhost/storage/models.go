@@ -15,12 +15,52 @@ type StoredFile struct {
 	FileContents []byte `gorm:"type:bytea"`
 }
 
+type Problem struct {
+	ProblemId int64 `gorm:"primaryKey"`
+	ShortName string
+	Author pq.StringArray `gorm:"type:text[]"`
+	Source string
+	License string
+	CurrentVersionId int64
+	CurrentVersion ProblemVersion `gorm:"foreignKey:CurrentVersionId; References:ProblemVersionId"`
+	ProblemStatements []ProblemStatement `gorm:"References:ProblemId"`
+
+}
+
+type ProblemStatement struct {
+	Id int64 `gorm:"primaryKey"`
+	ProblemId int64
+	Problem  Problem `gorm:"foreignKey:ProblemId; References:ProblemId"`
+	Language string
+	Title string
+	Html string
+}
+
+type ProblemStatementFile struct {
+	Id int64 `gorm:"primaryKey"`
+	ProblemId int64
+	Problem  Problem `gorm:"foreignKey:ProblemId; References:Problem"`
+	FilePath string
+	StatementFileHash string
+	StatementFile StoredFile `gorm:"foreignKey:StatementFileHash; References:StoredFile"`
+	Attachment bool
+}
+
+const (
+	LicensePublicDomain = "public domain"
+	LicenseCC0 = "cc0"
+	LicenseCCBY = "cc by"
+	LicenseCCBYSA = "cc by-sa"
+	LicenseEducational = "educational"
+	LicensePermission = "permission"
+)
+
 type ProblemOutputValidator struct {
 	Id                   int64 `gorm:"primaryKey"`
 	ValidatorRunConfig   JSON
 	ValidatorSourceZipId string
 	ValidatorSourceZip   StoredFile `gorm:"foreignKey:ValidatorSourceZipId; References:FileHash"`
-	Scoringvalidator     bool
+	ScoringValidator     bool
 }
 
 type ProblemTestcase struct {
