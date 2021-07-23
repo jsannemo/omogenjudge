@@ -36,7 +36,7 @@ module.exports = {
     }
   },
   resolveLoader: {
-    extensions: ['.tsx', '.ts', '.js'],
+    extensions: ['.js'],
     modules: ['external/npm/node_modules', 'node_modules'],
   },
   output: {
