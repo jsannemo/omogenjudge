@@ -4,6 +4,7 @@
     "webapi"
   ],
   "compilerOptions": {
+    "strictNullChecks": true,
     "esModuleInterop": true,
     "sourceMap": true,
     "noImplicitAny": true,
