@@ -7,4 +7,4 @@ if 'test' in sys.argv:
 elif os.environ.get("PRODUCTION") == '1':
     from .production import *
 else:
-    from .development import *
+    from .local_development import *
