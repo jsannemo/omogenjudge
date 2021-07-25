@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package omogen.webapi;
+
+import "webapi/proto/options.proto";
+
+message RegisterRequest {
+  option (webrpc).type = MODIFY;
+  string username = 1;
+  string full_name = 2;
+  string email = 3;
+  string password = 4;
+}
+
+message RegisterResponse {
+  enum RegisterError {
+    REGISTER_ERROR_UNSPECIFIED = 0;
+    USERNAME_TAKEN = 1;
+    USERNAME_INVALID = 2;
+    EMAIL_TAKEN = 3;
+    EMAIL_INVALID = 4;
+    FULL_NAME_INVALID = 5;
+  }
+  repeated RegisterError errors = 1;
+}
+
+service AccountService {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+  }
+}

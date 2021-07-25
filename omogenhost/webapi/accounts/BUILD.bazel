@@ -1,15 +1,17 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "problems",
+    name = "accounts",
     srcs = ["api.go"],
-    importpath = "github.com/jsannemo/omogenhost/webapi/problems",
+    importpath = "github.com/jsannemo/omogenhost/webapi/accounts",
     visibility = ["//visibility:public"],
     deps = [
         "//storage",
         "//webapi/proto",
-        "@io_gorm_gorm//:gorm",
+        "//webapi/requests:request",
+        "@com_github_google_logger//:logger",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_x_crypto//bcrypt",
     ],
 )

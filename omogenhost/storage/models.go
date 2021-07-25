@@ -10,49 +10,50 @@ import (
 	"time"
 )
 
+type JSON json.RawMessage
+
 type StoredFile struct {
 	FileHash     string `gorm:"primaryKey"`
 	FileContents []byte `gorm:"type:bytea"`
 }
 
 type Problem struct {
-	ProblemId int64 `gorm:"primaryKey"`
-	ShortName string
-	Author pq.StringArray `gorm:"type:text[]"`
-	Source string
-	License string
-	CurrentVersionId int64
-	CurrentVersion ProblemVersion `gorm:"foreignKey:CurrentVersionId; References:ProblemVersionId"`
+	ProblemId         int64 `gorm:"primaryKey"`
+	ShortName         string
+	Author            pq.StringArray `gorm:"type:text[]"`
+	Source            string
+	License           string
+	CurrentVersionId  int64
+	CurrentVersion    ProblemVersion     `gorm:"foreignKey:CurrentVersionId; References:ProblemVersionId"`
 	ProblemStatements []ProblemStatement `gorm:"References:ProblemId"`
-
 }
 
 type ProblemStatement struct {
-	Id int64 `gorm:"primaryKey"`
+	Id        int64 `gorm:"primaryKey"`
 	ProblemId int64
-	Problem  Problem `gorm:"foreignKey:ProblemId; References:ProblemId"`
-	Language string
-	Title string
-	Html string
+	Problem   Problem `gorm:"foreignKey:ProblemId; References:ProblemId"`
+	Language  string
+	Title     string
+	Html      string
 }
 
 type ProblemStatementFile struct {
-	Id int64 `gorm:"primaryKey"`
-	ProblemId int64
-	Problem  Problem `gorm:"foreignKey:ProblemId; References:Problem"`
-	FilePath string
+	Id                int64 `gorm:"primaryKey"`
+	ProblemId         int64
+	Problem           Problem `gorm:"foreignKey:ProblemId; References:Problem"`
+	FilePath          string
 	StatementFileHash string
-	StatementFile StoredFile `gorm:"foreignKey:StatementFileHash; References:StoredFile"`
-	Attachment bool
+	StatementFile     StoredFile `gorm:"foreignKey:StatementFileHash; References:StoredFile"`
+	Attachment        bool
 }
 
 const (
 	LicensePublicDomain = "public domain"
-	LicenseCC0 = "cc0"
-	LicenseCCBY = "cc by"
-	LicenseCCBYSA = "cc by-sa"
-	LicenseEducational = "educational"
-	LicensePermission = "permission"
+	LicenseCC0          = "cc0"
+	LicenseCCBY         = "cc by"
+	LicenseCCBYSA       = "cc by-sa"
+	LicenseEducational  = "educational"
+	LicensePermission   = "permission"
 )
 
 type ProblemOutputValidator struct {
@@ -165,7 +166,17 @@ type SubmissionRun struct {
 	CompileError     string
 }
 
-type JSON json.RawMessage
+type Account struct {
+	AccountId   int64 `gorm:"primaryKey"`
+	Username    string
+	FullName    string
+	Email       string
+	Password    string
+	DateCreated time.Time `gorm:"autoCreateTime"`
+	LastLogin   sql.NullTime
+	IsStaff     bool
+	IsSuperuser bool
+}
 
 func (j *JSON) Scan(value interface{}) error {
 	bytes, ok := value.([]byte)

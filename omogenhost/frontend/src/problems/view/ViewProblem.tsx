@@ -14,7 +14,7 @@ export default function ViewProblem(): JSX.Element {
   const {shortname} = useParams();
   const request = new ViewProblemRequest();
   request.setShortName(shortname);
-  const data: ReactResponse<ViewProblemResponse> = useRequest(ProblemService.ViewProblem, request);
+  const data: ReactResponse<ViewProblemResponse> = useRequest(ProblemService.ViewProblem, request, { cache: true });
   return (
     <Row>
       {data.loading ? "Loading problem..." :
@@ -26,8 +26,8 @@ export default function ViewProblem(): JSX.Element {
 }
 
 type ProblemProps = {
-    statement: ProblemPb.ProblemStatement,
-    limits: ProblemPb.ProblemLimits,
+  statement: ProblemPb.ProblemStatement,
+  limits: ProblemPb.ProblemLimits,
 }
 
 function ProblemStatement({statement, limits}: ProblemProps): JSX.Element {
@@ -44,7 +44,7 @@ function ProblemStatement({statement, limits}: ProblemProps): JSX.Element {
         </LatexContainer>
         <hr/>
         <div>
-            License: {statement.getLicense()} | Authors: {statement.getAuthorsList().join(", ")}
+          License: {statement.getLicense()} | Authors: {statement.getAuthorsList().join(", ")}
         </div>
       </Card>
     </Col>

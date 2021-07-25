@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+package omogen.webapi;
+
+import "google/protobuf/descriptor.proto";
+
+enum WebRpcType {
+  WEB_RPC_TYPE_UNSPECIFIED = 0;
+  FETCH = 1;
+  MODIFY = 2;
+}
+
+message WebOptions {
+  optional WebRpcType type = 1;
+}
+
+extend google.protobuf.MessageOptions {
+  optional WebOptions webrpc = 50000;
+}

@@ -1,16 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
 package(default_visibility = ["//visibility:public"])
 
 load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
 
 proto_library(
     name = "omogen_webapi_proto",
     srcs = [
+        "account_service.proto",
+        "options.proto",
         "problem_service.proto",
         "problems.proto",
     ],
     visibility = ["//visibility:public"],
+    deps = ["@com_google_protobuf//:descriptor_proto"],
 )
 
 go_proto_library(
@@ -18,13 +22,6 @@ go_proto_library(
     compilers = ["@io_bazel_rules_go//proto:go_grpc"],
     importpath = "github.com/jsannemo/omogenhost/webapi/proto",
     proto = ":omogen_webapi_proto",
-    visibility = ["//visibility:public"],
-)
-
-go_library(
-    name = "proto",
-    embed = [":omogen_webapi_go_proto"],
-    importpath = "github.com/jsannemo/omogenhost/webapi/proto",
     visibility = ["//visibility:public"],
 )
 
@@ -38,4 +35,10 @@ typescript_proto_library(
 typescript_grpc_web_library(
     name = "omogen_webapi_ts_grpc",
     proto = ":omogen_webapi_proto",
+)
+
+go_library(
+    name = "proto",
+    embed = [":omogen_webapi_go_proto"],
+    importpath = "github.com/jsannemo/omogenhost/webapi/proto",
 )

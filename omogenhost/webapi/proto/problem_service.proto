@@ -3,8 +3,10 @@ syntax = "proto3";
 package omogen.webapi;
 
 import "webapi/proto/problems.proto";
+import "webapi/proto/options.proto";
 
 message ViewProblemRequest {
+  option (webrpc).type = FETCH;
   string short_name = 1;
   string language = 2;
 }

@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "request",
+    srcs = ["user_context.go"],
+    importpath = "github.com/jsannemo/omogenhost/webapi/requests",
+    visibility = ["//visibility:public"],
+    deps = ["@org_golang_x_crypto//sha3"],
+)
