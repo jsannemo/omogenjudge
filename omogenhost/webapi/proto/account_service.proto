@@ -24,7 +24,27 @@ message RegisterResponse {
   repeated RegisterError errors = 1;
 }
 
-service AccountService {
-  rpc Register(RegisterRequest) returns (RegisterResponse) {
+message LoginRequest {
+  option (webrpc).type = MODIFY;
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  enum LoginError {
+    LOGIN_ERROR_UNSPECIFIED = 0;
+    INVALID_CREDENTIALS = 1;
   }
+  repeated LoginError errors = 1;
+  AccountProfile profile = 2;
+}
+
+message AccountProfile {
+  string username = 1;
+  string full_name = 2;
+}
+
+service AccountService {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Login(LoginRequest) returns (LoginResponse) {}
 }

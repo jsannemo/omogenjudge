@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 	"net/mail"
 	"strings"
 )
@@ -100,6 +101,26 @@ func passwordHash(pw string) string {
 	} else {
 		return base64.StdEncoding.EncodeToString(hash)
 	}
+}
+
+func (as *accountService) Login(ctx context.Context, request *apipb.LoginRequest) (*apipb.LoginResponse, error) {
+	user := storage.Account{}
+	if res := storage.GormDB.Debug().Where("lower(username) = ?", strings.ToLower(request.Username)).First(&user); res.Error != nil {
+		if res.Error == gorm.ErrRecordNotFound {
+			return &apipb.LoginResponse{
+				Errors: []apipb.LoginResponse_LoginError{apipb.LoginResponse_INVALID_CREDENTIALS},
+			}, nil
+		}
+		logger.Errorf("Failed looking up user for login: %v", res.Error)
+		return nil, status.Error(codes.Internal, "")
+	}
+	if !comparePassword(request.Password, user.Password) {
+		return &apipb.LoginResponse{
+			Errors: []apipb.LoginResponse_LoginError{apipb.LoginResponse_INVALID_CREDENTIALS},
+		}, nil
+	}
+	requests.GetUser(ctx).UserId = user.AccountId
+	return &apipb.LoginResponse{}, nil
 }
 
 func comparePassword(pw string, hash string) bool {

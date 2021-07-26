@@ -77,6 +77,12 @@ export async function grpcRequest<TRequest extends grpc.ProtobufMessage,
   }
 
   const result = await internalRequest(methodDescriptor, request);
+  const authHeaders = result.headers.get("authorization");
+  if (authHeaders.length) {
+    localStorage.setItem("authorization", authHeaders[0]);
+  } else {
+    localStorage.removeItem("authorization");
+  }
   if (result.status == grpc.Code.OK) {
     if (rCache) {
       rCache[cacheKey!] = result.message;
@@ -106,6 +112,9 @@ async function internalRequest<TRequest extends grpc.ProtobufMessage,
         grpc.unary(methodDescriptor, {
           request: request,
           host: API_ADDRESS,
+          metadata: {
+            authorization: localStorage.getItem("authorization") || [],
+          },
           onEnd: (response: grpc.UnaryOutput<ResponseMessage>) => {
             const result = {
               status: response.status,

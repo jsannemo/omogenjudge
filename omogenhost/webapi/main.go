@@ -50,10 +50,10 @@ func accountInterceptor(ctx context.Context, req interface{}, info *grpc.UnarySe
 	}
 	ctx = requests.WithUser(ctx, user)
 	resp, err := handler(ctx, req)
-
 	user = requests.GetUser(ctx)
 	if user.UserId != 0 {
-		metadata.AppendToOutgoingContext(ctx, "authorization", requests.SerializeUser(user))
+		header := metadata.Pairs("authorization", requests.SerializeUser(user))
+		grpc.SendHeader(ctx, header)
 	}
 	return resp, err
 }
