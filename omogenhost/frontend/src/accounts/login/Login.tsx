@@ -7,6 +7,7 @@ import {AccountService} from "webapi/proto/account_service_pb_service";
 import {LoginRequest, LoginResponse} from "webapi/proto/account_service_pb";
 import {useApi} from "../../api/react_request";
 import {useHistory} from "react-router-dom";
+import * as auth from "../auth";
 
 const schema = yup.object().shape({
   username: yup.string().label("Username").trim(),
@@ -27,7 +28,12 @@ export default function Login(): JSX.Element {
     request.setUsername(data["username"]);
     request.setPassword(data["password"]);
     apiSend(request).then((response: LoginResponse) => {
-      if (response.getErrorsList().length === 0) {
+      if (response.hasProfile()) {
+        const profile = response.getProfile()!;
+        auth.setProfile({
+          username: profile.getUsername(),
+          full_name: profile.getFullName(),
+        });
         history.push("/");
       }
       response.getErrorsList().forEach(err => {

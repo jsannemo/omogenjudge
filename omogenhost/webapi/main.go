@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -37,24 +38,22 @@ type config struct {
 	Webapi   apiConfig
 }
 
-func accountInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	user := &requests.User{}
-	md, has := metadata.FromIncomingContext(ctx)
-	if has {
-		auth := md.Get("authorization")
-		if len(auth) > 0 {
-			if authenticatedUser := requests.DeserializeUser(auth[0]); authenticatedUser != nil {
-				user = authenticatedUser
-			}
+func cookieInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	ctx = requests.ParseIncomingCookies(ctx)
+	ctx = requests.WithIncomingUser(ctx)
+	user := requests.GetUser(ctx)
+	userBefore := user.UserId
+	resp, err := handler(ctx, req)
+	userAfter := user.UserId
+	logger.Infof("User before: %d, user after: %d", userBefore, userAfter)
+	if userBefore != userAfter {
+		if userAfter == 0 {
+			requests.ClearOutgoingUser(ctx)
+		} else {
+			requests.AddOutgoingUser(ctx, user)
 		}
 	}
-	ctx = requests.WithUser(ctx, user)
-	resp, err := handler(ctx, req)
-	user = requests.GetUser(ctx)
-	if user.UserId != 0 {
-		header := metadata.Pairs("authorization", requests.SerializeUser(user))
-		grpc.SendHeader(ctx, header)
-	}
+	grpc.SetHeader(ctx, metadata.Pairs("user", strconv.FormatInt(userAfter, 10)))
 	return resp, err
 }
 
@@ -72,7 +71,7 @@ func main() {
 	if err := storage.Init(connStr); err != nil {
 		panic(err)
 	}
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(accountInterceptor))
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(cookieInterceptor))
 	// TODO: check origin
 	wrappedGrpc := grpcweb.WrapServer(grpcServer)
 

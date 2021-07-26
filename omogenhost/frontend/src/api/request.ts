@@ -1,4 +1,5 @@
 import {grpc} from "@improbable-eng/grpc-web";
+import * as auth from "/frontend/src/accounts/auth";
 
 export interface Result<ResponseMessage> {
   status: grpc.Code;
@@ -77,11 +78,11 @@ export async function grpcRequest<TRequest extends grpc.ProtobufMessage,
   }
 
   const result = await internalRequest(methodDescriptor, request);
-  const authHeaders = result.headers.get("authorization");
-  if (authHeaders.length) {
-    localStorage.setItem("authorization", authHeaders[0]);
+  const userHeader = result.headers.get("user");
+  if (userHeader.length) {
+    auth.setUserId(parseInt(userHeader[0], 10));
   } else {
-    localStorage.removeItem("authorization");
+    auth.clearUserId();
   }
   if (result.status == grpc.Code.OK) {
     if (rCache) {
@@ -112,9 +113,6 @@ async function internalRequest<TRequest extends grpc.ProtobufMessage,
         grpc.unary(methodDescriptor, {
           request: request,
           host: API_ADDRESS,
-          metadata: {
-            authorization: localStorage.getItem("authorization") || [],
-          },
           onEnd: (response: grpc.UnaryOutput<ResponseMessage>) => {
             const result = {
               status: response.status,

@@ -7,6 +7,7 @@ import "./App.scss";
 import RegisterAccount from "./accounts/register/RegisterAccount";
 import {ToastComponent} from "./shared/toasts/Toasts";
 import Login from "./accounts/login/Login";
+import Logout from "./accounts/login/Logout";
 
 export default function App(): JSX.Element {
   return (
@@ -23,6 +24,9 @@ export default function App(): JSX.Element {
             </Route>
             <Route path={"/register"}>
               <RegisterAccount/>
+            </Route>
+            <Route path={"/logout"}>
+              <Logout/>
             </Route>
           </Switch>
         </Page>

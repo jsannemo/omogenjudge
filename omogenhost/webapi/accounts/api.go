@@ -120,7 +120,12 @@ func (as *accountService) Login(ctx context.Context, request *apipb.LoginRequest
 		}, nil
 	}
 	requests.GetUser(ctx).UserId = user.AccountId
-	return &apipb.LoginResponse{}, nil
+	return &apipb.LoginResponse{
+		Profile: &apipb.AccountProfile{
+			Username: user.Username,
+			FullName: user.FullName,
+		},
+	}, nil
 }
 
 func comparePassword(pw string, hash string) bool {
@@ -137,3 +142,9 @@ func comparePassword(pw string, hash string) bool {
 	}
 	return true
 }
+
+func (as *accountService) Logout(ctx context.Context, response *apipb.LogoutResponse) (*apipb.LogoutResponse, error) {
+	requests.GetUser(ctx).UserId = 0
+	return &apipb.LogoutResponse{}, nil
+}
+

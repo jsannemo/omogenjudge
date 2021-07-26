@@ -39,6 +39,12 @@ message LoginResponse {
   AccountProfile profile = 2;
 }
 
+message LogoutRequest {
+}
+
+message LogoutResponse {
+}
+
 message AccountProfile {
   string username = 1;
   string full_name = 2;
@@ -47,4 +53,5 @@ message AccountProfile {
 service AccountService {
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
   rpc Login(LoginRequest) returns (LoginResponse) {}
+  rpc Logout(LogoutResponse) returns (LogoutResponse) {}
 }
