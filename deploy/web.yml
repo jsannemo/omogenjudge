@@ -10,12 +10,6 @@
       name: nginx
       state: latest
 
-- name: Gather the package facts
-  hosts: web
-  tasks:
-    - ansible.builtin.package_facts:
-        manager: auto
-
 - name: Install omogenjudge-web
   hosts: web
 
@@ -24,7 +18,6 @@
     ansible.builtin.copy:
       src: ./packages/omogenjudge-web.deb
       dest: omogenjudge-web.deb
+
   - name: Install omogenjudge-web.deb
-    ansible.builtin.apt:
-      deb: omogenjudge-web.deb
-      state: present
+    ansible.builtin.command: dpkg -i omogenjudge-web.deb

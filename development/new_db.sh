@@ -13,7 +13,4 @@ sudo -u postgres createdb omogenjudge
 sudo service omogenjudge-host start || true
 sudo service omogenjudge-queue start || true
 
-echo "Database reset."
-echo "Run"
-echo "   > poetry run python manage.py migratedb"
-echo "to install the correct schema"
+poetry run python manage.py migrate
