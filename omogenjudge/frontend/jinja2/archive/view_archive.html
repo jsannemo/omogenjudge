@@ -55,9 +55,7 @@
                         <div class="card-footer text-muted">
                             Go to:
                             {% for subgroup in group.subgroups %}
-                                <a href="{{ subgroup.url() }}">
-                                    {{ subgroup.name }}
-                                </a>
+                                <a href="{{ subgroup.url() }}">{{ subgroup.name }}</a>&nbsp;
                             {% endfor %}
                         </div>
                     {% endif %}
