@@ -1,0 +1,22 @@
+{% macro social_logins(social_logins) %}
+    {% if "github" in social_logins %}
+        <form action="{{ url('github-login') }}" method="post" class="mt-2">
+            {{ csrf_input }}
+            <button type="submit" class="btn btn-primary align-middle">
+                <i class="bi bi-github"></i>
+                &nbsp;
+                Sign in with Github
+            </button>
+        </form>
+    {% endif %}
+    {% if "discord" in social_logins %}
+        <form action="{{ url('discord-login') }}" method="post" class="mt-2">
+            {{ csrf_input }}
+            <button type="submit" class="btn btn-primary align-middle">
+                <i class="bi bi-discord"></i>
+                &nbsp;
+                Sign in with Discord
+            </button>
+        </form>
+    {% endif %}
+{% endmacro %}

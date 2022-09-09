@@ -1,4 +1,6 @@
-from omogenjudge.settings.base import LOGGING as DEFAULT_LOGGING
+from omogenjudge.settings.base import *  # noqa
+
+from .base import BASE_DIR
 
 SECRET_KEY = 'not a very secret key'
 
@@ -20,10 +22,12 @@ INTERNAL_IPS = [
     '127.0.0.1',
 ]
 
-LOGGING = DEFAULT_LOGGING
 LOGGING["loggers"].update({
     'django.db.backends': {
         'level': 'DEBUG',
         'handlers': ['console'],
     }
 })
+STATICFILES_DIRS = [
+    BASE_DIR.parent / "output" / "frontend_assets",
+]

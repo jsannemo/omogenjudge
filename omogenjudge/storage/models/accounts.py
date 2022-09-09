@@ -15,7 +15,8 @@ class Account(AbstractBaseUser, PermissionsMixin):
     account_id = models.AutoField(primary_key=True)
     username = django_fields.TextField(unique=True)
     full_name = django_fields.TextField()
-    email = django_fields.TextField(unique=True)  # TODO: add email validation
+    email = django_fields.TextField(unique=True)
+    email_validated = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(null=True)
     is_staff = models.BooleanField(default=False)

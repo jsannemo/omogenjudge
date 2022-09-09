@@ -3,3 +3,7 @@ secret_key='default very insecure key!'
 
 [database]
 password='omogenjudge'
+
+[email]
+mailjet_api_key='fill in api key'
+mailjet_api_secret='fill in api secret'

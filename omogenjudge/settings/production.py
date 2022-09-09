@@ -1,9 +1,14 @@
+from omogenjudge.settings.base import *  # noqa
+
 import toml
 
 with open("/etc/omogen/web.toml", "r") as f:
     config = toml.load(f)
 
 SECRET_KEY = config['web']['secret_key']
+
+MAILJET_API_KEY = config['email']['mailjet_api_key']
+MAILJET_API_SECRET = config['email']['mailjet_api_secret']
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
@@ -21,3 +26,6 @@ DATABASES = {
         'PORT': '5432',
     }
 }
+
+if "oauth" in config:
+    OAUTH_DETAILS = config["oauth"]

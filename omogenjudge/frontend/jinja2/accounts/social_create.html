@@ -1,7 +1,5 @@
 {% extends "base.html" %}
 
-{% import "social.html" as social with context %}
-
 {% block title %}Login{% endblock %}
 
 {% block content %}
@@ -12,13 +10,11 @@
                     Log in
                 </div>
                 <div class="card-body">
-                    {{ crispy(login_form) }}
-                    {% if social_logins %}
-                        <hr>
-                        <div class="text-center">
-                            {{ social.social_logins(social_logins) }}
-                        </div>
-                    {% endif %}
+                    <div class="alert alert-info">
+                        This is the first time you have logged in, so you need to create an account.
+                        Choose a username and enter your full name below.
+                    </div>
+                    {{ crispy(social_create_form) }}
                 </div>
             </div>
         </div>

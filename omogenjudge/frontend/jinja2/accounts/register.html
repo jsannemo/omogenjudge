@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% import "social.html" as social with context %}
+
 {% block title %}Register{% endblock %}
 
 {% block content %}
@@ -11,6 +13,12 @@
                 </div>
                 <div class="card-body">
                     {{ crispy(register_form) }}
+                    {% if social_logins %}
+                        <hr>
+                        <div class="text-center">
+                            {{ social.signins(social_logins) }}
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

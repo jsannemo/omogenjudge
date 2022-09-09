@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, Sequence
+from typing import Optional
 
 from django.http import HttpResponse, Http404
 
@@ -29,4 +29,5 @@ def view_archive(request: OmogenRequest, group_path: Optional[str] = None) -> Ht
         current_groups = []
         groups = root_contest_groups()
         contests = []
+
     return render_template(request, 'archive/view_archive.html', ArchiveArgs(current_groups, groups, contests))

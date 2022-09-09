@@ -34,10 +34,10 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'omogenjudge.contests.active_contest.ActiveContestMiddleware',
     'omogenjudge.util.request_global.ThreadLocalMiddleware',
@@ -55,6 +55,7 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
                 'omogenjudge.contests.active_contest.contest_context',
                 'omogenjudge.frontend.js_context.js_context',
             ],
@@ -141,4 +142,10 @@ LOGGING: dict = {
             'level': 'INFO',
         },
     }
+}
+
+MAILJET_API_KEY = ''
+MAILJET_API_SECRET = ''
+
+OAUTH_DETAILS = {
 }

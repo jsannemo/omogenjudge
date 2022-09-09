@@ -35,6 +35,26 @@
     {{ nav.menu() }}
     <div class="container page-content">
         <div class="mt-4">
+            <div class="col-12">
+                {% if messages %}
+                    {% for message in messages %}
+                    {% if message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
+                        {% set level = "info" %}
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
+                        {% set level = "warning" %}
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                        {% set level = "danger" %}
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+                        {% set level = "success" %}
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
+                        {% set level = "dark" %}
+                    {% endif %}
+                    <div class="alert alert-{{ level }}" role="alert">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
             {% block content %}
             {% endblock %}
         </div>

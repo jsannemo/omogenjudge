@@ -13,3 +13,7 @@ def email_exists(email: str) -> bool:
 
 def find_user_by_username(username: str) -> Account:
     return Account.objects.get(username__iexact=normalize_username(username))
+
+
+def find_user_by_email(email: str) -> Account:
+    return Account.objects.get(email__iexact=email)

@@ -1,7 +1,6 @@
 import os
 import sys
 
-from omogenjudge.settings.base import *
 
 if 'test' in sys.argv:
     from .tests import *

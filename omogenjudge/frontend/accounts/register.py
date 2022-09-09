@@ -4,16 +4,18 @@ import django.contrib.auth
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import ButtonHolder, Layout, Submit
 from django import forms
+from django.contrib import messages
 from django.contrib.auth.forms import UsernameField
 from django.contrib.auth.validators import ASCIIUsernameValidator
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.forms import PasswordInput
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import redirect
 
 from omogenjudge.accounts.lookup import email_exists, username_exists
-from omogenjudge.accounts.register import register_account
+from omogenjudge.accounts.register import register_account, send_verification_email, verify_account_from_token
+from omogenjudge.settings import OAUTH_DETAILS
 from omogenjudge.storage.models import Account
 from omogenjudge.util.django_types import OmogenRequest
 from omogenjudge.util.templates import render_template
@@ -72,12 +74,14 @@ class RegisterForm(forms.Form):
 @dataclasses.dataclass
 class RegisterArgs:
     register_form: RegisterForm
+    social_logins: set[str]
 
 
 def register(request: OmogenRequest) -> HttpResponse:
-    with transaction.atomic():
-        if request.method == 'POST':
-            form = RegisterForm(request.POST)
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        account = None
+        with transaction.atomic():
             if form.is_valid():
                 form_data = form.cleaned_data
                 # RegisterForm checks that the username and email are unique.
@@ -86,11 +90,34 @@ def register(request: OmogenRequest) -> HttpResponse:
                     full_name=form_data['full_name'],
                     email=form_data['email'],
                     password=form_data['password'])
-                django.contrib.auth.login(request, account)
-                return redirect('/')
-        else:
-            form = RegisterForm()
-        args = RegisterArgs(
-            register_form=form,
-        )
+        if account:
+            send_verification_email(account)
+            messages.add_message(request, messages.INFO,
+                                 'Your account was successfully created. '
+                                 'To log in you must verify your account. '
+                                 'We have sent an email to you with instructions on how to verify it.')
+            return redirect('login')
+    else:
+        form = RegisterForm()
+    args = RegisterArgs(
+        register_form=form,
+        social_logins=OAUTH_DETAILS.keys(),
+    )
     return render_template(request, 'accounts/register.html', args)
+
+
+@dataclasses.dataclass
+class OldAccountArgs:
+    pass
+
+
+def verify_account(request: OmogenRequest, verify_token: str) -> HttpResponse:
+    account, ok = verify_account_from_token(verify_token)
+    if not ok:
+        messages.error(request, "The verification link you clicked had expired since it's over 7 days old. "
+                                "We have sent a new verification link to the same email.")
+        return redirect('login')
+
+    django.contrib.auth.login(request, account)
+    messages.success(request, "Your account has been successfully verified!")
+    return redirect('/')
