@@ -20,4 +20,4 @@
       dest: omogenjudge-web.deb
 
   - name: Install omogenjudge-web.deb
-    ansible.builtin.command: dpkg -i omogenjudge-web.deb
+    ansible.builtin.command: sudo dpkg -i omogenjudge-web.deb

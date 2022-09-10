@@ -6,10 +6,10 @@ from django.db import models
 from django.utils.functional import cached_property
 
 from omogenjudge.util import django_fields, serialization
-from omogenjudge.util.django_fields import PrefetchIDMixin, EnumField, TextField
+from omogenjudge.util.django_fields import PrefetchIDMixin, EnumField, TextField, StrEnum
 
 
-class License(enum.Enum):
+class License(StrEnum):
     PUBLIC_DOMAIN = 'public domain'
     CC0 = 'cc0'
     CC_BY = 'cc by'
