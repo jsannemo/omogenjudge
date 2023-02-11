@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -109,7 +109,7 @@ TIME_FORMAT = "Y-m-d H:i:s"
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR.parent / "output" / "static/"
+STATIC_ROOT = BASE_DIR.parent / "output" / "static"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
@@ -146,6 +146,7 @@ LOGGING: dict = {
 
 MAILJET_API_KEY = ''
 MAILJET_API_SECRET = ''
+REQUIRE_EMAIL_AUTH = True
 
-OAUTH_DETAILS = {
+OAUTH_DETAILS: dict[str, Any] = {
 }

@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional
+from typing import Iterable, Optional
 
 import django.contrib.auth
 import django.forms as forms
@@ -40,7 +40,7 @@ class LoginForm(AuthenticationForm):
 @dataclasses.dataclass
 class LoginArgs:
     login_form: LoginForm
-    social_logins: set[str]
+    social_logins: Iterable[str]
 
 
 def login(request: OmogenRequest) -> HttpResponse:

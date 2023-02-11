@@ -31,3 +31,5 @@ LOGGING["loggers"].update({
 STATICFILES_DIRS = [
     BASE_DIR.parent / "output" / "frontend_assets",
 ]
+
+REQUIRE_EMAIL_AUTH = False

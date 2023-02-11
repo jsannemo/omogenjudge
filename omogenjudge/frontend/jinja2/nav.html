@@ -7,7 +7,7 @@
     <nav class="navbar navbar-dark bg-dark navbar-expand-lg" id="menu">
         <div class="container">
             <a class="navbar-brand me-5" href="/">
-                <img src="/static/img/logo.png" height="45" alt="Logotype">
+                <img src="{{ static('img/logo_po.png') }}" height="45" alt="Logotype">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent"
@@ -41,17 +41,23 @@
         <li class="nav-item">
             <a class="nav-link {% if active == 'problems' %}active{% endif %}" href="{{ contest_url('problems') }}">Problems</a>
         </li>
-        {% if contest.start_time %}
+        {% if contest_started or user.is_superuser %}
             <li class="nav-item">
                 <a class="nav-link {% if active == 'scoreboard' %}active{% endif %}"
                    href="{{ contest_url('scoreboard') }}">Standings</a>
             </li>
         {% endif %}
-        {% if contest_team or (user.is_authenticated and not contest.start_time) %}
+        {% if (contest_team and contest_started) or user.is_superuser %}
             <li class="nav-item">
                 <a class="nav-link {% if active == 'submissions' %}active{% endif %}"
                    href="{{ contest_url('my-submissions') }}">My Submissions</a>
             </li>
+        {% endif %}
+        {% if user.is_superuser %}
+        <li class="nav-item">
+            <a class="nav-link {% if active == 'queue' %}active{% endif %}"
+               href="{{ contest_url('queue') }}">Queue</a>
+        </li>
         {% endif %}
     </ul>
 {% endmacro %}

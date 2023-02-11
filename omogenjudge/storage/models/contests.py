@@ -51,6 +51,14 @@ class Contest(models.Model):
             return False
         return timezone.now() >= self.start_time + self.duration
 
+    @cached_property
+    def open_for_practice(self):
+        if self.only_virtual_contest:
+            return True
+        if self.flexible_start_window_end_time and self.flexible_start_window_end_time <= timezone.now():
+            return True
+        return self.has_ended()
+
     def is_scoring(self):
         return ScoringType(self.scoring_type) == ScoringType.SCORING
 
@@ -102,12 +110,17 @@ class ContestGroup(models.Model):
     short_name = django_fields.TextField()
     description = django_fields.TextField(null=True, blank=True)
     homepage = django_fields.TextField(null=True, blank=True)
+    order = models.IntegerField(null=False, default=0)
     parent = models.ForeignKey('ContestGroup', models.CASCADE, null=True, blank=True, related_name='groups')
     contests = models.ManyToManyField(Contest, through='ContestGroupContest')
 
     @cached_property
     def subgroups(self):
-        return list(self.groups.all())
+        return list(self.groups.order_by('order').all())
+
+    @cached_property
+    def subcontests(self):
+        return list(self.group_contests.order_by('label').filter(contest__published=True).all())
 
     # TODO: this is inefficient
     def url(self):

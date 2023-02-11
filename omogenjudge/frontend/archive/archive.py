@@ -1,20 +1,26 @@
 import dataclasses
 from typing import Optional
 
-from django.http import HttpResponse, Http404
+from django.http import Http404, HttpResponse
 
-from omogenjudge.contests.contest_groups import groups_by_shortnames, root_contest_groups, groups_by_parent
-from omogenjudge.contests.lookup import contests_in_group
-from omogenjudge.storage.models import ContestGroup, Contest
+from omogenjudge.contests.contest_groups import groups_by_shortnames, root_contest_groups
+from omogenjudge.storage.models import Contest, ContestGroup, ContestGroupContest, Team
+from omogenjudge.teams.lookup import contest_team_for_user
 from omogenjudge.util.django_types import OmogenRequest
 from omogenjudge.util.templates import render_template
+
+
+@dataclasses.dataclass
+class ArchiveContest:
+    contest: ContestGroupContest
+    my_team: Optional[Team] = None
 
 
 @dataclasses.dataclass
 class ArchiveArgs:
     current_groups: list[ContestGroup]
     groups: list[ContestGroup]
-    contests: list[Contest]
+    contests: list[ArchiveContest]
 
 
 def view_archive(request: OmogenRequest, group_path: Optional[str] = None) -> HttpResponse:
@@ -23,8 +29,13 @@ def view_archive(request: OmogenRequest, group_path: Optional[str] = None) -> Ht
             current_groups = groups_by_shortnames(group_path.split("/"))
         except ContestGroup.DoesNotExist:
             raise Http404
-        groups = groups_by_parent(current_groups[-1])
-        contests = contests_in_group(current_groups[-1])
+        groups = current_groups[-1].subgroups
+        contests = [ArchiveContest(
+            contest=cgc,
+            my_team=contest_team_for_user(cgc.contest, request.user)
+        )
+            for cgc in current_groups[-1].subcontests
+        ]
     else:
         current_groups = []
         groups = root_contest_groups()

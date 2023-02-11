@@ -30,7 +30,7 @@ function updateCountdowns() {
         str = until ? ("Starts in: " + formatTime(timeUntil()))
             : left ? ("Ends in: " + formatTime(contestTimeLeft()))
                 : "Contest is over";
-        // Refresh the page on contest start with somee jitter to spread out requests a bit.
+        // Refresh the page on contest start with some jitter to spread out requests a bit.
         if ((!until && !getContext().contest_started)) {
             setTimeout(() => window.location.reload(), 1000 + Math.random() * 3000);
             clearInterval(iv);

@@ -93,6 +93,15 @@
     </div>
 {% endmacro %}
 
+{% macro display_score_verdict(current_run, run_subtask_scores, problem_subtask_scores) %}
+    {% if current_run.status == Status.DONE or current_run.status == Status.RUNNING %}
+        {{ formatting.format_score(current_run.score) }}
+        {{ subtask_bubbles(run_subtask_scores, problem_subtask_scores) }}
+    {% else %}
+        {{ display_verdict(current_run) }}
+    {% endif %}
+{% endmacro %}
+
 {% macro format_submission_time(submission) %}
     {% if contest and contest.start_time %}
         {{ util.relative_date(submission.date_created, contest.start_time) }}

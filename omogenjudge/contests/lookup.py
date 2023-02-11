@@ -2,9 +2,12 @@ from django.db.models import QuerySet
 
 from omogenjudge.storage.models import Contest, ContestGroup
 from omogenjudge.util.django_types import OmogenRequest
+from omogenjudge.util.request_global import current_request
 
 
 def _only_published_queryset() -> QuerySet[Contest]:
+    if current_request().user.is_superuser:
+        return Contest.objects.all()
     return Contest.objects.filter(published=True)
 
 
@@ -22,7 +25,3 @@ def contest_from_shortname(short_name: str) -> Contest:
     return active_contest_queryset().get(
         short_name=short_name
     )
-
-
-def contests_in_group(group: ContestGroup) -> list[Contest]:
-    return list(group.contests.filter(published=True))

@@ -1,16 +1,47 @@
 {% import "util.html" as util %}
+{% import "problems/helpers.html" as problemhelpers with context %}
 
-{% macro contest_card() %}
-<div class="col-lg-4">
-    <div class="card mb-3">
-        <div class="h5 card-header card-title text-center">
-            {{ contest.title }}
-        </div>
-        <ul class="list-group list-group-flush">
-            <li class="list-group-item text-center">
-                {{ util.countdown() }}
-            </li>
-        </ul>
+{% macro contest_card(include_problems=False, current_problem=None) %}
+<div class="card mb-3">
+    <div class="h5 card-header card-title text-center">
+        {{ contest.title }}
     </div>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item text-center">
+            {{ util.countdown() }}
+        </li>
+        {% if not contest_team and contest.open_for_practice %}
+        <li class="list-group-item">
+            <p>
+                To solve the problems, you can either start a virtual contest or register for regular practice.
+                A virtual contest simulates a participation in the original contest with a duration of {{
+                contest.duration | format_timedelta }},
+                while regular practice lets you submit solutions without any constraints.
+            </p>
+            {% if user.is_authenticated %}
+            <form class="text-center" action="{{ contest_url('register') }}" method="post">
+                {{ csrf_input }}
+                <button class="btn btn-primary" name="type" value="virtual">Virtual contest</button>
+                <button class="btn btn-primary" name="type" value="practice">Regular practice</button>
+            </form>
+            {% else %}
+            <div class="alert alert-warning mb-0 text-center">
+                You must log in to register.
+            </div>
+            {% endif %}
+        </li>
+        {% endif %}
+        {% if include_problems %}
+            {% for cproblem in contest_problems %}
+            <li class="list-group-item">
+                {% if cproblem.label %}
+                <span class="badge me-1 bg-primary"
+                      style="font-size: 0.9rem">{{ cproblem.label }}</span>
+                {% endif %}
+                {{ problemhelpers.link(cproblem.problem, current_problem=current_problem) }}
+            </li>
+            {% endfor %}
+        {% endif %}
+    </ul>
 </div>
 {% endmacro %}

@@ -1,9 +1,11 @@
 import typing
 
-from django.http import HttpRequest, HttpResponse, Http404
+from django.http import Http404, HttpRequest, HttpResponse
 from django.utils.functional import SimpleLazyObject
 
+from omogenjudge.contests.contest_times import contest_has_ended_for_team, contest_has_started_for_team
 from omogenjudge.contests.lookup import contest_for_request, contest_from_shortname
+from omogenjudge.contests.permissions import team_can_view_problems
 from omogenjudge.problems.lookup import contest_problems
 from omogenjudge.storage.models import Contest
 from omogenjudge.teams.lookup import contest_team_for_user
@@ -34,15 +36,22 @@ class ActiveContestMiddleware:
                 request.contest = None
 
 
-def contest_context(request: OmogenRequest) -> typing.Dict[str, typing.Any]:
+def contest_context(request: OmogenRequest) -> dict[str, typing.Any]:
     if request.contest:
         contest = request.contest
-        return {
+        team = contest_team_for_user(contest, request.user)
+        ctx: dict[str, typing.Any] = {
             'contest': contest,
             'all_contest_problems': SimpleLazyObject(lambda: contest_problems(contest)),
-            'contest_team': SimpleLazyObject(lambda: contest_team_for_user(contest, request.user)),
-            'contest_problems': SimpleLazyObject(lambda: contest_problems(contest) if contest.has_started else []),
+            'contest_team': team,
+            'contest_started': contest_has_started_for_team(contest, team),
+            'contest_ended': contest_has_ended_for_team(contest, team),
         }
+        if not team_can_view_problems(contest, team):
+            ctx['contest_problems'] = []
+        else:
+            ctx['contest_problems'] = SimpleLazyObject(lambda: contest_problems(contest))
+        return ctx
     return {
         'contest': None
     }

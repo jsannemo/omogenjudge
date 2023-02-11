@@ -10,7 +10,7 @@ curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install -y nodejs
 
 echo "Installing packages"
-sudo apt install postgresql built-essential
+sudo apt install postgresql build-essential
 
 echo "Installing bazel"
 sudo npm install -g @bazel/bazelisk

@@ -1,13 +1,10 @@
-from omogenjudge.util.request_global import current_contest
+from typing import Optional
+
+from omogenjudge.contests.contest_times import contest_has_started_for_team
+from omogenjudge.storage.models import Contest, Team
 
 
-def can_view_contest_problems() -> bool:
-    contest = current_contest()
-    if not contest:
-        return False
+def team_can_view_problems(contest: Contest, team: Optional[Team]) -> bool:
     if not contest.published:
         return False
-    if contest.only_virtual_contest:
-        return True
-    else:
-        return contest.has_started
+    return contest_has_started_for_team(contest, team)

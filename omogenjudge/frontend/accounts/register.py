@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Iterable
 
 import django.contrib.auth
 from crispy_forms.helper import FormHelper
@@ -15,7 +16,7 @@ from django.shortcuts import redirect
 
 from omogenjudge.accounts.lookup import email_exists, username_exists
 from omogenjudge.accounts.register import register_account, send_verification_email, verify_account_from_token
-from omogenjudge.settings import OAUTH_DETAILS
+from omogenjudge.settings import OAUTH_DETAILS, REQUIRE_EMAIL_AUTH
 from omogenjudge.storage.models import Account
 from omogenjudge.util.django_types import OmogenRequest
 from omogenjudge.util.templates import render_template
@@ -74,7 +75,7 @@ class RegisterForm(forms.Form):
 @dataclasses.dataclass
 class RegisterArgs:
     register_form: RegisterForm
-    social_logins: set[str]
+    social_logins: Iterable[str]
 
 
 def register(request: OmogenRequest) -> HttpResponse:
@@ -91,7 +92,11 @@ def register(request: OmogenRequest) -> HttpResponse:
                     email=form_data['email'],
                     password=form_data['password'])
         if account:
-            send_verification_email(account)
+            if REQUIRE_EMAIL_AUTH:
+                send_verification_email(account)
+            else:
+                account.email_validated = True
+                account.save()
             messages.add_message(request, messages.INFO,
                                  'Your account was successfully created. '
                                  'To log in you must verify your account. '

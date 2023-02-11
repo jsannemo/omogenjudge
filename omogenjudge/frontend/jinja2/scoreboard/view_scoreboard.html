@@ -26,11 +26,11 @@
             <table class="table" style="vertical-align: middle">
                 <thead>
                 <tr class="align-middle">
-                    {% if contest.has_started %}
+                    {% if contest_started %}
                         <th style="width: 2em">Rank</th>
                     {% endif %}
                     <th>Team</th>
-                    {% if contest.has_started %}
+                    {% if contest_started %}
                         {% for cproblem in scoreboard.problems %}
                             {% if cproblem.label %}
                                 <th style="width: 2em">
@@ -76,11 +76,30 @@
                             class="bg-primary bg-opacity-10"
                             {% endif %}
                     >
-                        {% if contest.has_started %}
-                            <td class="text-center"> {{ team.rank }}</td>
+                        {% if contest_started %}
+                            <td class="text-center">
+                                {% if team.rank %}
+                                    {{ team.rank }}
+                                {% else %}
+                                <span class="badge rounded-pill bg-secondary" style="vertical-align: middle">
+                                    upsolved
+                                </span>
+                                {% endif %}
+                            </td>
                         {% endif %}
-                        <td> {{ team.team.team_name }}</td>
-                        {% if contest.has_started %}
+                        <td>
+                            {{ team.team.display_name() }}
+                            {% if team.virtual %}
+                                <span class="badge rounded-pill bg-info ms-1" style="vertical-align: middle">
+                                    {% if team.virtual_time %}
+                                        {{ team.virtual_time | format_timedelta }}
+                                    {% else %}
+                                        virtual
+                                    {% endif %}
+                                </span>
+                            {% endif %}
+                        </td>
+                        {% if contest_started %}
                             {% for res in team.results %}
                                 {% set scoreboard_problem = scoreboard.scoreboard_problems[loop.index0] %}
                                 {% set is_scoring = scoreboard_problem.max_score > 0 %}
@@ -96,11 +115,15 @@
                                             <span class="text-success">
                                             +{{ res.tries }}
                                             <div style="font-size: 0.7rem">
-                                                {{ res.time_str }}
+                                                {{ scoreboard.format_tiebreak(res.tiebreak) }}
                                             </div>
                                         </span>
                                         {% elif res.pending %}
-                                            <span style="color: var(--bs-purple)">-{{ res.tries }}?</span>
+                                            {% if res.tries %}
+                                                <span style="color: var(--bs-purple)">-{{ res.tries }}?</span>
+                                            {% else %}
+                                                <span style="color: var(--bs-purple)">?</span>
+                                            {% endif %}
                                         {% elif res.tries %}
                                             <span class="text-danger">-{{ res.tries }}</span>
                                         {% else %}

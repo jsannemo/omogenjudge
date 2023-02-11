@@ -2,6 +2,9 @@ import dataclasses
 import json
 from typing import Dict, Optional
 
+from omogenjudge.contests.contest_times import contest_has_ended_for_team, contest_has_started_for_team, \
+    contest_start_for_team
+from omogenjudge.teams.lookup import contest_team_for_user
 from omogenjudge.util.django_types import OmogenRequest
 
 
@@ -17,13 +20,14 @@ class JsContext:
 def js_context(request: OmogenRequest) -> Dict[str, str]:
     contest = request.contest
     if contest:
+        team = contest_team_for_user(contest, request.user)
         return {
             'js_context':
                 json.dumps(dataclasses.asdict(JsContext(
-                    contest_start_timestamp=int(contest.start_time.timestamp()) if contest.start_time else None,
+                    contest_start_timestamp=contest_start_for_team(contest, team),
                     contest_duration=int(contest.duration.total_seconds()),
-                    contest_started=contest.has_started,
-                    contest_ended=contest.has_ended,
+                    contest_started=contest_has_started_for_team(contest, team),
+                    contest_ended=contest_has_ended_for_team(contest, team),
                     only_virtual=contest.only_virtual_contest
                 ))),
         }

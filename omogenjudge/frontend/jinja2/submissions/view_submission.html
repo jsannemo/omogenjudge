@@ -26,7 +26,7 @@
     <div class="row">
         <div class="col-lg-12">
             {% if contest %}
-                {{ nav.contest_nav('submissions') }}
+                {{ nav.contest_nav('submissions' if user == author else 'queue') }}
             {% endif %}
         </div>
         <div class="col-lg-8">
@@ -64,10 +64,9 @@
                     <td>{{ language }}</td>
                     <td class="text-center">
                         {% if problem.current_version.scoring %}
-                            {{ formatting.format_score(submission.current_run.score) }}
-                            {{ submissionhelpers.subtask_bubbles(submission_with_subtasks.subtask_scores, problem_with_scores.subtask_scores) }}
+                            {{ submissionhelpers.display_score_verdict(submission.current_run, submission_with_subtasks.subtask_scores, problem_with_scores.subtask_scores) }}
                         {% else %}
-                            {{ submissionhelpers.display_verdict(sub.current_run) }}
+                            {{ submissionhelpers.display_verdict(submission.current_run) }}
                         {% endif %}
                     </td>
                     <td class="text-end">
@@ -75,7 +74,9 @@
                     </td>
                 </tr>
             </table>
-            {% if problem_with_scores.subtask_scores %}
+            {% set status = submission.current_run.get_status() %}
+            {% if problem.current_version.scoring and problem_with_scores.subtask_scores and (
+                status == Status.RUNNING or status == Status.DONE) %}
                 {% set submission_scores = submission_with_subtasks.subtask_scores %}
                 {% set submission_groups = submission_with_subtasks.subtask_groups %}
                 <table class="table">
@@ -118,19 +119,16 @@
                 </table>
             {% endif %}
             {% if submission.current_run.compile_error %}
-                <table class="table mb-0">
-                    <thead>
-                    <tr class="bg-dark text-light">
-                        <th>Compilation output</th>
-                    </tr>
-                    </thead>
-                    <tr>
-                        <td>
+                <div class="card mt-3">
+                    <div class="card-header bg-dark text-light">
+                        Compilation output
+                    </div>
+                    <div class="card-body">
                         <pre class="m-0"><code
                                 class="nohighlight">{{ submission.current_run.compile_error }}</code></pre>
                         </td>
-                    </tr>
-                </table>
+                    </div>
+                </div>
             {% endif %}
             {% for file, content in files.items() %}
                 <div class="card mt-3">
@@ -143,6 +141,8 @@
                 </div>
             {% endfor %}
         </div>
-        {{ contesthelpers.contest_card() }}
+        <div class="col-lg-4">
+            {{ contesthelpers.contest_card() }}
+        </div>
     </div>
 {% endblock %}

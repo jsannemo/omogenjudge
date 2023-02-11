@@ -36,7 +36,7 @@ class ViewArgs:
     files: dict[str, str]
 
 
-@requires_user
+@requires_user()
 def view_submission(request: OmogenRequest, sub_id: int, user: Account) -> HttpResponse:
     if request.contest:
         return view_contest_submission(request, request.contest, user, sub_id)

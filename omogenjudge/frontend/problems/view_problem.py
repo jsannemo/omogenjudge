@@ -1,8 +1,8 @@
 import dataclasses
 import mimetypes
-from typing import Optional, List
+from typing import List, Optional
 
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
 
 from omogenjudge.frontend.decorators import only_started_contests
@@ -10,7 +10,7 @@ from omogenjudge.frontend.problems.submit import SOURCE_CODE_LIMIT, SubmitForm
 from omogenjudge.frontend.submissions.view_submission import SubmissionWithSubtasks
 from omogenjudge.problems.lookup import NoSuchLanguage, find_statement_file, get_problem_for_view
 from omogenjudge.problems.permissions import can_view_problem
-from omogenjudge.problems.testgroups import get_subtask_scores, get_submission_subtask_scores
+from omogenjudge.problems.testgroups import get_submission_subtask_scores, get_subtask_scores
 from omogenjudge.storage.models import Problem, ProblemStatementFile
 from omogenjudge.submissions.lookup import list_account_problem_submissions
 from omogenjudge.util.django_types import OmogenRequest
@@ -19,10 +19,13 @@ from omogenjudge.util.templates import render_template
 
 @dataclasses.dataclass
 class ViewArgs:
+    short_name: str
     statement_title: str
     statement_html: str
     statement_license: str
     statement_authors: str
+    statement_source: str
+    statement_languages: list[str]
     timelim_seconds: str
     timelim_ms: int
     memlim_mb: str
@@ -36,7 +39,7 @@ class ViewArgs:
 @only_started_contests
 def view_problem(request: OmogenRequest, short_name: str, language: Optional[str] = None) -> HttpResponse:
     try:
-        problem, statement = get_problem_for_view(short_name, language=language)
+        problem, statement, available_languages = get_problem_for_view(short_name, language=language)
     except Problem.DoesNotExist:
         raise Http404
     except NoSuchLanguage:
@@ -54,10 +57,13 @@ def view_problem(request: OmogenRequest, short_name: str, language: Optional[str
         submission in submissions]
 
     args = ViewArgs(
+        short_name=short_name,
         statement_title=statement.title,
         statement_html=statement.html,
         statement_license=problem.license,
         statement_authors=', '.join(problem.author),
+        statement_source=problem.source,
+        statement_languages=available_languages,
         timelim_seconds=str(round(problem.current_version.time_limit_ms / 1000, ndigits=1)),
         timelim_ms=problem.current_version.time_limit_ms,
         memlim_mb='{:.0f}'.format(round(problem.current_version.memory_limit_kb / 1000)),

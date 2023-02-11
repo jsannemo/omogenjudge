@@ -1,49 +1,69 @@
-{% block title %}
-Submission Queue
-{% endblock %}
+{% extends "base.html" %}
 
-{% load problems %}
-{% load submissions %}
+{% import "nav.html" as nav %}
+{% import "problems/helpers.html" as problemhelpers with context %}
+{% import "contests/helpers.html" as contesthelpers with context %}
+{% import "submissions/helpers.html" as submissionhelpers with context %}
+{% import "util.html" as util %}
+{% import "formatting.html" as formatting %}
 
+{% block title %}Queue{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-10">
-        <div class="card card-body">
-            <table class="table table-striped table-sm">
-                <thead>
-                <tr class="bg-dark text-light">
-                    <th>ID</th>
-                    <th>Team</th>
-                    <th>Problem</th>
-                    <th>Language</th>
-                    <th>Status</th>
-                    <th>Time</th>
-                    <th>Submitted</th>
-                </tr>
-                </thead>
-                {% for sub in submissions %}
-                <tr>
-                    <td>{% include 'submissions/link.html' with submission=sub %}</td>
-                    <td>{{ sub.account.full_name }}</td>
-                    <td>
-                        {% include 'problems/link.html' with problem=sub.problem %}
-                    </td>
-                    <td>
-                        {{ sub.language }}
-                    </td>
-                    <td>
-                        {{ sub.current_run | display_verdict }}
-                    </td>
-                    <td>
-                        {{ formatting.format_time_limit(sub.current_run.time_usage_ms, sub.problem.current_version.time_limit_ms) }}
-                    </td>
-                    <td>
-                        {{ sub.date_created }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
+<div class="row">
+    <div class="col-lg-12">
+        {{ nav.contest_nav('queue') }}
+    </div>
+    <div class="col-lg-8">
+        <table class="table table-striped table-sm">
+            <thead>
+            <tr class="bg-dark text-light">
+                <th>ID</th>
+                <th>Submitted</th>
+                <th>Author</th>
+                <th>Problem</th>
+                {% if contest and contest.is_scoring() %}
+                <th class="text-center">Score</th>
+                {% else %}
+                <th class="text-center">Verdict</th>
+                {% endif %}
+                <th class="text-center">Time</th>
+                <th style="width: 0"></th>
+            </tr>
+            </thead>
+            {% for sub_with_scores in submissions %}
+            {% set sub = sub_with_scores.submission %}
+            {% set problem_with_scores = problems[sub.problem_id] %}
+            {% set problem = problem_with_scores.problem %}
+            <tr class="align-middle">
+                <td>
+                    {{ sub.submission_id }}
+                </td>
+                <td>
+                    {{ submissionhelpers.format_submission_time(sub) }}
+                </td>
+                <td>
+                    {{ sub.account.full_name }}
+                </td>
+                <td>
+                    {{ problemhelpers.link(problem) }}
+                </td>
+                <td class="text-center">
+                    {% if problem.current_version.scoring %}
+                    {{ submissionhelpers.display_score_verdict(sub.current_run, sub_with_scores.subtask_scores, problem_with_scores.subtask_scores) }}
+                    {% else %}
+                    {{ submissionhelpers.display_verdict(sub.current_run) }}
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {{ formatting.format_time_limit(sub.current_run.time_usage_ms, problem.current_version.time_limit_ms) }}
+                </td>
+                <td>{{ submissionhelpers.button_link(sub, 'View details') }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div class="col-lg-4">
+        {{ contesthelpers.contest_card() }}
     </div>
 </div>
 {% endblock %}

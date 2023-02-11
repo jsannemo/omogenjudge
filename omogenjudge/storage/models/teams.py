@@ -10,8 +10,8 @@ class Team(models.Model):
     team_name = django_fields.TextField(null=True)
     team_data = models.JSONField(blank=True, default=dict)
     # When this team starts the contest
-    # TODO: not implemented
     contest_start_time = models.DateTimeField(null=True, blank=True)
+    practice = models.BooleanField(null=False, default=False)
 
     def display_name(self) -> str:
         if self.team_name:

@@ -2,14 +2,15 @@ import django.forms as forms
 from crispy_forms.bootstrap import FieldWithButtons
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit
+from django.core.exceptions import PermissionDenied
 from django.core.files.uploadhandler import FileUploadHandler, StopUpload
 from django.http import Http404, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from omogenjudge.frontend.decorators import requires_user
+from omogenjudge.frontend.decorators import requires_contest, requires_user
 from omogenjudge.problems.lookup import problem_by_name
-from omogenjudge.problems.permissions import can_view_problem
-from omogenjudge.storage.models import Problem, Account
+from omogenjudge.problems.permissions import can_submit_in_contest, can_view_problem
+from omogenjudge.storage.models import Account, Contest, Problem
 from omogenjudge.storage.models.langauges import Language
 from omogenjudge.submissions.create import create_submission
 from omogenjudge.util.contest_urls import reverse_contest
@@ -58,14 +59,17 @@ class SourceLimitCappingHandler(FileUploadHandler):
 
 
 @csrf_exempt
-@requires_user
-def submit(request: OmogenRequest, short_name: str, user: Account) -> HttpResponse:
+@requires_user()
+@requires_contest
+def submit(request: OmogenRequest, short_name: str, user: Account, contest: Contest) -> HttpResponse:
     try:
         problem = problem_by_name(short_name)
     except Problem.DoesNotExist:
-        raise Http404
+        raise Http404()
     if not can_view_problem(problem):
-        raise Http404
+        raise Http404()
+    if not can_submit_in_contest(contest):
+        raise PermissionDenied()
     request.upload_handlers.insert(0, SourceLimitCappingHandler(request))  # type: ignore
     exceeded_file_size = request.META.get('upload_was_capped', False)
     form = SubmitForm(problem.short_name, data=request.POST, files=request.FILES)

@@ -4,13 +4,14 @@ from django.core.cache import cache
 from django.db.models import Prefetch, QuerySet
 
 from omogenjudge.storage.models import Contest, ContestProblem, Problem, ProblemStatement, ProblemStatementFile
+from omogenjudge.util.i18n import preferred_languages
 
 
 class NoSuchLanguage(Exception):
     pass
 
 
-def get_problem_for_view(short_name: str, *, language: Optional[str] = None) -> Tuple[Problem, ProblemStatement]:
+def get_problem_for_view(short_name: str, *, language: Optional[str] = None) -> Tuple[Problem, ProblemStatement, list[str]]:
     problem = (
         Problem.objects.prefetch_related('statements')
         .select_related('current_version')
@@ -18,18 +19,16 @@ def get_problem_for_view(short_name: str, *, language: Optional[str] = None) -> 
               'current_version__memory_limit_kb')
         .get(short_name=short_name)
     )
-    statements = {}
+    statements: dict[str, ProblemStatement] = {}
     for statement in problem.statements.all():
-        if statement.language == language:
-            return problem, statement
         statements[statement.language] = statement
-    if language:
+    available_languages = sorted(list(statements.keys()))
+    if language and language not in statements:
         raise NoSuchLanguage
-    # TODO: look at user lang
-    for lang in ["sv", "en"]:
+    for lang in [language] + preferred_languages():
         if lang in statements:
-            return problem, statements[lang]
-    return problem, statements[0]
+            return problem, statements[lang], available_languages
+    return problem, statements[available_languages[0]], available_languages
 
 
 def problem_by_name(short_name: str) -> Problem:

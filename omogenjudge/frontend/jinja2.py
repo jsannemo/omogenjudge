@@ -9,6 +9,7 @@ from jinja2 import Environment, pass_context
 
 from omogenjudge.storage.models import Status, Verdict
 from omogenjudge.util.contest_urls import reverse_contest
+from omogenjudge.util.i18n import preferred_languages
 
 
 def route_name(request):
@@ -44,11 +45,14 @@ def format_timedelta(delta: timedelta):
 
     res = ""
     if days == 1:
-        res += "1 day, "
+        res += "1 day"
     elif days:
-        res += f"{days} days, "
+        res += f"{days} days"
 
-    res += f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    if (hours or minutes or seconds) or not res:
+        if res:
+            res += ", "
+        res += f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     return res
 
 
@@ -56,6 +60,25 @@ def format_timedelta(delta: timedelta):
 def render_crispy(ctx, form):
     context = csrf(ctx.get('request'))
     return render_crispy_form(form, context=context)
+
+
+language_to_flag = {
+    "da": "🇩🇰",
+    "de": "🇩🇪",
+    "en": "🇬🇧",
+    "et": "🇪🇪",
+    "is": "🇮🇸",
+    "lt": "🇱🇹",
+    "lv": "🇱🇻",
+    "no": "🇳🇴",
+    "pl": "🇵🇱",
+    "ru": "🇷🇺",
+    "sv": "🇸🇪",
+}
+
+
+def emoji_flag(language):
+    return language_to_flag.get(language, language)
 
 
 def environment(**options):
@@ -70,6 +93,8 @@ def environment(**options):
         "Status": Status,
         "Verdict": Verdict,
         "format_duration_ms": format_duration_ms,
+        "preferred_languages": preferred_languages,
+        "emoji_flag": emoji_flag,
     })
     env.filters.update({
         "format_duration_ms": format_duration_ms,

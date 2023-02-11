@@ -1,14 +1,14 @@
 {% macro problem_title(problem) %}
     {% set problem_titles = problem.titles_by_language %}
     {% set ns = namespace(found=false) %}
-    {% for lang in ['en', 'sv'] if not found %}
+    {% for lang in preferred_languages() if not ns.found %}
         {% if lang in problem_titles %}
             {{ problem_titles[lang] }}
             {% set ns.found = True %}
         {% endif %}
     {% endfor %}
     {% if not ns.found %}
-        {{ next(problem_titles) }}
+        {{ problem_titles[(problem_titles.keys() | sort)[0]] }}
     {% endif %}
 {% endmacro %}
 
@@ -20,6 +20,10 @@
     {{ link(scoreboard_problem.problem.problem) }}
 {% endmacro %}
 
-{% macro link(problem) %}
-    <a href="{{ contest_url('problem', problem.short_name) }}">{{ problem_title(problem) }}</a>
+{% macro link(problem, current_problem=None) %}
+    {% if current_problem == problem.short_name %}
+        {{ problem_title(problem) }}
+    {% else %}
+        <a href="{{ contest_url('problem', problem.short_name) }}">{{ problem_title(problem) }}</a>
+    {% endif %}
 {% endmacro %}

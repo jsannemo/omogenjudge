@@ -53,5 +53,5 @@ pkg_deb(
     package = "omogenjudge-host",
     postinst = "debian/postinst",
     prerm = "debian/prerm",
-    version = "0.0.1",
+    version = "0.0.2",
 )

@@ -84,16 +84,20 @@
   table.sample {
     width: 100%;
     margin: 1rem 0;
+    table-layout: fixed;
+  }
+
+  table.sample tbody {
   }
 
   table.sample th {
     text-align: left;
-    width: 50%;
   }
 
   table.sample td {
     border: 1px solid black;
     padding: 0.3rem;
+    width: 50%;
     pre {
       margin: 0;
     }

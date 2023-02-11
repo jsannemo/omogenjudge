@@ -20,6 +20,10 @@ import (
 var langMap = map[string]apipb.LanguageGroup{
 	"cpp":     apipb.LanguageGroup_CPP,
 	"python3": apipb.LanguageGroup_PYTHON_3,
+	"ruby":    apipb.LanguageGroup_RUBY,
+	"rust":    apipb.LanguageGroup_RUST,
+	"java":    apipb.LanguageGroup_JAVA,
+	"csharp":   apipb.LanguageGroup_CSHARP,
 }
 
 type submissionJson struct {
@@ -56,8 +60,12 @@ func evaluate(runId int64) error {
 	if res := storage.GormDB.Select("Status").Save(&run); res.Error != nil {
 		logger.Warningf("failed marking run as compiling: %v", res.Error)
 	}
+	lang, ok := langMap[run.Submission.Language]
+	if !ok {
+        return fmt.Errorf("run has unknown language %s", run.Submission.Language)
+	}
 	program := &apipb.Program{
-		Language: langMap[run.Submission.Language],
+		Language: lang,
 	}
 	submissionFiles := submissionJson{}
 	err := json.Unmarshal(run.Submission.SubmissionFiles, &submissionFiles)

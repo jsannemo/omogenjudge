@@ -29,25 +29,14 @@ def list_account_problem_submissions(*,
     return qs
 
 
-def list_contest_submissions(user_ids: list[int], problem_ids: list[int], contest: Contest) -> QuerySet[Submission]:
-    qs = Submission.objects.filter(
-        account_id__in=user_ids,
-        problem_id__in=problem_ids,
-    ).select_related('current_run') \
+def list_queue_submissions(user_ids: list[int] | None, problem_ids: list[int], *, ascending: bool=False) -> \
+        QuerySet[Submission]:
+    filters = {}
+    if user_ids is not None:
+        filters['account_id__in'] = user_ids
+    if problem_ids is not None:
+        filters['problem_id__in'] = problem_ids
+    qs = Submission.objects.filter(**filters).select_related('current_run') \
         .prefetch_related('current_run__group_runs') \
-        .order_by('-submission_id')
-
-    if contest.start_time:
-        qs = qs.filter(
-            date_created__gte=contest.start_time,
-            date_created__lt=contest.start_time + contest.duration,
-        )
-
+        .order_by('submission_id' if ascending else '-submission_id')
     return qs
-
-
-def all_submissions_for_queue() -> QuerySet[Submission]:
-    return Submission.objects.select_related('current_run').select_related('problem').prefetch_related(
-        Prefetch(
-            'problem__statements',
-            ProblemStatement.objects.all().only('problem_id', 'language', 'title'))).order_by('-submission_id').all()
