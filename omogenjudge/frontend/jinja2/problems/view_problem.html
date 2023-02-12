@@ -23,7 +23,9 @@
         document.querySelectorAll('.tex2jax_process').forEach(
             el => renderMathInElement(el, { delimiters: [
               {left: '$', right: '$', display: false},
+              {left: '$$', right: '$$', display: true},
               {left: '\\(', right: '\\)', display: false},
+              {left: '\\[', right: '\\]', display: true},
           ],
           ignoredClasses: ['*']
         }));

@@ -112,7 +112,7 @@ class ScoreboardMaker:
             if team.contest_start_time:
                 elapsed = self.now - team.contest_start_time
                 if (not self._at_time or elapsed <= self._at_time) and elapsed <= self.contest.duration:
-                    sc_team.virtual_time = self.now - team.contest_start_time
+                    sc_team.virtual_time = elapsed
             teams.append(sc_team)
         if not self._at_time and (not teams or problem_results != upsolved_results):
             upsolve_team = ScoreboardTeam(
@@ -267,8 +267,10 @@ _SCOREBOARDS: Dict[ScoringType, Type[ScoreboardMaker]] = {
 }
 
 
-def load_scoreboard(contest: Contest, *, now: datetime.datetime = timezone.now(),
+def load_scoreboard(contest: Contest, *, now: Optional[datetime.datetime] = None,
                     at_time: Optional[datetime.timedelta] = None) -> ScoreboardMaker:
+    if not now:
+        now = timezone.now()
     problems = list(contest_problems_with_grading(contest))
     teams = list(contest_teams(contest))
     registered_user_ids = [tm.account_id for team in teams for tm in team.teammember_set.all()]

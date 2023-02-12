@@ -33,7 +33,7 @@
                     {% if contest_started %}
                         {% for cproblem in scoreboard.problems %}
                             {% if cproblem.label %}
-                                <th style="width: 2em">
+                                <th style="width: 2em" class="text-center">
                                     <a href="{{ contest_url('problem', cproblem.problem.short_name) }}">
                                         <span class="badge me-1 bg-primary"
                                               data-bs-toggle="tooltip" data-bs-placement="top"
