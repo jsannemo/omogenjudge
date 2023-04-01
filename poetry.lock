@@ -721,22 +721,26 @@ docs = ["furo", "olefile", "sphinx (>=2.4)", "sphinx-copybutton", "sphinx-inline
 tests = ["check-manifest", "coverage", "defusedxml", "markdown2", "olefile", "packaging", "pyroma", "pytest", "pytest-cov", "pytest-timeout"]
 
 [[package]]
-name = "plastex"
+name = "plasTeX"
 version = "3.0"
-description = "LaTeX document processing framework"
+description = ""
 category = "main"
 optional = false
 python-versions = ">=3.6"
-files = [
-    {file = "plasTeX-3.0-py3-none-any.whl", hash = "sha256:63cf1eb17767db9ffe9878b0d9426c44c85ea22b34f84e433118d6fee572a8c9"},
-    {file = "plasTeX-3.0.tar.gz", hash = "sha256:60efcbad47504bed02877e0990ddc782c0ccebc73a8db9cfba8fc250bc002252"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 Jinja2 = ">=2.10.1"
 Pillow = ">=7"
 typing-extensions = ">=3.7"
 Unidecode = ">=0.4.21"
+
+[package.source]
+type = "git"
+url = "https://github.com/plastex/plastex.git"
+reference = "master"
+resolved_reference = "aa5de5c85081e0f352716867ce62943594aa2a9a"
 
 [[package]]
 name = "problemtools"
@@ -1061,4 +1065,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f647733d4588a78013a838f57a099015c877c5ff894ef1b856e50aa13a1965d4"
+content-hash = "3e8b87b2d41cc6bb4cbaedc9bf7b7e28707e67768fd62ad798988c105d0694d3"

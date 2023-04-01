@@ -13,6 +13,7 @@ python = "^3.10"
 Django = "^4.1"
 psycopg2 = "^2.9.3"
 problemtools = {git = "https://github.com/kattis/problemtools", branch = "develop"}
+plastex = {git = "https://github.com/plastex/plastex.git", branch = "master"}
 django-crispy-forms = "^1.14.0"
 crispy-bootstrap5 = "^0.6"
 uWSGI = "^2.0.20"

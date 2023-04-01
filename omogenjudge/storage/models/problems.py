@@ -89,7 +89,7 @@ class ProblemStatement(models.Model):
 
 class ProblemStatementFile(models.Model):
     problem_statement_file_id = models.AutoField(primary_key=True)
-    problem = models.ForeignKey(Problem, models.CASCADE)
+    problem = models.ForeignKey(Problem, models.CASCADE, related_name='statement_files')
     file_path = django_fields.TextField()
     statement_file = models.ForeignKey('StoredFile', models.RESTRICT, db_column='statement_file_hash', related_name='+')
     attachment = models.BooleanField()

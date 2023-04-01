@@ -34,20 +34,21 @@ class ActiveContestMiddleware:
                     request.contest_site = True
             except Contest.DoesNotExist:
                 request.contest = None
+        if request.contest:
+            request.team = contest_team_for_user(request.contest, request.user)
 
 
 def contest_context(request: OmogenRequest) -> dict[str, typing.Any]:
     if request.contest:
         contest = request.contest
-        team = contest_team_for_user(contest, request.user)
         ctx: dict[str, typing.Any] = {
             'contest': contest,
             'all_contest_problems': SimpleLazyObject(lambda: contest_problems(contest)),
-            'contest_team': team,
-            'contest_started': contest_has_started_for_team(contest, team),
-            'contest_ended': contest_has_ended_for_team(contest, team),
+            'contest_team': request.team,
+            'contest_started': contest_has_started_for_team(contest, request.team),
+            'contest_ended': contest_has_ended_for_team(contest, request.team),
         }
-        if not team_can_view_problems(contest, team):
+        if not team_can_view_problems(contest, request.team):
             ctx['contest_problems'] = []
         else:
             ctx['contest_problems'] = SimpleLazyObject(lambda: contest_problems(contest))

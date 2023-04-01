@@ -57,7 +57,7 @@
                             {% endif %}
                         {% endfor %}
                         <th class="text-center" style="width: 5em">Score</th>
-                        {% if contest.start_time %}
+                        {% if scoreboard.has_penalty %}
                             <th class="text-center" style="width: 4em"
                                     {% if contest.scoring_type == 'scoring' %}
                                 data-bs-toggle="tooltip" data-bs-placement="right"
@@ -69,7 +69,13 @@
                     {% endif %}
                 </tr>
                 </thead>
+                {% set sc = namespace(upsolving_section = False, has_regular_team = False) %}
                 {% for team in scoreboard.scoreboard_teams %}
+                    {% set sc.has_regular_team = sc.has_regular_team or team.rank %}
+                    {% if sc.has_regular_team and not sc.upsolving_section and not team.rank %}
+                        <tr class="bg-opacity-10 bg-dark"><td colspan="1000"></td></tr>
+                    {% endif %}
+                    {% set sc.upsolving_section = not team.rank %}
                     <tr
                             id="rank-{{ loop.index0 }}"
                             {% if user.is_authenticated and loop.index0 == scoreboard.user_to_rank[user.account_id] %}
@@ -133,8 +139,12 @@
                                 </td>
                             {% endfor %}
                             <td class="text-center">{{ formatting.format_score(team.total_score) }}</td>
-                            {% if contest.start_time %}
-                                <td class="text-center">{{ scoreboard.format_tiebreak(team.tiebreak) }}</td>
+                            {% if scoreboard.has_penalty %}
+                                <td class="text-center">
+                                    {% if team.virtual or (contest.start_time and not team.practice) %}
+                                    {{ scoreboard.format_tiebreak(team.tiebreak) }}
+                                    {% endif %}
+                                </td>
                             {% endif %}
                         {% endif %}
                     </tr>

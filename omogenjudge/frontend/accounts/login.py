@@ -149,13 +149,20 @@ def github_auth(request: OmogenRequest) -> HttpResponse:
         response = requests.post("https://github.com/login/oauth/access_token", data=request_params)
         response.raise_for_status()
         client.parse_request_body_response(response.text)
-        uri, headers, body = client.add_token("https://api.github.com/user", "get", )
 
+        uri, headers, body = client.add_token("https://api.github.com/user", "get", )
         user_details = requests.get(uri, data=body, headers=headers).json()
         username = user_details["login"]
-        email = user_details["email"]
         full_name = user_details.get("name")
-        return oauth_login(request, username, email, full_name)
+
+        uri, headers, body = client.add_token("https://api.github.com/user/emails", "get", )
+        emails = requests.get(uri, data=body, headers=headers).json()
+        for email in emails:
+            if email["primary"] and email["verified"]:
+                return oauth_login(request, username, email["email"], full_name)
+        messages.error(request, "You need to verify your primary email on your Github account to log in.")
+        return redirect("login")
+
     else:
         url, _, _ = client.prepare_authorization_request(
             "https://github.com/login/oauth/authorize",

@@ -177,6 +177,10 @@ class ScoreboardMaker:
                 contest_submissions.append(submission)
         return contest_submissions
 
+    @property
+    def has_penalty(self):
+        return NotImplementedError
+
 
 def _subtask_runs(group_runs: List[SubmissionGroupRun], subtasks: int):
     # First run is sample; assume all other subtasks have depth 1
@@ -228,6 +232,10 @@ class Scoring(ScoreboardMaker):
     def _team_sort_key(self, team):
         return -team.total_score, team.tiebreak
 
+    @property
+    def has_penalty(self):
+        return False
+
 
 class BinaryWithPenalty(ScoreboardMaker):
 
@@ -255,10 +263,14 @@ class BinaryWithPenalty(ScoreboardMaker):
                 problem_result.problem_score += 1
                 if start_time:
                     seconds = math.floor((sub.date_created - start_time).total_seconds())
-                    problem_result.tiebreak = -failures * 20 + seconds // 60
+                    problem_result.tiebreak = failures * 20 + seconds // 60
             else:
                 failures += 1
         return problem_result
+
+    @property
+    def has_penalty(self):
+        return True
 
 
 _SCOREBOARDS: Dict[ScoringType, Type[ScoreboardMaker]] = {

@@ -22,10 +22,17 @@
         onload="
         document.querySelectorAll('.tex2jax_process').forEach(
             el => renderMathInElement(el, { delimiters: [
-              {left: '$', right: '$', display: false},
               {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
               {left: '\\(', right: '\\)', display: false},
               {left: '\\[', right: '\\]', display: true},
+              {left: '\\begin{equation}', right: '\\end{equation}', display: true},
+              {left: '\\begin{equation*}', right: '\\end{equation*}', display: true},
+              {left: '\\begin{align}', right: '\\end{align}', display: true},
+              {left: '\\begin{align*}', right: '\\end{align*}', display: true},
+              {left: '\\begin{alignat}', right: '\\end{alignat}', display: true},
+              {left: '\\begin{gather}', right: '\\end{gather}', display: true},
+              {left: '\\begin{CD}', right: '\\end{CD}', display: true},
           ],
           ignoredClasses: ['*']
         }));
@@ -57,9 +64,19 @@
                 </div>
                 {% endif %}
             </div>
-            <div class="card-body problemstatement">
-                {{ statement_html | safe }}
-            </div>
+            <ul class="list-group list-group-flush">
+                {% if attachments %}
+                <li class="list-group-item">
+                    <strong>Attachments:</strong>
+                    {% for name, url in attachments %}
+                        <a href="{{url}}" class="text-decoration-none">{{name}}</a>
+                    {% endfor %}
+                </li>
+                {% endif %}
+                <li class="list-group-item problemstatement">
+                    {{ statement_html | safe }}
+                </li>
+            </ul>
             <div class="card-footer d-flex justify-content-between">
                 {% if statement_authors %}
                 <span>
@@ -74,7 +91,7 @@
                     {% else %}
                         License: {{ statement_license.display() }}
                     {% endif %}
-                    </span>
+                </span>
             </div>
         </div>
     </div>

@@ -7,7 +7,7 @@ from omogenjudge.util import django_fields
 class Team(models.Model):
     team_id = models.AutoField(primary_key=True)
     contest = models.ForeignKey(Contest, models.CASCADE)
-    team_name = django_fields.TextField(null=True)
+    team_name = django_fields.TextField(null=True, blank=True)
     team_data = models.JSONField(blank=True, default=dict)
     # When this team starts the contest
     contest_start_time = models.DateTimeField(null=True, blank=True)

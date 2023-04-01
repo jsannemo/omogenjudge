@@ -20,7 +20,7 @@ class JsContext:
 def js_context(request: OmogenRequest) -> Dict[str, str]:
     contest = request.contest
     if contest:
-        team = contest_team_for_user(contest, request.user)
+        team = request.team
         return {
             'js_context':
                 json.dumps(dataclasses.asdict(JsContext(

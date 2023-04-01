@@ -23,11 +23,15 @@ var langMap = map[string]apipb.LanguageGroup{
 	"ruby":    apipb.LanguageGroup_RUBY,
 	"rust":    apipb.LanguageGroup_RUST,
 	"java":    apipb.LanguageGroup_JAVA,
-	"csharp":   apipb.LanguageGroup_CSHARP,
+	"csharp":  apipb.LanguageGroup_CSHARP,
 }
 
 type submissionJson struct {
 	Files map[string]string
+}
+
+type includedCodeJson struct {
+	FilesByLanguage map[string]map[string]string `json:"files_by_language"`
 }
 
 var evalMutex sync.Mutex
@@ -62,18 +66,27 @@ func evaluate(runId int64) error {
 	}
 	lang, ok := langMap[run.Submission.Language]
 	if !ok {
-        return fmt.Errorf("run has unknown language %s", run.Submission.Language)
+		return fmt.Errorf("run has unknown language %s", run.Submission.Language)
 	}
 	program := &apipb.Program{
 		Language: lang,
 	}
 	submissionFiles := submissionJson{}
-	err := json.Unmarshal(run.Submission.SubmissionFiles, &submissionFiles)
-	if err != nil {
+	if err := json.Unmarshal(run.Submission.SubmissionFiles, &submissionFiles); err != nil {
 		return err
 	}
+	includedCode := includedCodeJson{}
+	if err := json.Unmarshal(run.ProblemVersion.IncludedFiles, &includedCode); err != nil {
+		return err
+	}
+	logger.Infof("Lang: %v, included code:", run.Submission.Language, includedCode)
+	extraFiles := includedCode.FilesByLanguage[run.Submission.Language]
+
 	logger.Infof("Files: %v", submissionFiles)
 	for path, content := range submissionFiles.Files {
+		if _, hasExtraFile := extraFiles[path]; hasExtraFile {
+			continue
+		}
 		content, err := base64.StdEncoding.DecodeString(content)
 		if err != nil {
 			return err
@@ -83,6 +96,15 @@ func evaluate(runId int64) error {
 			Contents: content,
 		})
 	}
+
+	logger.Infof("Extra files: %v", extraFiles)
+	for path, content := range extraFiles {
+		program.Sources = append(program.Sources, &apipb.SourceFile{
+			Path:     filepath.Base(path),
+			Contents: []byte(content),
+		})
+	}
+
 	// In case we retry judging of the run, put it in a new folder instead to avoid collisions
 	subRoot := fmt.Sprintf("/var/lib/omogen/submissions/%d-%d", runId, time.Now().Unix())
 	compile, err := eval.Compile(program, filepath.Join(subRoot, "compile"))

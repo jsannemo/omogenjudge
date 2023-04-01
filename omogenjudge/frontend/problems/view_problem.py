@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
+from django.urls import reverse
 
 from omogenjudge.frontend.decorators import only_started_contests
 from omogenjudge.frontend.problems.submit import SOURCE_CODE_LIMIT, SubmitForm
@@ -34,6 +35,7 @@ class ViewArgs:
     submit_form: SubmitForm
     source_code_limit: int
     submissions: list[SubmissionWithSubtasks]
+    attachments: list[tuple[str, str]]
 
 
 @only_started_contests
@@ -48,6 +50,7 @@ def view_problem(request: OmogenRequest, short_name: str, language: Optional[str
     if not can_view_problem(problem):
         raise Http404
 
+    attachments = {f.file_path: reverse('problem_attachment', args=[short_name, f.file_path]) for f in problem.statement_files.all()}
     subtasks = get_subtask_scores(problem.current_version)
     submissions = list_account_problem_submissions(account=request.user, problem=problem,
                                                    limit=20) if request.user.is_authenticated else []
@@ -72,6 +75,7 @@ def view_problem(request: OmogenRequest, short_name: str, language: Optional[str
         submit_form=SubmitForm(problem.short_name),
         source_code_limit=SOURCE_CODE_LIMIT,
         submissions=submissions_with_subtasks,
+        attachments=sorted(attachments.items(), key=lambda it: it[0]),
     )
     return render_template(request, 'problems/view_problem.html', args)
 

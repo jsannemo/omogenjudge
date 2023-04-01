@@ -13,7 +13,9 @@ class NoSuchLanguage(Exception):
 
 def get_problem_for_view(short_name: str, *, language: Optional[str] = None) -> Tuple[Problem, ProblemStatement, list[str]]:
     problem = (
-        Problem.objects.prefetch_related('statements')
+        Problem.objects
+        .prefetch_related('statements')
+        .prefetch_related(Prefetch('statement_files', queryset=ProblemStatementFile.objects.filter(attachment=1)))
         .select_related('current_version')
         .only('short_name', 'author', 'source', 'license', 'current_version__time_limit_ms',
               'current_version__memory_limit_kb')
@@ -27,8 +29,11 @@ def get_problem_for_view(short_name: str, *, language: Optional[str] = None) -> 
         raise NoSuchLanguage
     for lang in [language] + preferred_languages():
         if lang in statements:
-            return problem, statements[lang], available_languages
-    return problem, statements[available_languages[0]], available_languages
+            selected_language = lang
+            break
+        else:
+            selected_language = available_languages[0]
+    return problem, statements[selected_language], available_languages
 
 
 def problem_by_name(short_name: str) -> Problem:

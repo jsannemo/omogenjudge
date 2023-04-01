@@ -79,6 +79,7 @@ class ContestProblem(models.Model):
     contest = models.ForeignKey(Contest, models.CASCADE)
     problem = models.ForeignKey(Problem, models.CASCADE)
     label = django_fields.TextField(blank=True, null=True)
+    binary_pass_score = models.IntegerField(null=True, blank=True, default=None)
 
     def __str__(self):
         return str(self.contest) + ": " + self.label + " - " + str(self.problem)

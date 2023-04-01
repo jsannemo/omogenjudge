@@ -16,14 +16,14 @@ from omogenjudge.storage.models import IncludedFiles, Problem, ProblemOutputVali
 from omogenjudge.storage.stored_files import insert_file
 
 
-def _add_problem(problem: ToolsProblem) -> Problem:
+def _add_or_update_problem(db_problem: Optional[Problem], problem: ToolsProblem) -> Problem:
+    if not db_problem:
+        db_problem = Problem(short_name=problem.shortname)
     author = [author.strip() for author in problem.config.get('author').split(",")]
-    return Problem(
-        short_name=problem.shortname,
-        author=author,
-        license=License(problem.config.get('license')),
-        source=problem.config.get('source'),
-    )
+    db_problem.author = author
+    db_problem.license = License(problem.config.get('license'))
+    db_problem.source = problem.config.get('source')
+    return db_problem
 
 
 def _add_case(db_group: ProblemTestgroup, case: ToolsCase) -> ProblemTestcase:
@@ -218,10 +218,18 @@ def _add_statement(problem: ToolsProblem, language_code: str, db_problem: Proble
 
 def _add_statements(problem: ToolsProblem, db_problem: Problem):
     db_problem.statements.all().delete()
-    db_problem.problemstatementfile_set.all().delete()
+    db_problem.statement_files.all().delete()
     statement = problem.statement
     for lang in statement.languages:
         _add_statement(problem, lang, db_problem)
+    for attachment_path in problem.attachments.get_attachment_paths():
+        with open(attachment_path, 'rb') as attachment:
+            ProblemStatementFile(
+                problem=db_problem,
+                file_path=os.path.basename(attachment_path),
+                statement_file=insert_file(attachment.read()),
+                attachment=True,
+            ).save()
 
 
 def install_problem(problem: ToolsProblem, *, update_existing=False) -> Problem:
@@ -231,8 +239,9 @@ def install_problem(problem: ToolsProblem, *, update_existing=False) -> Problem:
             if not update_existing:
                 raise ValueError(
                     f"Problem {problem.shortname} already exists, but did not expect to update an existing problem")
+            db_problem = _add_or_update_problem(db_problem, problem)
         except Problem.DoesNotExist:
-            db_problem = _add_problem(problem)
+            db_problem = _add_or_update_problem(None, problem)
             db_problem.prefetch_id()
 
         _add_version(problem, db_problem)
