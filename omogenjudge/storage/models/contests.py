@@ -57,7 +57,7 @@ class Contest(models.Model):
             return True
         if self.flexible_start_window_end_time and self.flexible_start_window_end_time <= timezone.now():
             return True
-        return self.has_ended()
+        return self.has_ended
 
     def is_scoring(self):
         return ScoringType(self.scoring_type) == ScoringType.SCORING
