@@ -1,7 +1,7 @@
 ---
 - name: Install nginx
   hosts: web
-  remote_user: root
+  become: yes
 
   tasks:
   - name: Ensure nginx is at the latest version

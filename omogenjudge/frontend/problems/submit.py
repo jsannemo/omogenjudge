@@ -18,11 +18,13 @@ from omogenjudge.util.django_types import OmogenRequest
 
 SOURCE_CODE_LIMIT = 200000
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
 
 class SubmitForm(forms.Form):
     upload_files = forms.FileField(
         label="",
-        widget=forms.ClearableFileInput(attrs={'multiple': True, 'class': 'form-control'}))
+        widget=MultipleFileInput(attrs={'class': 'form-control'}))
     language = forms.ChoiceField(
         label="",
         choices=Language.as_choices(),
