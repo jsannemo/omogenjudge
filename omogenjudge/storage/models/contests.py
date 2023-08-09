@@ -36,6 +36,8 @@ class Contest(models.Model):
 
     allow_registration = models.BooleanField(default=False)  # TODO: not implemented
 
+    try_penalty = models.IntegerField(null=False, default=20)
+
     published = models.BooleanField(default=False)
 
     # These properties are cached in order to provide a consistent view of has started/has ended throughout rendering

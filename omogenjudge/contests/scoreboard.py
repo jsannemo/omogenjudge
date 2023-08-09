@@ -263,7 +263,7 @@ class BinaryWithPenalty(ScoreboardMaker):
                 problem_result.problem_score += 1
                 if start_time:
                     seconds = math.floor((sub.date_created - start_time).total_seconds())
-                    problem_result.tiebreak = failures * 20 + seconds // 60
+                    problem_result.tiebreak = failures * self.contest.try_penalty + seconds // 60
             else:
                 failures += 1
         return problem_result
